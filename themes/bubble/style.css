@@ -1,0 +1,158 @@
+/* Bubble theme. All tunable values come from CSS custom properties set by
+   the Customize Engine (see shared/customize-config.js#toCssVariables) —
+   this file should never hard-code a color/size that the panel controls. */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  font-family: var(--ovs-font-family, 'Inter', system-ui, sans-serif);
+}
+
+#ovs-chat-list {
+  display: flex;
+  flex-direction: column;
+  align-items: var(--ovs-layout-chat-align, flex-start);
+  gap: 14px;
+  padding: 18px;
+  height: 100vh;
+  box-sizing: border-box;
+  justify-content: flex-end;
+}
+
+#ovs-chat-list.ovs-position-top-down {
+  justify-content: flex-start;
+}
+
+.ovs-message {
+  display: flex;
+  direction: ltr;
+  flex-direction: var(--ovs-layout-message-direction, row);
+  align-items: var(--ovs-layout-message-align, flex-end);
+  gap: var(--ovs-layout-message-gap, 8px);
+  max-width: 88%;
+  padding: var(--ovs-layout-message-padding, 0);
+  margin: var(--ovs-layout-message-margin, 0);
+  animation: ovs-bubble-in var(--ovs-animation-ms, 260ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, opacity;
+}
+
+.ovs-avatar {
+  order: var(--ovs-layout-slot-avatar-order, 0);
+  padding: var(--ovs-layout-slot-avatar-padding, 0);
+  margin: var(--ovs-layout-slot-avatar-margin, 0);
+  width: var(--ovs-avatar-size, 34px);
+  height: var(--ovs-avatar-size, 34px);
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid var(--ovs-author-color, #ff6fa5);
+  box-sizing: border-box;
+}
+
+.ovs-avatar[data-hidden='true'] {
+  display: none;
+}
+
+.ovs-body {
+  display: flex;
+  flex-direction: var(--ovs-layout-body-direction, column);
+  align-items: var(--ovs-layout-body-align, stretch);
+  gap: var(--ovs-layout-body-gap, 0);
+  padding: var(--ovs-layout-body-padding, 0);
+  margin: var(--ovs-layout-body-margin, 0);
+  min-width: 0;
+}
+
+.ovs-meta {
+  display: flex;
+  flex-direction: var(--ovs-layout-meta-direction, row);
+  align-items: var(--ovs-layout-meta-align, center);
+  gap: var(--ovs-layout-meta-gap, 6px);
+  padding: var(--ovs-layout-meta-padding, 0);
+  margin: var(--ovs-layout-meta-margin, 0 0 3px 14px);
+}
+
+.ovs-author {
+  order: var(--ovs-layout-slot-author-order, 0);
+  padding: var(--ovs-layout-slot-author-padding, 0);
+  margin: var(--ovs-layout-slot-author-margin, 0);
+  font-weight: 700;
+  font-size: calc(var(--ovs-font-size, 16px) * 0.82);
+  color: var(--ovs-author-color, #ff6fa5);
+}
+
+.ovs-badges {
+  order: var(--ovs-layout-slot-badges-order, 1);
+  padding: var(--ovs-layout-slot-badges-padding, 0);
+  margin: var(--ovs-layout-slot-badges-margin, 0);
+  display: inline-flex;
+  gap: 4px;
+  font-size: calc(var(--ovs-font-size, 16px) * 0.6);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.ovs-badges:empty,
+.ovs-badges[data-hidden='true'] {
+  display: none;
+}
+
+.ovs-text {
+  order: var(--ovs-layout-slot-message-order, 1);
+  padding: var(--ovs-layout-slot-message-padding, 0);
+  margin: var(--ovs-layout-slot-message-margin, 0);
+  position: relative;
+  font-size: var(--ovs-font-size, 16px);
+  color: var(--ovs-text-color, #ffffff);
+  line-height: 1.35;
+  word-break: break-word;
+  padding: 9px 14px;
+  border-radius: var(--ovs-bubble-radius, 18px);
+  border-bottom-left-radius: 4px;
+  background: var(--ovs-bubble-bg, rgba(110, 60, 220, 0.55));
+  opacity: var(--ovs-bubble-opacity, 1);
+}
+
+/* Speech-bubble tail, drawn from the same background as the bubble so it
+   always matches whatever color the person picks in the Customize Panel. */
+.ovs-text::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  bottom: 0;
+  width: 12px;
+  height: 14px;
+  background: var(--ovs-bubble-bg, rgba(110, 60, 220, 0.55));
+  opacity: var(--ovs-bubble-opacity, 1);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+.ovs-text img {
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+}
+
+.ovs-message.ovs-superchat .ovs-text {
+  background: linear-gradient(135deg, rgba(255, 202, 40, 0.35), var(--ovs-bubble-bg, rgba(110, 60, 220, 0.55)));
+  box-shadow: 0 0 0 1px rgba(255, 202, 40, 0.5) inset;
+}
+
+@keyframes ovs-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ovs-message {
+    animation: none;
+  }
+}

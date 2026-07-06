@@ -1,0 +1,14 @@
+{
+  "_comment": "Selectors for YouTube's live_chat frame. YouTube can change this DOM at any time — this file is the ONLY place that should need editing when that happens. Ship fixes as a small selectors-pack update instead of a full app rebuild. Values are plain CSS selectors, so comma-separate a few candidate selectors per field to add fallback tolerance for markup variants — querySelector already treats a comma list as 'match any of these', no code changes needed.",
+  "chatContainer": "yt-live-chat-item-list-renderer #items, #item-list #items",
+  "messageRenderer": "yt-live-chat-text-message-renderer, yt-live-chat-paid-message-renderer",
+  "superchatRenderer": "yt-live-chat-paid-message-renderer",
+  "author": "#author-name",
+  "avatar": "#author-photo img, #author-photo yt-img-shadow img, #img.yt-live-chat-author-chip img, yt-img-shadow#author-photo img, yt-live-chat-author-chip img",
+  "message": "#message",
+  "badgeContainer": "#chat-badges yt-live-chat-author-badge-renderer",
+  "badgeAccessibilityLabelAttr": "aria-label",
+  "superchatAmount": "#purchase-amount-chip #purchase-amount, #purchase-amount",
+  "staleAfterMs": 45000,
+  "scanThrottleMs": 80
+}

@@ -1,0 +1,122 @@
+/* Classic theme. All tunable values come from CSS custom properties set by
+   the Customize Engine (see shared/customize-config.js#toCssVariables) —
+   this file should never hard-code a color/size that the panel controls. */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  font-family: var(--ovs-font-family, 'Inter', system-ui, sans-serif);
+}
+
+#ovs-chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  height: 100vh;
+  box-sizing: border-box;
+  justify-content: flex-end; /* newest message anchored to the bottom */
+}
+
+#ovs-chat-list.ovs-position-top-down {
+  justify-content: flex-start;
+}
+
+.ovs-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 92%;
+  padding: 8px 12px;
+  border-radius: var(--ovs-bubble-radius, 14px);
+  background: var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72));
+  opacity: var(--ovs-bubble-opacity, 1);
+  backdrop-filter: blur(6px);
+  animation: ovs-enter var(--ovs-animation-ms, 220ms) ease-out;
+  will-change: transform, opacity;
+}
+
+.ovs-avatar {
+  width: var(--ovs-avatar-size, 32px);
+  height: var(--ovs-avatar-size, 32px);
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ovs-avatar[data-hidden='true'] {
+  display: none;
+}
+
+.ovs-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ovs-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.ovs-author {
+  font-weight: 700;
+  font-size: calc(var(--ovs-font-size, 16px) * 0.9);
+  color: var(--ovs-author-color, #6e56f0);
+  white-space: nowrap;
+}
+
+.ovs-badges {
+  display: inline-flex;
+  gap: 4px;
+  font-size: calc(var(--ovs-font-size, 16px) * 0.65);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.ovs-badges:empty {
+  display: none;
+}
+
+.ovs-badges[data-hidden='true'] {
+  display: none;
+}
+
+.ovs-text {
+  font-size: var(--ovs-font-size, 16px);
+  color: var(--ovs-text-color, #eaecef);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.ovs-text img {
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+}
+
+.ovs-message.ovs-superchat {
+  background: linear-gradient(135deg, rgba(255, 202, 40, 0.28), var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
+  border: 1px solid rgba(255, 202, 40, 0.45);
+}
+
+@keyframes ovs-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ovs-message {
+    animation: none;
+  }
+}

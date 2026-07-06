@@ -1,0 +1,9 @@
+/* Preserve natural punctuation/emoji order when horizontal layout is mirrored. */
+.ovs-text,
+.ovs-author,
+.ovs-badges,
+.ovs-meta,
+.ovs-body {
+  direction: ltr;
+  unicode-bidi: isolate;
+}

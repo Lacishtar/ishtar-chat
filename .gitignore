@@ -1,0 +1,7 @@
+node_modules/
+dist-dashboard/
+dist/
+release/
+*.log
+.DS_Store
+themes/classic/assets/chat-bubble-688ee36b.png

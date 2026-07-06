@@ -1,0 +1,16 @@
+{
+  "_label": "Anime",
+  "fontFamily": "\"Segoe UI\", system-ui, sans-serif",
+  "fontSize": 16,
+  "textColor": "#4A2E4E",
+  "authorColor": "#FF7EC9",
+  "bubbleBg": "rgba(255, 200, 230, 0.55)",
+  "bubbleRadius": 22,
+  "bubbleOpacity": 1,
+  "avatarSize": 34,
+  "showAvatar": true,
+  "showBadges": true,
+  "animationMs": 320,
+  "position": "bottom-up",
+  "maxMessages": 40
+}

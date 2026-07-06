@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://youtube-overlay-studio/schema/layout.schema.json",
+  "$comment": "Descriptive schema for layout.settings inside ThemeDocument.layout. Documents the CURRENT vocabulary layout-engine.js compiles.",
+  "title": "layout.settings",
+  "type": "object",
+  "properties": {
+    "messageRow": { "$ref": "#/$defs/rowLayout" },
+    "metaRow": { "$ref": "#/$defs/rowLayout" },
+    "bodyColumn": { "$ref": "#/$defs/rowLayout" },
+    "slots": {
+      "type": "object",
+      "properties": {
+        "avatar": { "$ref": "#/$defs/slotLayout" },
+        "author": { "$ref": "#/$defs/slotLayout" },
+        "badges": { "$ref": "#/$defs/slotLayout" },
+        "message": { "$ref": "#/$defs/slotLayout" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "rowLayout": {
+      "type": "object",
+      "properties": {
+        "direction": { "type": "string", "enum": ["horizontal", "vertical"] },
+        "gap": { "type": "number" },
+        "align": { "type": "string", "enum": ["start", "center", "end", "stretch"] },
+        "padding": { "type": "number" },
+        "margin": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "slotLayout": {
+      "type": "object",
+      "properties": {
+        "order": { "type": "integer", "minimum": 0 },
+        "padding": { "type": "number" },
+        "margin": { "type": "number" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

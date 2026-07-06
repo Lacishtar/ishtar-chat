@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://youtube-overlay-studio/schema/style.schema.json",
+  "$comment": "Descriptive schema only — not yet wired to a validator (no ajv dependency added as part of this step; see main/theme-engine/style-engine.js). Documents the CURRENT token vocabulary style-engine.js actually compiles. The full token set sketched in design doc §5.3 (gradient/stroke/shadow/blur/glass/background/componentOverrides) is aspirational for later steps and intentionally not required here yet.",
+  "title": "style.json",
+  "type": "object",
+  "required": ["schemaVersion", "tokens"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "tokens": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "object",
+          "properties": {
+            "text": { "type": "string" },
+            "author": { "type": "string" },
+            "bubbleBg": { "type": "string" }
+          },
+          "additionalProperties": true
+        },
+        "font": {
+          "type": "object",
+          "properties": {
+            "family": { "type": "string" },
+            "size": { "type": "number" }
+          },
+          "additionalProperties": true
+        },
+        "border": {
+          "type": "object",
+          "properties": {
+            "radius": { "type": "number" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "componentOverrides": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Reserved for design doc §5.3's per-component style overrides. Not yet read by style-engine.js."
+    }
+  },
+  "additionalProperties": false
+}

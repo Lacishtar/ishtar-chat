@@ -1,0 +1,16 @@
+{
+  "_label": "Classic",
+  "fontFamily": "Inter, system-ui, sans-serif",
+  "fontSize": 16,
+  "textColor": "#EAECEF",
+  "authorColor": "#6E56F0",
+  "bubbleBg": "rgba(22, 25, 31, 0.72)",
+  "bubbleRadius": 14,
+  "bubbleOpacity": 1,
+  "avatarSize": 32,
+  "showAvatar": true,
+  "showBadges": true,
+  "animationMs": 220,
+  "position": "bottom-up",
+  "maxMessages": 40
+}

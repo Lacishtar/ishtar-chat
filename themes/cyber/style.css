@@ -1,0 +1,136 @@
+/* Cyber theme. All tunable values come from CSS custom properties set by
+   the Customize Engine (see shared/customize-config.js#toCssVariables) —
+   this file should never hard-code a color/size that the panel controls. */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  font-family: var(--ovs-font-family, ui-monospace, 'JetBrains Mono', monospace);
+}
+
+#ovs-chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  height: 100vh;
+  box-sizing: border-box;
+  justify-content: flex-end;
+}
+
+#ovs-chat-list.ovs-position-top-down {
+  justify-content: flex-start;
+}
+
+.ovs-message {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 92%;
+  padding: 9px 14px;
+  border-radius: var(--ovs-bubble-radius, 4px);
+  background: var(--ovs-bubble-bg, rgba(6, 10, 18, 0.78));
+  opacity: var(--ovs-bubble-opacity, 1);
+  border: 1px solid var(--ovs-author-color, #00e5ff);
+  /* Plain glow first as a fallback, then the nicer color-mix() version —
+     if a browser doesn't understand color-mix() it ignores that whole
+     declaration and keeps the fallback instead of showing nothing. */
+  box-shadow: 0 0 10px var(--ovs-author-color, #00e5ff);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ovs-author-color, #00e5ff) 55%, transparent),
+    0 0 2px color-mix(in srgb, var(--ovs-author-color, #00e5ff) 80%, transparent) inset;
+  animation: ovs-cyber-in var(--ovs-animation-ms, 200ms) steps(6, end);
+  will-change: transform, opacity;
+}
+
+.ovs-avatar {
+  width: var(--ovs-avatar-size, 30px);
+  height: var(--ovs-avatar-size, 30px);
+  border-radius: 2px;
+  flex-shrink: 0;
+  filter: saturate(1.2) contrast(1.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.ovs-avatar[data-hidden='true'] {
+  display: none;
+}
+
+.ovs-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ovs-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.ovs-author {
+  font-weight: 700;
+  font-size: calc(var(--ovs-font-size, 16px) * 0.82);
+  color: var(--ovs-author-color, #00e5ff);
+  text-shadow: 0 0 6px var(--ovs-author-color, #00e5ff);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ovs-badges {
+  display: inline-flex;
+  gap: 4px;
+  font-size: calc(var(--ovs-font-size, 16px) * 0.6);
+  color: rgba(0, 229, 255, 0.6);
+}
+
+.ovs-badges:empty,
+.ovs-badges[data-hidden='true'] {
+  display: none;
+}
+
+.ovs-text {
+  font-size: var(--ovs-font-size, 16px);
+  color: var(--ovs-text-color, #d8fcff);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.ovs-text img {
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+}
+
+.ovs-message.ovs-superchat {
+  border-color: #ffca28;
+  box-shadow: 0 0 12px rgba(255, 202, 40, 0.6);
+}
+
+@keyframes ovs-cyber-in {
+  0% {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  30% {
+    opacity: 0.6;
+    transform: translateX(-4px);
+  }
+  60% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ovs-message {
+    animation: none;
+  }
+}

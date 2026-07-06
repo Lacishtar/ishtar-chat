@@ -1,0 +1,42 @@
+{
+  "name": "youtube-overlay-studio",
+  "version": "0.2.0",
+  "description": "Dán link YouTube Live, chọn giao diện, dán vào OBS. Xong.",
+  "private": true,
+  "main": "main/index.js",
+  "scripts": {
+    "dev:dashboard": "vite",
+    "build:dashboard": "vite build",
+    "dev": "concurrently -k \"npm:dev:dashboard\" \"npm:dev:electron\"",
+    "dev:electron": "wait-on http://localhost:5173 && cross-env OVS_DEV=1 electron .",
+    "start": "npm run build:dashboard && electron .",
+    "build": "npm run build:dashboard && electron-builder",
+    "smoke:layout": "node scripts/smoke-test-layout-engine.js",
+    "smoke:bubble": "node scripts/smoke-test-bubble-engine.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.17.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^30.0.6",
+    "electron-builder": "^24.13.3",
+    "postcss": "^8.4.38",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.4",
+    "vite": "^5.2.11",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.example.youtube-overlay-studio",
+    "productName": "YouTube Overlay Studio",
+    "files": ["main/**/*", "preload/**/*", "overlay/**/*", "themes/**/*", "shared/**/*", "dist-dashboard/**/*"],
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg" }
+  }
+}
