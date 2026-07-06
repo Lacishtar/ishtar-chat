@@ -12,6 +12,7 @@
     "start": "npm run build:dashboard && electron .",
     "build": "npm run build:dashboard && electron-builder",
     "smoke:layout": "node scripts/smoke-test-layout-engine.js",
+    "smoke:slot-style": "node scripts/smoke-test-slot-style.js",
     "smoke:bubble": "node scripts/smoke-test-bubble-engine.js"
   },
   "dependencies": {

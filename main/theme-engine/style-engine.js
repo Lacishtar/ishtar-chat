@@ -27,6 +27,8 @@
  * path is ever touched (that's refactor step 7).
  */
 
+const { componentOverridesToSlotStyle, compileSlotStyleToCssVariables } = require('../../shared/slot-style-config');
+
 function compileStyleToCssVariables(style) {
   const tokens = (style && style.tokens) || {};
   const color = tokens.color || {};
@@ -40,6 +42,18 @@ function compileStyleToCssVariables(style) {
   if (color.author !== undefined) vars['--ovs-author-color'] = color.author;
   if (color.bubbleBg !== undefined) vars['--ovs-bubble-bg'] = color.bubbleBg;
   if (border.radius !== undefined) vars['--ovs-bubble-radius'] = `${border.radius}px`;
+
+  const overrides = style && style.componentOverrides;
+  if (overrides && Object.keys(overrides).length > 0) {
+    const slotStyle = componentOverridesToSlotStyle(overrides);
+    Object.assign(vars, compileSlotStyleToCssVariables(slotStyle, {
+      fontFamily: font.family,
+      fontSize: font.size,
+      textColor: color.text,
+      authorColor: color.author,
+    }));
+  }
+
   return vars;
 }
 

@@ -49,12 +49,16 @@ body {
   flex-direction: var(--ovs-layout-message-direction, row);
   align-items: var(--ovs-layout-message-align, center);
   gap: var(--ovs-layout-message-gap, 8px);
-  padding: var(--ovs-layout-message-padding, 5px 14px);
+  padding: var(--ovs-bubble-pad-y, 5px) var(--ovs-bubble-pad-x, 14px);
   margin: var(--ovs-layout-message-margin, 0);
   white-space: nowrap;
   border-radius: var(--ovs-bubble-radius, 999px);
   background: var(--ovs-bubble-bg, rgba(10, 10, 14, 0.55));
   opacity: var(--ovs-bubble-opacity, 1);
+  border-width: var(--ovs-bubble-border-width, 0);
+  border-style: var(--ovs-bubble-border-style, solid);
+  border-color: var(--ovs-bubble-border-color, transparent);
+  box-shadow: var(--ovs-bubble-box-shadow, none);
   transform: translateX(100vw);
   animation-name: ovs-danmaku-fly;
   animation-timing-function: linear;
@@ -66,9 +70,10 @@ body {
   order: var(--ovs-layout-slot-avatar-order, 0);
   padding: var(--ovs-layout-slot-avatar-padding, 0);
   margin: var(--ovs-layout-slot-avatar-margin, 0);
-  width: var(--ovs-avatar-size, 26px);
-  height: var(--ovs-avatar-size, 26px);
-  border-radius: 50%;
+  width: var(--ovs-slot-avatar-size, var(--ovs-avatar-size, 26px));
+  height: var(--ovs-slot-avatar-size, var(--ovs-avatar-size, 26px));
+  border-radius: var(--ovs-slot-avatar-border-radius, 50%);
+  opacity: var(--ovs-slot-avatar-opacity, 1);
   flex-shrink: 0;
 }
 
@@ -89,9 +94,11 @@ body {
   order: var(--ovs-layout-slot-author-order, 0);
   padding: var(--ovs-layout-slot-author-padding, 0);
   margin: var(--ovs-layout-slot-author-margin, 0);
-  font-weight: 700;
-  font-size: calc(var(--ovs-font-size, 16px) * 0.8);
-  color: var(--ovs-author-color, #ffd166);
+  font-family: var(--ovs-slot-author-font-family, var(--ovs-font-family));
+  font-weight: var(--ovs-slot-author-font-weight, 700);
+  font-size: var(--ovs-slot-author-font-size, calc(var(--ovs-font-size, 16px) * 0.8));
+  color: var(--ovs-slot-author-color, var(--ovs-author-color, #ffd166));
+  opacity: var(--ovs-slot-author-opacity, 1);
 }
 
 .ovs-badges {
@@ -102,8 +109,10 @@ body {
   order: var(--ovs-layout-slot-message-order, 1);
   padding: var(--ovs-layout-slot-message-padding, 0);
   margin: var(--ovs-layout-slot-message-margin, 0);
-  font-size: var(--ovs-font-size, 16px);
-  color: var(--ovs-text-color, #ffffff);
+  font-family: var(--ovs-slot-message-font-family, var(--ovs-font-family));
+  font-size: var(--ovs-slot-message-font-size, var(--ovs-font-size, 16px));
+  color: var(--ovs-slot-message-color, var(--ovs-text-color, #ffffff));
+  opacity: var(--ovs-slot-message-opacity, 1);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 

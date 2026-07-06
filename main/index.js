@@ -9,7 +9,10 @@ const { startServer } = require('./server/http-server');
 const { attachWebSocketServer } = require('./server/ws-server');
 const { listThemes, themeExists } = require('./theme-registry');
 const { mergeLayoutConfig } = require('../shared/layout-config');
+const { mergeSlotStyleConfig } = require('../shared/slot-style-config');
+const { mergeAnimationConfig } = require('../shared/animation-config');
 const { resolveThemeState } = require('./store/theme-state');
+const { isProfileDirty } = require('./store/theme-baseline');
 
 const sessionId = crypto.randomUUID();
 
@@ -29,6 +32,8 @@ function getOverlayState() {
     themeId: state.selectedTheme,
     config: state.customizeConfig,
     layoutConfig: state.layoutConfig,
+    slotStyleConfig: state.slotStyleConfig,
+    animationConfig: state.animationConfig,
     sessionId,
     history: messageHistory,
   };
@@ -89,6 +94,8 @@ function registerIpcHandlers() {
       selectedTheme: state.selectedTheme,
       customizeConfig: state.customizeConfig,
       layoutConfig: state.layoutConfig,
+      slotStyleConfig: state.slotStyleConfig,
+      animationConfig: state.animationConfig,
       lastSessionUrl: state.lastSessionUrl,
       overlayUrl: getOverlayUrl(),
       port: httpPort,
@@ -115,10 +122,58 @@ function registerIpcHandlers() {
     const themeState = resolveThemeState(themeId);
     configStore.set(themeState);
 
-    const { customizeConfig: config, layoutConfig } = themeState;
-    wsBroadcast('theme:changed', { themeId, config, layoutConfig, history: messageHistory });
-    mainWindow.webContents.send('theme:changed', { themeId, config, layoutConfig });
-    return { ok: true, config, layoutConfig };
+    const { customizeConfig: config, layoutConfig, slotStyleConfig, animationConfig } = themeState;
+    wsBroadcast('theme:changed', {
+      themeId,
+      config,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+      history: messageHistory,
+    });
+    mainWindow.webContents.send('theme:changed', {
+      themeId,
+      config,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+    });
+    return { ok: true, config, layoutConfig, slotStyleConfig, animationConfig };
+  });
+
+  ipcMain.handle('theme:is-dirty', () => {
+    const state = configStore.get();
+    return { dirty: isProfileDirty(state, state.selectedTheme) };
+  });
+
+  ipcMain.handle('theme:reset-preset', () => {
+    const themeId = configStore.get().selectedTheme;
+    const fresh = resolveThemeState(themeId);
+    configStore.set({
+      customizeConfig: fresh.customizeConfig,
+      layoutConfig: fresh.layoutConfig,
+      slotStyleConfig: fresh.slotStyleConfig,
+      animationConfig: fresh.animationConfig,
+      bubbleConfig: fresh.bubbleConfig,
+    });
+
+    const { customizeConfig: config, layoutConfig, slotStyleConfig, animationConfig } = fresh;
+    wsBroadcast('theme:changed', {
+      themeId,
+      config,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+      history: messageHistory,
+    });
+    mainWindow.webContents.send('theme:changed', {
+      themeId,
+      config,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+    });
+    return { ok: true, config, layoutConfig, slotStyleConfig, animationConfig };
   });
 
   ipcMain.handle('config:update', (_event, partialConfig) => {
@@ -135,6 +190,22 @@ function registerIpcHandlers() {
 
     wsBroadcast('layout:updated', merged);
     return { ok: true, layoutConfig: merged };
+  });
+
+  ipcMain.handle('slot-style:update', (_event, partialSlotStyle) => {
+    const merged = mergeSlotStyleConfig(configStore.get().slotStyleConfig, partialSlotStyle);
+    configStore.set({ slotStyleConfig: merged });
+
+    wsBroadcast('slot-style:updated', merged);
+    return { ok: true, slotStyleConfig: merged };
+  });
+
+  ipcMain.handle('animation:update', (_event, partialAnimation) => {
+    const merged = mergeAnimationConfig(configStore.get().animationConfig, partialAnimation);
+    configStore.set({ animationConfig: merged });
+
+    wsBroadcast('animation:updated', merged);
+    return { ok: true, animationConfig: merged };
   });
 }
 

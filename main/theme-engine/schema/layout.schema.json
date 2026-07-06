@@ -37,7 +37,8 @@
       "properties": {
         "order": { "type": "integer", "minimum": 0 },
         "padding": { "type": "number" },
-        "margin": { "type": "number" }
+        "margin": { "type": "number" },
+        "visible": { "type": ["boolean", "null"] }
       },
       "additionalProperties": false
     }

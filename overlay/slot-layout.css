@@ -1,0 +1,41 @@
+/* Per-slot layout positioning — shared across themes. */
+
+.ovs-avatar {
+  position: var(--ovs-layout-slot-avatar-position, static);
+  top: var(--ovs-layout-slot-avatar-top, auto);
+  left: var(--ovs-layout-slot-avatar-left, auto);
+  right: var(--ovs-layout-slot-avatar-right, auto);
+  bottom: var(--ovs-layout-slot-avatar-bottom, auto);
+  z-index: var(--ovs-layout-slot-avatar-z-index, auto);
+}
+
+.ovs-author {
+  position: var(--ovs-layout-slot-author-position, static);
+  top: var(--ovs-layout-slot-author-top, auto);
+  left: var(--ovs-layout-slot-author-left, auto);
+  right: var(--ovs-layout-slot-author-right, auto);
+  bottom: var(--ovs-layout-slot-author-bottom, auto);
+  z-index: var(--ovs-layout-slot-author-z-index, auto);
+}
+
+.ovs-badges {
+  position: var(--ovs-layout-slot-badges-position, static);
+  top: var(--ovs-layout-slot-badges-top, auto);
+  left: var(--ovs-layout-slot-badges-left, auto);
+  right: var(--ovs-layout-slot-badges-right, auto);
+  bottom: var(--ovs-layout-slot-badges-bottom, auto);
+  z-index: var(--ovs-layout-slot-badges-z-index, auto);
+}
+
+.ovs-text {
+  position: var(--ovs-layout-slot-message-position, static);
+  top: var(--ovs-layout-slot-message-top, auto);
+  left: var(--ovs-layout-slot-message-left, auto);
+  right: var(--ovs-layout-slot-message-right, auto);
+  bottom: var(--ovs-layout-slot-message-bottom, auto);
+  z-index: var(--ovs-layout-slot-message-z-index, auto);
+}
+
+.ovs-body {
+  position: relative;
+}

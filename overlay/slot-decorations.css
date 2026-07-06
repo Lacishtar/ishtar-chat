@@ -1,0 +1,9 @@
+/* Avatar border decorations — user slot vars → theme fallback → safe default. */
+
+.ovs-avatar,
+.ovs-avatar-frame {
+  border-width: var(--ovs-slot-avatar-border-width, var(--ovs-theme-avatar-border-width, 0));
+  border-style: var(--ovs-slot-avatar-border-style, var(--ovs-theme-avatar-border-style, solid));
+  border-color: var(--ovs-slot-avatar-border-color, var(--ovs-theme-avatar-border-color, transparent));
+  box-sizing: border-box;
+}

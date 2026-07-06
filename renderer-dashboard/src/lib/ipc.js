@@ -34,10 +34,22 @@ function createMock() {
       message: { order: 1, padding: 0, margin: 0 },
     },
   };
+  let slotStyleConfig = { slots: {} };
+  let animationConfig = {
+    enabled: true,
+    targets: {
+      avatar: { durationMs: 220, delayMs: 0, translateY: 8 },
+      author: { durationMs: 220, delayMs: 40, translateX: -6 },
+      badges: { durationMs: 220, delayMs: 60, translateX: -4 },
+      message: { durationMs: 220, delayMs: 80, translateY: 6 },
+    },
+  };
   let status = { status: 'idle', error: null, videoId: null };
   const statusListeners = new Set();
   const configListeners = new Set();
   const layoutListeners = new Set();
+  const slotStyleListeners = new Set();
+  const animationListeners = new Set();
 
   return {
     getInitialState: async () => ({
@@ -53,6 +65,8 @@ function createMock() {
       selectedTheme: 'classic',
       customizeConfig: config,
       layoutConfig,
+      slotStyleConfig,
+      animationConfig,
       lastSessionUrl: '',
       overlayUrl: 'http://localhost:3000/overlay?session=mock',
       port: 3000,
@@ -71,7 +85,21 @@ function createMock() {
       statusListeners.forEach((cb) => cb(status));
       return { ok: true };
     },
-    selectTheme: async (themeId) => ({ ok: true, config, layoutConfig }),
+    selectTheme: async (themeId) => ({
+      ok: true,
+      config,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+    }),
+    isThemeDirty: async () => ({ dirty: false }),
+    resetPreset: async () => ({
+      ok: true,
+      config,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+    }),
     updateConfig: async (partial) => {
       config = { ...config, ...partial };
       configListeners.forEach((cb) => cb(config));
@@ -96,6 +124,42 @@ function createMock() {
       layoutListeners.forEach((cb) => cb(layoutConfig));
       return { ok: true, layoutConfig };
     },
+    updateSlotStyle: async (partial) => {
+      slotStyleConfig = {
+        slots: {
+          ...slotStyleConfig.slots,
+          ...(partial.slots
+            ? Object.fromEntries(
+                Object.entries(partial.slots).map(([k, v]) => [
+                  k,
+                  { ...(slotStyleConfig.slots?.[k] || {}), ...v },
+                ])
+              )
+            : {}),
+        },
+      };
+      slotStyleListeners.forEach((cb) => cb(slotStyleConfig));
+      return { ok: true, slotStyleConfig };
+    },
+    updateAnimation: async (partial) => {
+      animationConfig = {
+        ...animationConfig,
+        ...partial,
+        targets: {
+          ...animationConfig.targets,
+          ...(partial.targets
+            ? Object.fromEntries(
+                Object.entries(partial.targets).map(([k, v]) => [
+                  k,
+                  { ...(animationConfig.targets?.[k] || {}), ...v },
+                ])
+              )
+            : {}),
+        },
+      };
+      animationListeners.forEach((cb) => cb(animationConfig));
+      return { ok: true, animationConfig };
+    },
     onStatusChanged: (cb) => {
       statusListeners.add(cb);
       return () => statusListeners.delete(cb);
@@ -107,6 +171,14 @@ function createMock() {
     onLayoutUpdated: (cb) => {
       layoutListeners.add(cb);
       return () => layoutListeners.delete(cb);
+    },
+    onSlotStyleUpdated: (cb) => {
+      slotStyleListeners.add(cb);
+      return () => slotStyleListeners.delete(cb);
+    },
+    onAnimationUpdated: (cb) => {
+      animationListeners.add(cb);
+      return () => animationListeners.delete(cb);
     },
     onThemeChanged: () => () => {},
   };

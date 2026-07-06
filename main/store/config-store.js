@@ -9,6 +9,14 @@ const DEFAULT_STATE = {
   windowBounds: { width: 1180, height: 760 },
 };
 
+function buildUserOverlayProfile(state) {
+  return {
+    customizeConfig: state.customizeConfig,
+    layoutConfig: state.layoutConfig,
+    slotStyleConfig: state.slotStyleConfig,
+  };
+}
+
 class ConfigStore {
   constructor() {
     this.filePath = path.join(app.getPath('userData'), 'config.json');
@@ -26,8 +34,23 @@ class ConfigStore {
     }
 
     const themeId = persisted.selectedTheme || DEFAULT_STATE.selectedTheme;
+    const baseline = resolveThemeState(themeId);
+    const profile = persisted.userOverlayProfile;
+
+    if (profile?.customizeConfig) {
+      return {
+        ...baseline,
+        selectedTheme: themeId,
+        customizeConfig: profile.customizeConfig,
+        layoutConfig: profile.layoutConfig ?? baseline.layoutConfig,
+        slotStyleConfig: profile.slotStyleConfig ?? baseline.slotStyleConfig,
+        lastSessionUrl: persisted.lastSessionUrl || '',
+        windowBounds: persisted.windowBounds || DEFAULT_STATE.windowBounds,
+      };
+    }
+
     return {
-      ...resolveThemeState(themeId),
+      ...baseline,
       lastSessionUrl: persisted.lastSessionUrl || '',
       windowBounds: persisted.windowBounds || DEFAULT_STATE.windowBounds,
     };
@@ -37,7 +60,6 @@ class ConfigStore {
     return this.state;
   }
 
-  // Persist only session prefs — theme visuals always reload from themes/ on boot.
   set(partial) {
     this.state = { ...this.state, ...partial };
     clearTimeout(this._saveTimer);
@@ -50,6 +72,7 @@ class ConfigStore {
       lastSessionUrl: this.state.lastSessionUrl,
       selectedTheme: this.state.selectedTheme,
       windowBounds: this.state.windowBounds,
+      userOverlayProfile: buildUserOverlayProfile(this.state),
     };
     try {
       fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
@@ -60,4 +83,4 @@ class ConfigStore {
   }
 }
 
-module.exports = { ConfigStore, DEFAULT_STATE };
+module.exports = { ConfigStore, DEFAULT_STATE, buildUserOverlayProfile };

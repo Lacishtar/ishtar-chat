@@ -6,7 +6,7 @@ const { loadThemeDocument, listThemeIds, compileLayoutToCssVariables } = require
 const { THEMES_DIR } = require('../main/theme-registry');
 const { DEFAULT_LAYOUT_CONFIG, compileLayoutToCssVariables: compileFromConfig, contractSimpleLayout, expandSimpleLayout } = require('../shared/layout-config');
 
-const EXPECTED_THEME_IDS = ['classic', 'bubble', 'glass', 'minimal', 'anime', 'cyber', 'danmaku', 'ticker'];
+const EXPECTED_THEME_IDS = ['classic', 'bubble', 'glass', 'minimal', 'anime', 'cyber', 'danmaku', 'ticker', 'scrapbook'];
 const EXPECTED_VARS = [
   '--ovs-layout-message-direction',
   '--ovs-layout-message-gap',
@@ -98,6 +98,47 @@ function checkRtlMirror() {
   console.log('[smoke] RTL layout mirrors via flex, text stays LTR ✔');
 }
 
+function checkSlotPosition() {
+  const layout = expandSimpleLayout({
+    authorPositionMode: 'absolute',
+    authorTop: -8,
+    authorLeft: 12,
+    authorZIndex: 2,
+  });
+  const compiled = compileFromConfig(layout);
+  if (compiled['--ovs-layout-slot-author-position'] !== 'absolute') {
+    fail('author absolute position should compile');
+  }
+  if (compiled['--ovs-layout-slot-author-top'] !== '-8px') fail('author top offset');
+  if (compiled['--ovs-layout-slot-author-left'] !== '12px') fail('author left offset');
+  if (compiled['--ovs-layout-slot-author-z-index'] !== '2') fail('author z-index');
+  console.log('[smoke] slot absolute positioning compiles ✔');
+}
+
+function checkBubbleScope() {
+  const messageScope = compileFromConfig({
+    ...DEFAULT_LAYOUT_CONFIG,
+    screen: { ...DEFAULT_LAYOUT_CONFIG.screen, bubbleScope: 'message' },
+  });
+  if (messageScope['--ovs-bubble-scope'] !== 'message') {
+    fail('bubbleScope message should compile');
+  }
+
+  const rowScope = compileFromConfig(DEFAULT_LAYOUT_CONFIG);
+  if (rowScope['--ovs-bubble-scope'] !== 'row') fail('default bubbleScope should be row');
+
+  const contracted = contractSimpleLayout({
+    ...DEFAULT_LAYOUT_CONFIG,
+    screen: { bubbleScope: 'message' },
+  });
+  if (contracted.bubbleScope !== 'message') fail('contract bubbleScope failed');
+
+  const expanded = expandSimpleLayout({ bubbleScope: 'message' });
+  if (expanded.screen.bubbleScope !== 'message') fail('expand bubbleScope failed');
+
+  console.log('[smoke] bubbleScope compiles and roundtrips ✔');
+}
+
 function main() {
   const ids = listThemeIds();
   EXPECTED_THEME_IDS.forEach((id) => {
@@ -106,6 +147,8 @@ function main() {
   checkDefaults();
   checkRtlMirror();
   checkSimpleRoundtrip();
+  checkSlotPosition();
+  checkBubbleScope();
   EXPECTED_THEME_IDS.forEach(checkTheme);
   console.log('[smoke] ALL CHECKS PASSED');
 }

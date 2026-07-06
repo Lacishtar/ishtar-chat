@@ -13,17 +13,19 @@ export default function App() {
   const [selectedTheme, setSelectedTheme] = useState('classic');
   const [config, setConfig] = useState(null);
   const [layoutConfig, setLayoutConfig] = useState(null);
+  const [slotStyleConfig, setSlotStyleConfig] = useState(null);
   const [overlayUrl, setOverlayUrl] = useState('');
   const [status, setStatus] = useState({ status: 'idle', error: null });
 
   useEffect(() => {
-    let unsubStatus, unsubConfig, unsubLayout, unsubTheme;
+    let unsubStatus, unsubConfig, unsubLayout, unsubSlotStyle, unsubTheme;
 
     api.getInitialState().then((state) => {
       setThemes(state.themes);
       setSelectedTheme(state.selectedTheme);
       setConfig(state.customizeConfig);
       setLayoutConfig(state.layoutConfig);
+      setSlotStyleConfig(state.slotStyleConfig);
       setOverlayUrl(state.overlayUrl);
       setStatus(state.status);
       setLoading(false);
@@ -32,26 +34,38 @@ export default function App() {
     unsubStatus = api.onStatusChanged((payload) => setStatus(payload));
     unsubConfig = api.onConfigUpdated((payload) => setConfig(payload));
     unsubLayout = api.onLayoutUpdated((payload) => setLayoutConfig(payload));
+    unsubSlotStyle = api.onSlotStyleUpdated((payload) => setSlotStyleConfig(payload));
     unsubTheme = api.onThemeChanged((payload) => {
       setSelectedTheme(payload.themeId);
       setConfig(payload.config);
       setLayoutConfig(payload.layoutConfig);
+      setSlotStyleConfig(payload.slotStyleConfig);
     });
 
     return () => {
       unsubStatus && unsubStatus();
       unsubConfig && unsubConfig();
       unsubLayout && unsubLayout();
+      unsubSlotStyle && unsubSlotStyle();
       unsubTheme && unsubTheme();
     };
   }, []);
 
   async function handleSelectTheme(themeId) {
+    if (themeId === selectedTheme) return;
+
+    const dirtyCheck = await api.isThemeDirty?.();
+    if (dirtyCheck?.dirty) {
+      const ok = window.confirm('Đổi preset sẽ reset toàn bộ tuỳ chỉnh. Tiếp tục?');
+      if (!ok) return;
+    }
+
     const result = await api.selectTheme(themeId);
     if (result.ok) {
       setSelectedTheme(themeId);
       setConfig(result.config);
       setLayoutConfig(result.layoutConfig);
+      setSlotStyleConfig(result.slotStyleConfig);
     }
   }
 
@@ -79,7 +93,7 @@ export default function App() {
         <div className="flex flex-col gap-4 overflow-y-auto pr-1">
           <ConnectPanel api={api} status={status} />
           <ThemeGallery themes={themes} selectedTheme={selectedTheme} onSelect={handleSelectTheme} />
-          <CustomizePanel api={api} config={config} />
+          <CustomizePanel api={api} config={config} slotStyleConfig={slotStyleConfig} />
           <LayoutPanel api={api} layoutConfig={layoutConfig} />
         </div>
 

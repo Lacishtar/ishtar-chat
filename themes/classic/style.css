@@ -1,6 +1,4 @@
-/* Classic theme. All tunable values come from CSS custom properties set by
-   the Customize Engine (see shared/customize-config.js#toCssVariables) —
-   this file should never hard-code a color/size that the panel controls. */
+/* Classic theme. Slot + layout vars from Customize / Layout / SlotStyle engines. */
 
 html,
 body {
@@ -14,11 +12,12 @@ body {
 #ovs-chat-list {
   display: flex;
   flex-direction: column;
+  align-items: var(--ovs-layout-chat-align, flex-start);
   gap: 10px;
   padding: 16px;
   height: 100vh;
   box-sizing: border-box;
-  justify-content: flex-end; /* newest message anchored to the bottom */
+  justify-content: flex-end;
 }
 
 #ovs-chat-list.ovs-position-top-down {
@@ -27,22 +26,31 @@ body {
 
 .ovs-message {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  direction: ltr;
+  flex-direction: var(--ovs-layout-message-direction, row);
+  align-items: var(--ovs-layout-message-align, flex-start);
+  gap: var(--ovs-layout-message-gap, 10px);
   max-width: 92%;
-  padding: 8px 12px;
+  padding: var(--ovs-bubble-pad-y, 8px) var(--ovs-bubble-pad-x, 12px);
+  margin: var(--ovs-layout-message-margin, 0);
   border-radius: var(--ovs-bubble-radius, 14px);
   background: var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72));
   opacity: var(--ovs-bubble-opacity, 1);
+  border-width: var(--ovs-bubble-border-width, 0);
+  border-style: var(--ovs-bubble-border-style, solid);
+  border-color: var(--ovs-bubble-border-color, transparent);
+  box-shadow: var(--ovs-bubble-box-shadow, none);
   backdrop-filter: blur(6px);
-  animation: ovs-enter var(--ovs-animation-ms, 220ms) ease-out;
-  will-change: transform, opacity;
 }
 
 .ovs-avatar {
-  width: var(--ovs-avatar-size, 32px);
-  height: var(--ovs-avatar-size, 32px);
-  border-radius: 50%;
+  order: var(--ovs-layout-slot-avatar-order, 0);
+  padding: var(--ovs-layout-slot-avatar-padding, 0);
+  margin: var(--ovs-layout-slot-avatar-margin, 0);
+  width: var(--ovs-slot-avatar-size, var(--ovs-avatar-size, 32px));
+  height: var(--ovs-slot-avatar-size, var(--ovs-avatar-size, 32px));
+  border-radius: var(--ovs-slot-avatar-border-radius, 50%);
+  opacity: var(--ovs-slot-avatar-opacity, 1);
   flex-shrink: 0;
   background: rgba(255, 255, 255, 0.08);
 }
@@ -53,42 +61,60 @@ body {
 
 .ovs-body {
   display: flex;
-  flex-direction: column;
+  flex-direction: var(--ovs-layout-body-direction, column);
+  align-items: var(--ovs-layout-body-align, stretch);
+  gap: var(--ovs-layout-body-gap, 0);
+  padding: var(--ovs-layout-body-padding, 0);
+  margin: var(--ovs-layout-body-margin, 0);
   min-width: 0;
 }
 
 .ovs-meta {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 2px;
+  flex-direction: var(--ovs-layout-meta-direction, row);
+  align-items: var(--ovs-layout-meta-align, center);
+  gap: var(--ovs-layout-meta-gap, 6px);
+  padding: var(--ovs-layout-meta-padding, 0);
+  margin: var(--ovs-layout-meta-margin, 0 0 2px 0);
 }
 
 .ovs-author {
-  font-weight: 700;
-  font-size: calc(var(--ovs-font-size, 16px) * 0.9);
-  color: var(--ovs-author-color, #6e56f0);
+  order: var(--ovs-layout-slot-author-order, 0);
+  padding: var(--ovs-layout-slot-author-padding, 0);
+  margin: var(--ovs-layout-slot-author-margin, 0);
+  font-family: var(--ovs-slot-author-font-family, var(--ovs-font-family));
+  font-weight: var(--ovs-slot-author-font-weight, 700);
+  font-size: var(--ovs-slot-author-font-size, calc(var(--ovs-font-size, 16px) * 0.9));
+  color: var(--ovs-slot-author-color, var(--ovs-author-color, #6e56f0));
+  opacity: var(--ovs-slot-author-opacity, 1);
   white-space: nowrap;
 }
 
 .ovs-badges {
+  order: var(--ovs-layout-slot-badges-order, 1);
+  padding: var(--ovs-layout-slot-badges-padding, 0);
+  margin: var(--ovs-layout-slot-badges-margin, 0);
   display: inline-flex;
   gap: 4px;
-  font-size: calc(var(--ovs-font-size, 16px) * 0.65);
+  font-size: var(--ovs-slot-badges-font-size, calc(var(--ovs-font-size, 16px) * 0.65));
+  opacity: var(--ovs-slot-badges-opacity, 1);
   color: rgba(255, 255, 255, 0.55);
 }
 
-.ovs-badges:empty {
-  display: none;
-}
-
+.ovs-badges:empty,
 .ovs-badges[data-hidden='true'] {
   display: none;
 }
 
 .ovs-text {
-  font-size: var(--ovs-font-size, 16px);
-  color: var(--ovs-text-color, #eaecef);
+  order: var(--ovs-layout-slot-message-order, 1);
+  padding: var(--ovs-layout-slot-message-padding, 0);
+  margin: var(--ovs-layout-slot-message-margin, 0);
+  font-family: var(--ovs-slot-message-font-family, var(--ovs-font-family));
+  font-weight: var(--ovs-slot-message-font-weight, inherit);
+  font-size: var(--ovs-slot-message-font-size, var(--ovs-font-size, 16px));
+  color: var(--ovs-slot-message-color, var(--ovs-text-color, #eaecef));
+  opacity: var(--ovs-slot-message-opacity, 1);
   line-height: 1.35;
   word-break: break-word;
 }
@@ -102,21 +128,4 @@ body {
 .ovs-message.ovs-superchat {
   background: linear-gradient(135deg, rgba(255, 202, 40, 0.28), var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
   border: 1px solid rgba(255, 202, 40, 0.45);
-}
-
-@keyframes ovs-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ovs-message {
-    animation: none;
-  }
 }

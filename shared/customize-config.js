@@ -12,6 +12,13 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   bubbleBg: 'rgba(22, 25, 31, 0.72)',
   bubbleRadius: 14, // px
   bubbleOpacity: 1,
+  bubbleBorderWidth: null, // px; null = theme default
+  bubbleBorderStyle: null, // solid | dashed | dotted | none
+  bubbleBorderColor: null,
+  bubbleBoxShadow: null, // CSS shadow string
+  bubblePadding: null, // uniform px for bubble shell
+  bubblePaddingX: null,
+  bubblePaddingY: null,
   avatarSize: 32, // px
   showAvatar: true,
   showBadges: true,
@@ -19,6 +26,32 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   position: 'bottom-up', // 'bottom-up' | 'top-down'
   maxMessages: 40,
 };
+
+function isSet(value) {
+  return value !== undefined && value !== null;
+}
+
+function px(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? `${n}px` : '0px';
+}
+
+function compileBubbleDecorationToCssVariables(config) {
+  const c = { ...DEFAULT_CUSTOMIZE_CONFIG, ...config };
+  const vars = {};
+
+  if (isSet(c.bubbleBorderWidth)) vars['--ovs-bubble-border-width'] = px(c.bubbleBorderWidth);
+  if (isSet(c.bubbleBorderStyle)) vars['--ovs-bubble-border-style'] = c.bubbleBorderStyle;
+  if (isSet(c.bubbleBorderColor)) vars['--ovs-bubble-border-color'] = c.bubbleBorderColor;
+  if (isSet(c.bubbleBoxShadow)) vars['--ovs-bubble-box-shadow'] = c.bubbleBoxShadow;
+
+  const padX = isSet(c.bubblePaddingX) ? c.bubblePaddingX : (isSet(c.bubblePadding) ? c.bubblePadding : null);
+  const padY = isSet(c.bubblePaddingY) ? c.bubblePaddingY : (isSet(c.bubblePadding) ? c.bubblePadding : null);
+  if (padX != null) vars['--ovs-bubble-pad-x'] = px(padX);
+  if (padY != null) vars['--ovs-bubble-pad-y'] = px(padY);
+
+  return vars;
+}
 
 /**
  * Maps a CustomizeConfig object to the CSS custom properties the overlay
@@ -37,6 +70,7 @@ function toCssVariables(config) {
     '--ovs-bubble-opacity': String(c.bubbleOpacity),
     '--ovs-avatar-size': `${c.avatarSize}px`,
     '--ovs-animation-ms': `${c.animationMs}ms`,
+    ...compileBubbleDecorationToCssVariables(c),
   };
 }
 
@@ -54,4 +88,9 @@ function sanitizeThemeDefaults(themeDefaults) {
   return clean;
 }
 
-module.exports = { DEFAULT_CUSTOMIZE_CONFIG, toCssVariables, sanitizeThemeDefaults };
+module.exports = {
+  DEFAULT_CUSTOMIZE_CONFIG,
+  toCssVariables,
+  compileBubbleDecorationToCssVariables,
+  sanitizeThemeDefaults,
+};

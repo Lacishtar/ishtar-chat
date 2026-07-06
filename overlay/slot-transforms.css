@@ -1,0 +1,25 @@
+/* Per-slot static transforms — shared across themes. */
+
+.ovs-avatar {
+  transform-origin: var(--ovs-slot-avatar-transform-origin, center center);
+  transform: translate(var(--ovs-slot-avatar-translate-x, 0), var(--ovs-slot-avatar-translate-y, 0))
+    rotate(var(--ovs-slot-avatar-rotate, 0deg));
+}
+
+.ovs-author {
+  transform-origin: var(--ovs-slot-author-transform-origin, center center);
+  transform: translate(var(--ovs-slot-author-translate-x, 0), var(--ovs-slot-author-translate-y, 0))
+    rotate(var(--ovs-slot-author-rotate, 0deg));
+}
+
+.ovs-badges {
+  transform-origin: var(--ovs-slot-badges-transform-origin, center center);
+  transform: translate(var(--ovs-slot-badges-translate-x, 0), var(--ovs-slot-badges-translate-y, 0))
+    rotate(var(--ovs-slot-badges-rotate, 0deg));
+}
+
+.ovs-text {
+  transform-origin: var(--ovs-slot-message-transform-origin, center center);
+  transform: translate(var(--ovs-slot-message-translate-x, 0), var(--ovs-slot-message-translate-y, 0))
+    rotate(var(--ovs-slot-message-rotate, 0deg));
+}

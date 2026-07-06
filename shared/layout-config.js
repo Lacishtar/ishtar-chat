@@ -22,6 +22,13 @@ function createSlotLayout(overrides = {}) {
     order: 0,
     padding: 0,
     margin: 0,
+    visible: null,
+    position: 'static',
+    top: null,
+    left: null,
+    right: null,
+    bottom: null,
+    zIndex: null,
     ...overrides,
   };
 }
@@ -39,6 +46,7 @@ const DEFAULT_LAYOUT_CONFIG = {
   screen: {
     chatAlign: 'left', // 'left' | 'center' | 'right'
     contentDirection: 'ltr', // 'ltr' | 'rtl'
+    bubbleScope: null, // null | 'row' | 'message' — null compiles as 'row'
   },
 };
 
@@ -64,6 +72,26 @@ function flexDirectionForRow(rowDirection, mirrorHorizontal) {
 function px(value) {
   const n = Number(value);
   return Number.isFinite(n) ? `${n}px` : '0px';
+}
+
+function offsetVar(value) {
+  return value != null && Number.isFinite(Number(value)) ? px(value) : 'auto';
+}
+
+function zIndexVar(value) {
+  return value != null && Number.isFinite(Number(value)) ? String(value) : 'auto';
+}
+
+function compileSlotPositionVars(prefix, slot) {
+  const position = slot.position === 'absolute' ? 'absolute' : 'static';
+  return {
+    [`--ovs-layout-slot-${prefix}-position`]: position,
+    [`--ovs-layout-slot-${prefix}-top`]: offsetVar(slot.top),
+    [`--ovs-layout-slot-${prefix}-left`]: offsetVar(slot.left),
+    [`--ovs-layout-slot-${prefix}-right`]: offsetVar(slot.right),
+    [`--ovs-layout-slot-${prefix}-bottom`]: offsetVar(slot.bottom),
+    [`--ovs-layout-slot-${prefix}-z-index`]: zIndexVar(slot.zIndex),
+  };
 }
 
 /**
@@ -122,21 +150,26 @@ function compileLayoutToCssVariables(layout) {
     '--ovs-layout-slot-avatar-order': String(slots.avatar.order ?? 0),
     '--ovs-layout-slot-avatar-padding': px(slots.avatar.padding),
     '--ovs-layout-slot-avatar-margin': px(slots.avatar.margin),
+    ...compileSlotPositionVars('avatar', slots.avatar),
 
     '--ovs-layout-slot-author-order': String(slots.author.order ?? 0),
     '--ovs-layout-slot-author-padding': px(slots.author.padding),
     '--ovs-layout-slot-author-margin': px(slots.author.margin),
+    ...compileSlotPositionVars('author', slots.author),
 
     '--ovs-layout-slot-badges-order': String(slots.badges.order ?? 1),
     '--ovs-layout-slot-badges-padding': px(slots.badges.padding),
     '--ovs-layout-slot-badges-margin': px(slots.badges.margin),
+    ...compileSlotPositionVars('badges', slots.badges),
 
     '--ovs-layout-slot-message-order': String(slots.message.order ?? 1),
     '--ovs-layout-slot-message-padding': px(slots.message.padding),
     '--ovs-layout-slot-message-margin': px(slots.message.margin),
+    ...compileSlotPositionVars('message', slots.message),
 
     '--ovs-layout-chat-align': ALIGN_TO_FLEX[screen.chatAlign] || 'flex-start',
     '--ovs-layout-content-direction': 'ltr',
+    '--ovs-bubble-scope': screen.bubbleScope === 'message' ? 'message' : 'row',
   };
 }
 
@@ -157,6 +190,15 @@ function contractSimpleLayout(layout) {
 
   const messagePosition = l.bodyColumn.direction === 'horizontal' ? 'beside' : 'below';
 
+  const slotPositionFields = (key) => ({
+    [`${key}PositionMode`]: l.slots[key]?.position ?? 'static',
+    [`${key}Top`]: l.slots[key]?.top ?? null,
+    [`${key}Left`]: l.slots[key]?.left ?? null,
+    [`${key}Right`]: l.slots[key]?.right ?? null,
+    [`${key}Bottom`]: l.slots[key]?.bottom ?? null,
+    [`${key}ZIndex`]: l.slots[key]?.zIndex ?? null,
+  });
+
   return {
     avatarPosition,
     nameBadges,
@@ -165,6 +207,23 @@ function contractSimpleLayout(layout) {
     padding: l.messageRow.padding ?? 8,
     chatAlign: l.screen?.chatAlign ?? 'left',
     contentDirection: l.screen?.contentDirection ?? 'ltr',
+    bubbleScope: l.screen?.bubbleScope === 'message' ? 'message' : 'row',
+    avatarPadding: l.slots.avatar?.padding ?? 0,
+    avatarMargin: l.slots.avatar?.margin ?? 0,
+    authorPadding: l.slots.author?.padding ?? 0,
+    authorMargin: l.slots.author?.margin ?? 0,
+    badgesPadding: l.slots.badges?.padding ?? 0,
+    badgesMargin: l.slots.badges?.margin ?? 0,
+    messagePadding: l.slots.message?.padding ?? 0,
+    messageMargin: l.slots.message?.margin ?? 0,
+    showAvatarSlot: l.slots.avatar?.visible ?? null,
+    showAuthorSlot: l.slots.author?.visible ?? null,
+    showBadgesSlot: l.slots.badges?.visible ?? null,
+    showMessageSlot: l.slots.message?.visible ?? null,
+    ...slotPositionFields('avatar'),
+    ...slotPositionFields('author'),
+    ...slotPositionFields('badges'),
+    ...slotPositionFields('message'),
   };
 }
 
@@ -200,16 +259,30 @@ function expandSimpleLayout(simple) {
     margin: 0,
   };
 
+  const slotFromSimple = (key, order) => ({
+    order,
+    padding: s[`${key}Padding`] ?? 0,
+    margin: s[`${key}Margin`] ?? 0,
+    visible: s[`show${key.charAt(0).toUpperCase()}${key.slice(1)}Slot`] ?? null,
+    position: s[`${key}PositionMode`] ?? 'static',
+    top: s[`${key}Top`] ?? null,
+    left: s[`${key}Left`] ?? null,
+    right: s[`${key}Right`] ?? null,
+    bottom: s[`${key}Bottom`] ?? null,
+    zIndex: s[`${key}ZIndex`] ?? null,
+  });
+
   const slots = {
-    avatar: { order: s.avatarPosition === 'right' ? 1 : 0, padding: 0, margin: 0 },
-    author: { order: s.nameBadges === 'inline-before' ? 1 : 0, padding: 0, margin: 0 },
-    badges: { order: s.nameBadges === 'inline-before' ? 0 : 1, padding: 0, margin: 0 },
-    message: { order: 1, padding: 0, margin: 0 },
+    avatar: slotFromSimple('avatar', s.avatarPosition === 'right' ? 1 : 0),
+    author: slotFromSimple('author', s.nameBadges === 'inline-before' ? 1 : 0),
+    badges: slotFromSimple('badges', s.nameBadges === 'inline-before' ? 0 : 1),
+    message: slotFromSimple('message', 1),
   };
 
   return { messageRow, metaRow, bodyColumn, slots, screen: {
     chatAlign: s.chatAlign || 'left',
     contentDirection: s.contentDirection || 'ltr',
+    bubbleScope: s.bubbleScope === 'message' ? 'message' : null,
   } };
 }
 

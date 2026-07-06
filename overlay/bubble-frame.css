@@ -1,0 +1,2 @@
+/* Bubble decoration vars — user (--ovs-bubble-*) overrides theme fallbacks in each theme's CSS.
+   Do not define effective vars on :root; themes keep per-property fallbacks. */

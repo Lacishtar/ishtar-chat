@@ -1,7 +1,8 @@
 export default function ThemeGallery({ themes, selectedTheme, onSelect }) {
   return (
     <section className="rounded-xl bg-panel border border-line shadow-panel p-4">
-      <h2 className="font-display text-sm uppercase tracking-wide text-inkMuted mb-3">Theme</h2>
+      <h2 className="font-display text-sm uppercase tracking-wide text-inkMuted mb-1">Preset nhanh</h2>
+      <p className="text-xs text-inkMuted mb-3">Chọn điểm bắt đầu — tuỳ chỉnh tự do bên dưới</p>
 
       <div className="grid grid-cols-2 gap-3">
         {themes.map((theme) => {

@@ -23,6 +23,7 @@ function contractSimpleLayout(layout) {
       padding: 8,
       chatAlign: 'left',
       contentDirection: 'ltr',
+      bubbleScope: 'row',
     };
   }
 
@@ -42,6 +43,15 @@ function contractSimpleLayout(layout) {
 
   const messagePosition = body.direction === 'horizontal' ? 'beside' : 'below';
 
+  const slotPositionFields = (key) => ({
+    [`${key}PositionMode`]: slots[key]?.position ?? 'static',
+    [`${key}Top`]: slots[key]?.top ?? null,
+    [`${key}Left`]: slots[key]?.left ?? null,
+    [`${key}Right`]: slots[key]?.right ?? null,
+    [`${key}Bottom`]: slots[key]?.bottom ?? null,
+    [`${key}ZIndex`]: slots[key]?.zIndex ?? null,
+  });
+
   return {
     avatarPosition,
     nameBadges,
@@ -50,12 +60,42 @@ function contractSimpleLayout(layout) {
     padding: mr.padding ?? 8,
     chatAlign: screen.chatAlign ?? 'left',
     contentDirection: screen.contentDirection ?? 'ltr',
+    bubbleScope: screen.bubbleScope === 'message' ? 'message' : 'row',
+    avatarPadding: slots.avatar?.padding ?? 0,
+    avatarMargin: slots.avatar?.margin ?? 0,
+    authorPadding: slots.author?.padding ?? 0,
+    authorMargin: slots.author?.margin ?? 0,
+    badgesPadding: slots.badges?.padding ?? 0,
+    badgesMargin: slots.badges?.margin ?? 0,
+    messagePadding: slots.message?.padding ?? 0,
+    messageMargin: slots.message?.margin ?? 0,
+    showAvatarSlot: slots.avatar?.visible ?? null,
+    showAuthorSlot: slots.author?.visible ?? null,
+    showBadgesSlot: slots.badges?.visible ?? null,
+    showMessageSlot: slots.message?.visible ?? null,
+    ...slotPositionFields('avatar'),
+    ...slotPositionFields('author'),
+    ...slotPositionFields('badges'),
+    ...slotPositionFields('message'),
   };
 }
 
 /** Mirrors shared/layout-config.js#expandSimpleLayout for the browser. */
 function expandSimpleLayout(simple) {
   const s = { ...contractSimpleLayout(null), ...simple };
+
+  const slotFromSimple = (key, order) => ({
+    order,
+    padding: s[`${key}Padding`] ?? 0,
+    margin: s[`${key}Margin`] ?? 0,
+    visible: s[`show${key.charAt(0).toUpperCase()}${key.slice(1)}Slot`] ?? null,
+    position: s[`${key}PositionMode`] ?? 'static',
+    top: s[`${key}Top`] ?? null,
+    left: s[`${key}Left`] ?? null,
+    right: s[`${key}Right`] ?? null,
+    bottom: s[`${key}Bottom`] ?? null,
+    zIndex: s[`${key}ZIndex`] ?? null,
+  });
 
   return {
     messageRow: {
@@ -80,14 +120,15 @@ function expandSimpleLayout(simple) {
       margin: 0,
     },
     slots: {
-      avatar: { order: s.avatarPosition === 'right' ? 1 : 0, padding: 0, margin: 0 },
-      author: { order: s.nameBadges === 'inline-before' ? 1 : 0, padding: 0, margin: 0 },
-      badges: { order: s.nameBadges === 'inline-before' ? 0 : 1, padding: 0, margin: 0 },
-      message: { order: 1, padding: 0, margin: 0 },
+      avatar: slotFromSimple('avatar', s.avatarPosition === 'right' ? 1 : 0),
+      author: slotFromSimple('author', s.nameBadges === 'inline-before' ? 1 : 0),
+      badges: slotFromSimple('badges', s.nameBadges === 'inline-before' ? 0 : 1),
+      message: slotFromSimple('message', 1),
     },
     screen: {
       chatAlign: s.chatAlign || 'left',
       contentDirection: s.contentDirection || 'ltr',
+      bubbleScope: s.bubbleScope === 'message' ? 'message' : null,
     },
   };
 }
@@ -175,6 +216,17 @@ export default function LayoutPanel({ api, layoutConfig }) {
         </select>
       </Field>
 
+      <Field label="Khung chat bọc">
+        <select
+          className={inputClass}
+          value={local.bubbleScope}
+          onChange={(e) => pushUpdate({ bubbleScope: e.target.value })}
+        >
+          <option value="row">Cả tin nhắn (avatar + tên + nội dung)</option>
+          <option value="message">Chỉ nội dung chat</option>
+        </select>
+      </Field>
+
       <div className="grid grid-cols-2 gap-3">
         <Field label={`Khoảng cách avatar — ${local.gap}px`}>
           <input
@@ -195,6 +247,46 @@ export default function LayoutPanel({ api, layoutConfig }) {
             onChange={(e) => pushUpdate({ padding: Number(e.target.value) })}
           />
         </Field>
+      </div>
+
+      <h3 className="text-xs uppercase tracking-wide text-inkMuted pt-1">Ẩn/hiện (layout)</h3>
+      <div className="flex flex-wrap gap-4 text-sm">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={local.showAvatarSlot ?? true}
+            onChange={(e) => pushUpdate({ showAvatarSlot: e.target.checked })}
+            className="accent-focusAccent"
+          />
+          Avatar
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={local.showAuthorSlot ?? true}
+            onChange={(e) => pushUpdate({ showAuthorSlot: e.target.checked })}
+            className="accent-focusAccent"
+          />
+          Tên
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={local.showBadgesSlot ?? true}
+            onChange={(e) => pushUpdate({ showBadgesSlot: e.target.checked })}
+            className="accent-focusAccent"
+          />
+          Badge
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={local.showMessageSlot ?? true}
+            onChange={(e) => pushUpdate({ showMessageSlot: e.target.checked })}
+            className="accent-focusAccent"
+          />
+          Nội dung
+        </label>
       </div>
     </section>
   );

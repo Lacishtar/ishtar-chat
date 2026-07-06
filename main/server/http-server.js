@@ -17,8 +17,17 @@ function createApp(getState, options = {}) {
   const app = express();
 
   app.get('/overlay', (req, res) => {
-    const { themeId, config, layoutConfig, sessionId, history } = getState();
-    const initialState = { theme: themeId, themeId, config, layoutConfig, session: sessionId, history };
+    const { themeId, config, layoutConfig, sessionId, history, slotStyleConfig, animationConfig } = getState();
+    const initialState = {
+      theme: themeId,
+      themeId,
+      config,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+      session: sessionId,
+      history,
+    };
     const html = OVERLAY_TEMPLATE.replace(
       '/*OVS_INITIAL_STATE*/ {}',
       JSON.stringify(initialState)

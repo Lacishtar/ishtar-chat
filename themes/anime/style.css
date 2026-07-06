@@ -1,6 +1,4 @@
-/* Anime theme. All tunable values come from CSS custom properties set by
-   the Customize Engine (see shared/customize-config.js#toCssVariables) —
-   this file should never hard-code a color/size that the panel controls. */
+/* Anime theme. Slot + layout vars from Customize / Layout / SlotStyle engines. */
 
 html,
 body {
@@ -14,6 +12,7 @@ body {
 #ovs-chat-list {
   display: flex;
   flex-direction: column;
+  align-items: var(--ovs-layout-chat-align, flex-start);
   gap: 12px;
   padding: 18px;
   height: 100vh;
@@ -27,26 +26,34 @@ body {
 
 .ovs-message {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  direction: ltr;
+  flex-direction: var(--ovs-layout-message-direction, row);
+  align-items: var(--ovs-layout-message-align, flex-start);
+  gap: var(--ovs-layout-message-gap, 10px);
   max-width: 90%;
-  padding: 10px 14px;
+  padding: var(--ovs-bubble-pad-y, 10px) var(--ovs-bubble-pad-x, 14px);
+  margin: var(--ovs-layout-message-margin, 0);
   border-radius: var(--ovs-bubble-radius, 22px);
   background: var(--ovs-bubble-bg, rgba(255, 200, 230, 0.55));
   opacity: var(--ovs-bubble-opacity, 1);
-  border: 2px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 4px 14px rgba(255, 140, 200, 0.25);
-  animation: ovs-anime-in var(--ovs-animation-ms, 320ms) cubic-bezier(0.34, 1.56, 0.64, 1);
-  will-change: transform, opacity;
+  border-width: var(--ovs-bubble-border-width, 2px);
+  border-style: var(--ovs-bubble-border-style, solid);
+  border-color: var(--ovs-bubble-border-color, rgba(255, 255, 255, 0.6));
+  box-shadow: var(--ovs-bubble-box-shadow, 0 4px 14px rgba(255, 140, 200, 0.25));
 }
 
 .ovs-avatar {
-  width: var(--ovs-avatar-size, 34px);
-  height: var(--ovs-avatar-size, 34px);
-  border-radius: 50%;
+  order: var(--ovs-layout-slot-avatar-order, 0);
+  padding: var(--ovs-layout-slot-avatar-padding, 0);
+  margin: var(--ovs-layout-slot-avatar-margin, 0);
+  width: var(--ovs-slot-avatar-size, var(--ovs-avatar-size, 34px));
+  height: var(--ovs-slot-avatar-size, var(--ovs-avatar-size, 34px));
+  border-radius: var(--ovs-slot-avatar-border-radius, 50%);
+  opacity: var(--ovs-slot-avatar-opacity, 1);
   flex-shrink: 0;
-  border: 2px dashed var(--ovs-author-color, #ff7ec9);
-  box-sizing: border-box;
+  --ovs-theme-avatar-border-width: 2px;
+  --ovs-theme-avatar-border-style: dashed;
+  --ovs-theme-avatar-border-color: var(--ovs-slot-author-color, var(--ovs-author-color, #ff7ec9));
   padding: 1px;
 }
 
@@ -56,34 +63,47 @@ body {
 
 .ovs-body {
   display: flex;
-  flex-direction: column;
+  flex-direction: var(--ovs-layout-body-direction, column);
+  align-items: var(--ovs-layout-body-align, stretch);
+  gap: var(--ovs-layout-body-gap, 0);
+  padding: var(--ovs-layout-body-padding, 0);
+  margin: var(--ovs-layout-body-margin, 0);
   min-width: 0;
 }
 
 .ovs-meta {
   display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-bottom: 2px;
+  flex-direction: var(--ovs-layout-meta-direction, row);
+  align-items: var(--ovs-layout-meta-align, center);
+  gap: var(--ovs-layout-meta-gap, 5px);
+  padding: var(--ovs-layout-meta-padding, 0);
+  margin: var(--ovs-layout-meta-margin, 0 0 2px 0);
 }
 
 .ovs-author {
-  font-weight: 800;
-  font-size: calc(var(--ovs-font-size, 16px) * 0.85);
-  color: var(--ovs-author-color, #ff7ec9);
+  order: var(--ovs-layout-slot-author-order, 0);
+  padding: var(--ovs-layout-slot-author-padding, 0);
+  margin: var(--ovs-layout-slot-author-margin, 0);
+  font-family: var(--ovs-slot-author-font-family, var(--ovs-font-family));
+  font-weight: var(--ovs-slot-author-font-weight, 800);
+  font-size: var(--ovs-slot-author-font-size, calc(var(--ovs-font-size, 16px) * 0.85));
+  color: var(--ovs-slot-author-color, var(--ovs-author-color, #ff7ec9));
+  opacity: var(--ovs-slot-author-opacity, 1);
 }
 
-/* A small decorative sparkle — plain text glyph, not an image/icon font,
-   so it always renders regardless of what's installed on the OBS machine. */
 .ovs-author::before {
   content: '\2726 ';
   opacity: 0.8;
 }
 
 .ovs-badges {
+  order: var(--ovs-layout-slot-badges-order, 1);
+  padding: var(--ovs-layout-slot-badges-padding, 0);
+  margin: var(--ovs-layout-slot-badges-margin, 0);
   display: inline-flex;
   gap: 4px;
-  font-size: calc(var(--ovs-font-size, 16px) * 0.6);
+  font-size: var(--ovs-slot-badges-font-size, calc(var(--ovs-font-size, 16px) * 0.6));
+  opacity: var(--ovs-slot-badges-opacity, 1);
   color: rgba(120, 60, 120, 0.6);
 }
 
@@ -93,8 +113,13 @@ body {
 }
 
 .ovs-text {
-  font-size: var(--ovs-font-size, 16px);
-  color: var(--ovs-text-color, #4a2e4e);
+  order: var(--ovs-layout-slot-message-order, 1);
+  padding: var(--ovs-layout-slot-message-padding, 0);
+  margin: var(--ovs-layout-slot-message-margin, 0);
+  font-family: var(--ovs-slot-message-font-family, var(--ovs-font-family));
+  font-size: var(--ovs-slot-message-font-size, var(--ovs-font-size, 16px));
+  color: var(--ovs-slot-message-color, var(--ovs-text-color, #4a2e4e));
+  opacity: var(--ovs-slot-message-opacity, 1);
   line-height: 1.4;
   word-break: break-word;
 }
@@ -108,24 +133,4 @@ body {
 .ovs-message.ovs-superchat {
   border-color: #ffca28;
   box-shadow: 0 4px 18px rgba(255, 202, 40, 0.4);
-}
-
-@keyframes ovs-anime-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.85) rotate(-2deg);
-  }
-  60% {
-    transform: translateY(-2px) scale(1.03) rotate(1deg);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1) rotate(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ovs-message {
-    animation: none;
-  }
 }

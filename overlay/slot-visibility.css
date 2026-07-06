@@ -1,0 +1,12 @@
+/* Slot visibility — shared across themes (layout ẩn/hiện applies instantly). */
+
+.ovs-avatar[data-hidden='true'],
+.ovs-author[data-hidden='true'],
+.ovs-badges[data-hidden='true'],
+.ovs-text[data-hidden='true'] {
+  display: none !important;
+}
+
+.ovs-avatar-frame:has(.ovs-avatar[data-hidden='true']) {
+  display: none;
+}

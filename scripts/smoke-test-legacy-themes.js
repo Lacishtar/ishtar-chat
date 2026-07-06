@@ -9,7 +9,7 @@ const fs = require('fs');
 const { loadThemeDocument, listThemeIds } = require('../main/theme-engine');
 const { THEMES_DIR, readThemeConfig } = require('../main/theme-registry');
 
-const EXPECTED_THEME_IDS = ['classic', 'bubble', 'glass', 'minimal', 'anime', 'cyber', 'danmaku', 'ticker'];
+const EXPECTED_THEME_IDS = ['classic', 'bubble', 'glass', 'minimal', 'anime', 'cyber', 'danmaku', 'ticker', 'scrapbook'];
 const ABSOLUTE_LAYOUT_THEMES = new Set(['danmaku', 'ticker']);
 const EXPECTED_SLOT_COMPONENTS = ['Avatar', 'Username', 'Badges', 'Message'];
 

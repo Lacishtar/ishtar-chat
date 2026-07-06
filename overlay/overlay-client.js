@@ -3,6 +3,8 @@
   let currentTheme = state.theme || state.themeId || 'classic';
   let currentConfig = state.config || {};
   let currentLayout = state.layoutConfig || {};
+  let currentSlotStyle = state.slotStyleConfig || {};
+  let currentAnimation = state.animationConfig || {};
   let messageTemplate = null;
   let messageHistory = Array.isArray(state.history) ? [...state.history] : [];
 
@@ -37,6 +39,14 @@
     return Number.isFinite(n) ? `${n}px` : '0px';
   }
 
+  function offsetVar(value) {
+    return value != null && Number.isFinite(Number(value)) ? px(value) : 'auto';
+  }
+
+  function zIndexVar(value) {
+    return value != null && Number.isFinite(Number(value)) ? String(value) : 'auto';
+  }
+
   // Keep in sync with shared/avatar-url.js#toAvatarProxyUrl.
   function toAvatarProxyUrl(rawUrl) {
     if (!rawUrl || typeof rawUrl !== 'string') return '';
@@ -54,7 +64,8 @@
 
   function applyAvatar(avatarEl, rawUrl) {
     if (!avatarEl) return;
-    if (currentConfig.showAvatar === false || !rawUrl) {
+    const effective = resolveEffectiveSlotStyle(currentSlotStyle, currentConfig);
+    if (!effective.avatar.visible || currentConfig.showAvatar === false || !rawUrl) {
       avatarEl.setAttribute('data-hidden', 'true');
       avatarEl.removeAttribute('src');
       return;
@@ -108,25 +119,181 @@
       '--ovs-layout-slot-avatar-order': String(slots.avatar?.order ?? 0),
       '--ovs-layout-slot-avatar-padding': px(slots.avatar?.padding ?? 0),
       '--ovs-layout-slot-avatar-margin': px(slots.avatar?.margin ?? 0),
+      '--ovs-layout-slot-avatar-position': slots.avatar?.position === 'absolute' ? 'absolute' : 'static',
+      '--ovs-layout-slot-avatar-top': offsetVar(slots.avatar?.top),
+      '--ovs-layout-slot-avatar-left': offsetVar(slots.avatar?.left),
+      '--ovs-layout-slot-avatar-right': offsetVar(slots.avatar?.right),
+      '--ovs-layout-slot-avatar-bottom': offsetVar(slots.avatar?.bottom),
+      '--ovs-layout-slot-avatar-z-index': zIndexVar(slots.avatar?.zIndex),
 
       '--ovs-layout-slot-author-order': String(slots.author?.order ?? 0),
       '--ovs-layout-slot-author-padding': px(slots.author?.padding ?? 0),
       '--ovs-layout-slot-author-margin': px(slots.author?.margin ?? 0),
+      '--ovs-layout-slot-author-position': slots.author?.position === 'absolute' ? 'absolute' : 'static',
+      '--ovs-layout-slot-author-top': offsetVar(slots.author?.top),
+      '--ovs-layout-slot-author-left': offsetVar(slots.author?.left),
+      '--ovs-layout-slot-author-right': offsetVar(slots.author?.right),
+      '--ovs-layout-slot-author-bottom': offsetVar(slots.author?.bottom),
+      '--ovs-layout-slot-author-z-index': zIndexVar(slots.author?.zIndex),
 
       '--ovs-layout-slot-badges-order': String(slots.badges?.order ?? 1),
       '--ovs-layout-slot-badges-padding': px(slots.badges?.padding ?? 0),
       '--ovs-layout-slot-badges-margin': px(slots.badges?.margin ?? 0),
+      '--ovs-layout-slot-badges-position': slots.badges?.position === 'absolute' ? 'absolute' : 'static',
+      '--ovs-layout-slot-badges-top': offsetVar(slots.badges?.top),
+      '--ovs-layout-slot-badges-left': offsetVar(slots.badges?.left),
+      '--ovs-layout-slot-badges-right': offsetVar(slots.badges?.right),
+      '--ovs-layout-slot-badges-bottom': offsetVar(slots.badges?.bottom),
+      '--ovs-layout-slot-badges-z-index': zIndexVar(slots.badges?.zIndex),
 
       '--ovs-layout-slot-message-order': String(slots.message?.order ?? 1),
       '--ovs-layout-slot-message-padding': px(slots.message?.padding ?? 0),
       '--ovs-layout-slot-message-margin': px(slots.message?.margin ?? 0),
+      '--ovs-layout-slot-message-position': slots.message?.position === 'absolute' ? 'absolute' : 'static',
+      '--ovs-layout-slot-message-top': offsetVar(slots.message?.top),
+      '--ovs-layout-slot-message-left': offsetVar(slots.message?.left),
+      '--ovs-layout-slot-message-right': offsetVar(slots.message?.right),
+      '--ovs-layout-slot-message-bottom': offsetVar(slots.message?.bottom),
+      '--ovs-layout-slot-message-z-index': zIndexVar(slots.message?.zIndex),
 
       '--ovs-layout-chat-align': ALIGN_TO_FLEX[screen.chatAlign] || 'flex-start',
       '--ovs-layout-content-direction': 'ltr',
+      '--ovs-bubble-scope': screen.bubbleScope === 'message' ? 'message' : 'row',
     };
   }
 
-  function applyCssVariables(config, layout) {
+  // Keep in sync with shared/slot-style-config.js#resolveEffectiveSlotStyle.
+  function resolveEffectiveSlotStyle(slotStyle, customizeConfig) {
+    const cfg = customizeConfig || {};
+    const slots = (slotStyle && slotStyle.slots) || {};
+    const g = (key, fallback) => (slots[key] && slots[key][fallback] !== undefined && slots[key][fallback] !== null
+      ? slots[key][fallback]
+      : undefined);
+
+    const slotVis = (slotKey, globalKey, defaultVal) => {
+      const layoutVis = currentLayout.slots?.[slotKey]?.visible;
+      const styleVis = g(slotKey, 'visible');
+      if (layoutVis !== undefined && layoutVis !== null) return Boolean(layoutVis);
+      if (styleVis !== undefined && styleVis !== null) return Boolean(styleVis);
+      if (cfg[globalKey] !== undefined) return Boolean(cfg[globalKey]);
+      return defaultVal;
+    };
+
+    return {
+      avatar: {
+        visible: slotVis('avatar', 'showAvatar', true),
+        size: g('avatar', 'size') ?? cfg.avatarSize ?? 32,
+      },
+      author: { visible: slotVis('author', null, true) },
+      badges: { visible: slotVis('badges', 'showBadges', true) },
+      message: { visible: slotVis('message', null, true) },
+    };
+  }
+
+  // Keep in sync with shared/slot-style-config.js#compileSlotStyleToCssVariables.
+  function compileSlotStyleToCssVariables(slotStyle, customizeConfig) {
+    const cfg = customizeConfig || {};
+    const slots = (slotStyle && slotStyle.slots) || {};
+    const px = (v) => (Number.isFinite(Number(v)) ? `${Number(v)}px` : undefined);
+    const pick = (slot, key) => (slots[slot] && slots[slot][key] != null ? slots[slot][key] : null);
+    const pickTransform = (slot) => ({
+      rotate: pick(slot, 'rotate') ?? 0,
+      translateX: pick(slot, 'translateX') ?? 0,
+      translateY: pick(slot, 'translateY') ?? 0,
+      transformOrigin: pick(slot, 'transformOrigin') ?? 'center center',
+    });
+    const assignTransform = (prefix, t) => {
+      vars[`--ovs-slot-${prefix}-rotate`] = `${t.rotate}deg`;
+      vars[`--ovs-slot-${prefix}-translate-x`] = px(t.translateX);
+      vars[`--ovs-slot-${prefix}-translate-y`] = px(t.translateY);
+      vars[`--ovs-slot-${prefix}-transform-origin`] = t.transformOrigin;
+    };
+    const vars = {};
+
+    const avatarSize = pick('avatar', 'size') ?? cfg.avatarSize;
+    if (avatarSize != null) vars['--ovs-slot-avatar-size'] = px(avatarSize);
+    const avatarRadius = pick('avatar', 'borderRadius');
+    if (avatarRadius != null) {
+      vars['--ovs-slot-avatar-border-radius'] = typeof avatarRadius === 'string' && avatarRadius.includes('%')
+        ? avatarRadius
+        : px(avatarRadius);
+    }
+    if (pick('avatar', 'borderWidth') != null) vars['--ovs-slot-avatar-border-width'] = px(pick('avatar', 'borderWidth'));
+    if (pick('avatar', 'borderStyle') != null) vars['--ovs-slot-avatar-border-style'] = pick('avatar', 'borderStyle');
+    if (pick('avatar', 'borderColor') != null) vars['--ovs-slot-avatar-border-color'] = pick('avatar', 'borderColor');
+    if (pick('avatar', 'opacity') != null) vars['--ovs-slot-avatar-opacity'] = String(pick('avatar', 'opacity'));
+    if (pick('avatar', 'margin') != null) vars['--ovs-slot-avatar-margin'] = px(pick('avatar', 'margin'));
+    assignTransform('avatar', pickTransform('avatar'));
+
+    const authorFont = pick('author', 'fontFamily') ?? cfg.fontFamily;
+    const authorSize = pick('author', 'fontSize') ?? (cfg.fontSize != null ? Math.round(cfg.fontSize * 0.9) : null);
+    if (authorFont) vars['--ovs-slot-author-font-family'] = authorFont;
+    if (authorSize != null) vars['--ovs-slot-author-font-size'] = px(authorSize);
+    if (pick('author', 'color') ?? cfg.authorColor) vars['--ovs-slot-author-color'] = pick('author', 'color') ?? cfg.authorColor;
+    if (pick('author', 'fontWeight') != null) vars['--ovs-slot-author-font-weight'] = String(pick('author', 'fontWeight'));
+    if (pick('author', 'opacity') != null) vars['--ovs-slot-author-opacity'] = String(pick('author', 'opacity'));
+    if (pick('author', 'margin') != null) vars['--ovs-slot-author-margin'] = px(pick('author', 'margin'));
+    assignTransform('author', pickTransform('author'));
+
+    const badgesSize = pick('badges', 'fontSize') ?? (cfg.fontSize != null ? Math.round(cfg.fontSize * 0.65) : null);
+    if (badgesSize != null) vars['--ovs-slot-badges-font-size'] = px(badgesSize);
+    if (pick('badges', 'opacity') != null) vars['--ovs-slot-badges-opacity'] = String(pick('badges', 'opacity'));
+    if (pick('badges', 'margin') != null) vars['--ovs-slot-badges-margin'] = px(pick('badges', 'margin'));
+    assignTransform('badges', pickTransform('badges'));
+
+    const msgFont = pick('message', 'fontFamily') ?? cfg.fontFamily;
+    const msgSize = pick('message', 'fontSize') ?? cfg.fontSize;
+    if (msgFont) vars['--ovs-slot-message-font-family'] = msgFont;
+    if (msgSize != null) vars['--ovs-slot-message-font-size'] = px(msgSize);
+    if (pick('message', 'color') ?? cfg.textColor) vars['--ovs-slot-message-color'] = pick('message', 'color') ?? cfg.textColor;
+    if (pick('message', 'fontWeight') != null) vars['--ovs-slot-message-font-weight'] = String(pick('message', 'fontWeight'));
+    if (pick('message', 'opacity') != null) vars['--ovs-slot-message-opacity'] = String(pick('message', 'opacity'));
+    if (pick('message', 'margin') != null) vars['--ovs-slot-message-margin'] = px(pick('message', 'margin'));
+    assignTransform('message', pickTransform('message'));
+
+    return vars;
+  }
+
+  // Keep in sync with shared/animation-config.js#compileAnimationToCssVariables.
+  function compileAnimationToCssVariables(animationConfig, customizeConfig) {
+    const cfg = customizeConfig || {};
+    const anim = animationConfig || {};
+    const targets = anim.targets || {};
+    const base = cfg.animationMs ?? 220;
+    const enabled = anim.enabled !== false;
+    const vars = { '--ovs-anim-enabled': enabled ? '1' : '0' };
+
+    ['avatar', 'author', 'badges', 'message'].forEach((slot) => {
+      const t = targets[slot] || {};
+      vars[`--ovs-anim-${slot}-duration`] = `${t.durationMs ?? base}ms`;
+      vars[`--ovs-anim-${slot}-delay`] = `${t.delayMs ?? 0}ms`;
+      vars[`--ovs-anim-${slot}-easing`] = t.easing || 'ease-out';
+      vars[`--ovs-anim-${slot}-translate-x`] = `${t.translateX ?? 0}px`;
+      vars[`--ovs-anim-${slot}-translate-y`] = `${t.translateY ?? 0}px`;
+    });
+    return vars;
+  }
+
+  function compileBubbleDecorationToCssVariables(config) {
+    const c = config || {};
+    const vars = {};
+    const pxLocal = (v) => (Number.isFinite(Number(v)) ? `${Number(v)}px` : undefined);
+    const isSetLocal = (v) => v !== undefined && v !== null;
+
+    if (isSetLocal(c.bubbleBorderWidth)) vars['--ovs-bubble-border-width'] = pxLocal(c.bubbleBorderWidth);
+    if (isSetLocal(c.bubbleBorderStyle)) vars['--ovs-bubble-border-style'] = c.bubbleBorderStyle;
+    if (isSetLocal(c.bubbleBorderColor)) vars['--ovs-bubble-border-color'] = c.bubbleBorderColor;
+    if (isSetLocal(c.bubbleBoxShadow)) vars['--ovs-bubble-box-shadow'] = c.bubbleBoxShadow;
+
+    const padX = isSetLocal(c.bubblePaddingX) ? c.bubblePaddingX : (isSetLocal(c.bubblePadding) ? c.bubblePadding : null);
+    const padY = isSetLocal(c.bubblePaddingY) ? c.bubblePaddingY : (isSetLocal(c.bubblePadding) ? c.bubblePadding : null);
+    if (padX != null) vars['--ovs-bubble-pad-x'] = pxLocal(padX);
+    if (padY != null) vars['--ovs-bubble-pad-y'] = pxLocal(padY);
+
+    return vars;
+  }
+
+  function applyCssVariables(config, layout, slotStyle, animationConfig) {
     const cfg = config || {};
     const root = document.documentElement;
     const map = {
@@ -139,7 +306,10 @@
       '--ovs-bubble-opacity': cfg.bubbleOpacity != null ? String(cfg.bubbleOpacity) : undefined,
       '--ovs-avatar-size': cfg.avatarSize != null ? `${cfg.avatarSize}px` : undefined,
       '--ovs-animation-ms': cfg.animationMs != null ? `${cfg.animationMs}ms` : undefined,
+      ...compileBubbleDecorationToCssVariables(cfg),
       ...compileLayoutToCssVariables(layout),
+      ...compileSlotStyleToCssVariables(slotStyle || currentSlotStyle, cfg),
+      ...compileAnimationToCssVariables(animationConfig || currentAnimation, cfg),
     };
     Object.entries(map).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== 'undefinedpx') {
@@ -147,7 +317,11 @@
       }
     });
 
+    const bubbleScope = layout?.screen?.bubbleScope === 'message' ? 'message' : 'row';
+    root.dataset.ovsBubbleScope = bubbleScope;
+
     listEl.classList.toggle('ovs-position-top-down', config.position === 'top-down');
+    refreshAllSlotVisibility();
   }
 
   async function loadTheme(themeId) {
@@ -176,11 +350,13 @@
     const themeSwitch = Boolean(nextTheme && nextTheme !== currentTheme);
     if (data.config) currentConfig = data.config;
     if (data.layoutConfig) currentLayout = data.layoutConfig;
+    if (data.slotStyleConfig) currentSlotStyle = data.slotStyleConfig;
+    if (data.animationConfig) currentAnimation = data.animationConfig;
 
     const incomingHistory = Array.isArray(data.history) ? data.history : null;
 
     const finish = () => {
-      applyCssVariables(currentConfig, currentLayout);
+      applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation);
       if (themeSwitch) {
         resetTickerPlayback();
         listEl.innerHTML = '';
@@ -346,6 +522,76 @@
     }
   }
 
+  function applySlotVisibility(el, slotKey) {
+    if (!el) return;
+    const effective = resolveEffectiveSlotStyle(currentSlotStyle, currentConfig);
+    if (!effective[slotKey]?.visible) {
+      el.setAttribute('data-hidden', 'true');
+    } else {
+      el.removeAttribute('data-hidden');
+    }
+  }
+
+  function refreshBadgesVisibility(badgesEl) {
+    if (!badgesEl) return;
+    applySlotVisibility(badgesEl, 'badges');
+    if (badgesEl.getAttribute('data-hidden') === 'true') return;
+    if (currentConfig.showBadges === false || !badgesEl.textContent.trim()) {
+      badgesEl.setAttribute('data-hidden', 'true');
+    }
+  }
+
+  function refreshMessageNodeVisibility(node) {
+    if (!node) return;
+    const avatarEl = node.querySelector('[data-slot="avatar"]');
+    const authorEl = node.querySelector('[data-slot="author"]');
+    const badgesEl = node.querySelector('[data-slot="badges"]');
+    const messageEl = node.querySelector('[data-slot="message"]');
+
+    if (avatarEl) {
+      const avatarUrl = avatarEl.dataset.avatarUrl || '';
+      applyAvatar(avatarEl, avatarUrl);
+    }
+    applySlotVisibility(authorEl, 'author');
+    applySlotVisibility(messageEl, 'message');
+    refreshBadgesVisibility(badgesEl);
+  }
+
+  function refreshAllSlotVisibility() {
+    const roots = listEl.querySelectorAll('.ovs-message');
+    roots.forEach(refreshMessageNodeVisibility);
+    if (tickerTrackEl) {
+      tickerTrackEl.querySelectorAll('.ovs-message').forEach(refreshMessageNodeVisibility);
+    }
+  }
+
+  const DANMAKU_THEMES = new Set(['danmaku']);
+
+  function applySlotEnterAnimation(node) {
+    if (TICKER_THEMES.has(currentTheme) || DANMAKU_THEMES.has(currentTheme)) return;
+    const root = getComputedStyle(document.documentElement);
+    if (root.getPropertyValue('--ovs-anim-enabled').trim() === '0') return;
+
+    const pairs = [
+      ['avatar', node.querySelector('[data-slot="avatar"]')],
+      ['author', node.querySelector('[data-slot="author"]')],
+      ['badges', node.querySelector('[data-slot="badges"]')],
+      ['message', node.querySelector('[data-slot="message"]')],
+    ];
+
+    pairs.forEach(([, el]) => {
+      if (!el || el.getAttribute('data-hidden') === 'true') return;
+      el.classList.add('ovs-slot-enter');
+      el.addEventListener(
+        'animationend',
+        (ev) => {
+          if (ev.target === el) el.classList.remove('ovs-slot-enter');
+        },
+        { once: true }
+      );
+    });
+  }
+
   function createMessageNode(msg) {
     const node = messageTemplate.content.firstElementChild.cloneNode(true);
 
@@ -355,15 +601,18 @@
     const messageEl = node.querySelector('[data-slot="message"]');
 
     if (avatarEl) {
+      if (msg.avatarUrl) avatarEl.dataset.avatarUrl = msg.avatarUrl;
       applyAvatar(avatarEl, msg.avatarUrl);
     }
+    applySlotVisibility(authorEl, 'author');
+    applySlotVisibility(messageEl, 'message');
+
     if (authorEl) authorEl.textContent = msg.author;
     if (badgesEl) {
-      if (currentConfig.showBadges === false || !msg.badges || msg.badges.length === 0) {
-        badgesEl.setAttribute('data-hidden', 'true');
-      } else {
+      if (msg.badges?.length) {
         badgesEl.textContent = msg.badges.map((b) => `[${b}]`).join(' ');
       }
+      refreshBadgesVisibility(badgesEl);
     }
     // messageHtml originates from YouTube's own already-sanitized chat
     // renderer (plain text + their emoji <img> tags) — that's what lets us
@@ -371,6 +620,7 @@
     if (messageEl) messageEl.innerHTML = msg.messageHtml;
 
     if (msg.isSuperchat) node.classList.add('ovs-superchat');
+    applySlotEnterAnimation(node);
     return node;
   }
 
@@ -419,10 +669,16 @@
         applyThemePayload(payload.data || {});
       } else if (payload.type === 'config:updated') {
         currentConfig = payload.data;
-        applyCssVariables(currentConfig, currentLayout);
+        applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation);
       } else if (payload.type === 'layout:updated') {
         currentLayout = payload.data;
-        applyCssVariables(currentConfig, currentLayout);
+        applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation);
+      } else if (payload.type === 'slot-style:updated') {
+        currentSlotStyle = payload.data;
+        applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation);
+      } else if (payload.type === 'animation:updated') {
+        currentAnimation = payload.data;
+        applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation);
       }
     });
 
@@ -448,6 +704,8 @@
         themeId: currentTheme,
         config: currentConfig,
         layoutConfig: currentLayout,
+        slotStyleConfig: currentSlotStyle,
+        animationConfig: currentAnimation,
         history: state.history,
       },
       { forceHistory: true }

@@ -1,0 +1,23 @@
+{
+  "messageRow": {
+    "gap": 14,
+    "padding": 0,
+    "align": "start"
+  },
+  "bodyColumn": {
+    "gap": 0,
+    "padding": 0
+  },
+  "slots": {
+    "message": {
+      "padding": 0
+    },
+    "author": {
+      "padding": 0,
+      "margin": 0
+    }
+  },
+  "screen": {
+    "bubbleScope": "message"
+  }
+}

@@ -35,12 +35,10 @@ body {
   align-items: var(--ovs-layout-message-align, baseline);
   gap: var(--ovs-layout-message-gap, 8px);
   max-width: 96%;
-  padding: var(--ovs-layout-message-padding, 6px 4px);
+  padding: var(--ovs-bubble-pad-y, 6px) var(--ovs-bubble-pad-x, 4px);
   margin: var(--ovs-layout-message-margin, 0);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: transparent;
-  animation: ovs-minimal-in var(--ovs-animation-ms, 160ms) ease-out;
-  will-change: opacity;
 }
 
 .ovs-message:last-child {
@@ -51,9 +49,10 @@ body {
   order: var(--ovs-layout-slot-avatar-order, 0);
   padding: var(--ovs-layout-slot-avatar-padding, 0);
   margin: var(--ovs-layout-slot-avatar-margin, 0);
-  width: var(--ovs-avatar-size, 24px);
-  height: var(--ovs-avatar-size, 24px);
-  border-radius: 50%;
+  width: var(--ovs-slot-avatar-size, var(--ovs-avatar-size, 24px));
+  height: var(--ovs-slot-avatar-size, var(--ovs-avatar-size, 24px));
+  border-radius: var(--ovs-slot-avatar-border-radius, 50%);
+  opacity: var(--ovs-slot-avatar-opacity, 1);
   flex-shrink: 0;
   align-self: center;
 }
@@ -86,9 +85,11 @@ body {
   order: var(--ovs-layout-slot-author-order, 0);
   padding: var(--ovs-layout-slot-author-padding, 0);
   margin: var(--ovs-layout-slot-author-margin, 0);
-  font-weight: 700;
-  font-size: var(--ovs-font-size, 16px);
-  color: var(--ovs-author-color, #6e56f0);
+  font-family: var(--ovs-slot-author-font-family, var(--ovs-font-family));
+  font-weight: var(--ovs-slot-author-font-weight, 700);
+  font-size: var(--ovs-slot-author-font-size, var(--ovs-font-size, 16px));
+  color: var(--ovs-slot-author-color, var(--ovs-author-color, #6e56f0));
+  opacity: var(--ovs-slot-author-opacity, 1);
 }
 
 .ovs-author::after {
@@ -101,7 +102,8 @@ body {
   order: var(--ovs-layout-slot-badges-order, 1);
   padding: var(--ovs-layout-slot-badges-padding, 0);
   margin: var(--ovs-layout-slot-badges-margin, 0);
-  font-size: calc(var(--ovs-font-size, 16px) * 0.6);
+  font-size: var(--ovs-slot-badges-font-size, calc(var(--ovs-font-size, 16px) * 0.6));
+  opacity: var(--ovs-slot-badges-opacity, 1);
   color: rgba(255, 255, 255, 0.4);
 }
 
@@ -114,11 +116,12 @@ body {
   order: var(--ovs-layout-slot-message-order, 1);
   padding: var(--ovs-layout-slot-message-padding, 0);
   margin: var(--ovs-layout-slot-message-margin, 0);
-  font-size: var(--ovs-font-size, 16px);
-  color: var(--ovs-text-color, #eaecef);
+  font-family: var(--ovs-slot-message-font-family, var(--ovs-font-family));
+  font-size: var(--ovs-slot-message-font-size, var(--ovs-font-size, 16px));
+  color: var(--ovs-slot-message-color, var(--ovs-text-color, #eaecef));
+  opacity: var(--ovs-slot-message-opacity, var(--ovs-bubble-opacity, 1));
   line-height: 1.4;
   word-break: break-word;
-  opacity: var(--ovs-bubble-opacity, 1);
 }
 
 .ovs-text img {
@@ -133,19 +136,4 @@ body {
 
 .ovs-message.ovs-superchat .ovs-author {
   color: #ffca28;
-}
-
-@keyframes ovs-minimal-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ovs-message {
-    animation: none;
-  }
 }

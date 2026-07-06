@@ -33,26 +33,27 @@ body {
   align-items: var(--ovs-layout-message-align, flex-start);
   gap: var(--ovs-layout-message-gap, 10px);
   max-width: 90%;
-  padding: var(--ovs-layout-message-padding, 10px 14px);
+  padding: var(--ovs-bubble-pad-y, 10px) var(--ovs-bubble-pad-x, 14px);
   margin: var(--ovs-layout-message-margin, 0);
   border-radius: var(--ovs-bubble-radius, 16px);
   background: var(--ovs-bubble-bg, rgba(255, 255, 255, 0.1));
   opacity: var(--ovs-bubble-opacity, 1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 8px 24px rgba(0, 0, 0, 0.25);
+  border-width: var(--ovs-bubble-border-width, 1px);
+  border-style: var(--ovs-bubble-border-style, solid);
+  border-color: var(--ovs-bubble-border-color, rgba(255, 255, 255, 0.18));
+  box-shadow: var(--ovs-bubble-box-shadow, 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 8px 24px rgba(0, 0, 0, 0.25));
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
-  animation: ovs-glass-in var(--ovs-animation-ms, 240ms) ease-out;
-  will-change: transform, opacity;
 }
 
 .ovs-avatar {
   order: var(--ovs-layout-slot-avatar-order, 0);
   padding: var(--ovs-layout-slot-avatar-padding, 0);
   margin: var(--ovs-layout-slot-avatar-margin, 0);
-  width: var(--ovs-avatar-size, 32px);
-  height: var(--ovs-avatar-size, 32px);
-  border-radius: 50%;
+  width: var(--ovs-slot-avatar-size, var(--ovs-avatar-size, 32px));
+  height: var(--ovs-slot-avatar-size, var(--ovs-avatar-size, 32px));
+  border-radius: var(--ovs-slot-avatar-border-radius, 50%);
+  opacity: var(--ovs-slot-avatar-opacity, 1);
   flex-shrink: 0;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
 }
@@ -87,8 +88,11 @@ body {
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  font-size: calc(var(--ovs-font-size, 16px) * 0.72);
-  color: var(--ovs-author-color, #8fd3ff);
+  font-size: var(--ovs-slot-author-font-size, calc(var(--ovs-font-size, 16px) * 0.72));
+  color: var(--ovs-slot-author-color, var(--ovs-author-color, #8fd3ff));
+  font-family: var(--ovs-slot-author-font-family, var(--ovs-font-family));
+  font-weight: var(--ovs-slot-author-font-weight, 600);
+  opacity: var(--ovs-slot-author-opacity, 1);
 }
 
 .ovs-badges {
@@ -97,7 +101,8 @@ body {
   margin: var(--ovs-layout-slot-badges-margin, 0);
   display: inline-flex;
   gap: 4px;
-  font-size: calc(var(--ovs-font-size, 16px) * 0.6);
+  font-size: var(--ovs-slot-badges-font-size, calc(var(--ovs-font-size, 16px) * 0.6));
+  opacity: var(--ovs-slot-badges-opacity, 1);
   color: rgba(255, 255, 255, 0.55);
 }
 
@@ -110,8 +115,10 @@ body {
   order: var(--ovs-layout-slot-message-order, 1);
   padding: var(--ovs-layout-slot-message-padding, 0);
   margin: var(--ovs-layout-slot-message-margin, 0);
-  font-size: var(--ovs-font-size, 16px);
-  color: var(--ovs-text-color, #f2f6fa);
+  font-family: var(--ovs-slot-message-font-family, var(--ovs-font-family));
+  font-size: var(--ovs-slot-message-font-size, var(--ovs-font-size, 16px));
+  color: var(--ovs-slot-message-color, var(--ovs-text-color, #f2f6fa));
+  opacity: var(--ovs-slot-message-opacity, 1);
   line-height: 1.4;
   word-break: break-word;
 }
@@ -125,21 +132,4 @@ body {
 .ovs-message.ovs-superchat {
   border-color: rgba(255, 202, 40, 0.55);
   box-shadow: 0 0 0 1px rgba(255, 202, 40, 0.4) inset, 0 8px 24px rgba(0, 0, 0, 0.25);
-}
-
-@keyframes ovs-glass-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ovs-message {
-    animation: none;
-  }
 }

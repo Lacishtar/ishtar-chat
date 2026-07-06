@@ -1,0 +1,94 @@
+/* Per-slot entrance animations — shared across themes (except ticker). */
+
+.ovs-avatar.ovs-slot-enter {
+  animation: ovs-slot-avatar-in var(--ovs-anim-avatar-duration, 220ms) var(--ovs-anim-avatar-easing, ease-out)
+    var(--ovs-anim-avatar-delay, 0ms) both;
+}
+
+.ovs-author.ovs-slot-enter {
+  animation: ovs-slot-author-in var(--ovs-anim-author-duration, 220ms) var(--ovs-anim-author-easing, ease-out)
+    var(--ovs-anim-author-delay, 40ms) both;
+}
+
+.ovs-badges.ovs-slot-enter {
+  animation: ovs-slot-badges-in var(--ovs-anim-badges-duration, 220ms) var(--ovs-anim-badges-easing, ease-out)
+    var(--ovs-anim-badges-delay, 60ms) both;
+}
+
+.ovs-text.ovs-slot-enter {
+  animation: ovs-slot-message-in var(--ovs-anim-message-duration, 220ms) var(--ovs-anim-message-easing, ease-out)
+    var(--ovs-anim-message-delay, 80ms) both;
+}
+
+@keyframes ovs-slot-avatar-in {
+  from {
+    opacity: 0;
+    transform: translate(
+        calc(var(--ovs-anim-avatar-translate-x, 0px) + var(--ovs-slot-avatar-translate-x, 0px)),
+        calc(var(--ovs-anim-avatar-translate-y, 8px) + var(--ovs-slot-avatar-translate-y, 0px))
+      )
+      rotate(var(--ovs-slot-avatar-rotate, 0deg));
+  }
+  to {
+    opacity: 1;
+    transform: translate(var(--ovs-slot-avatar-translate-x, 0), var(--ovs-slot-avatar-translate-y, 0))
+      rotate(var(--ovs-slot-avatar-rotate, 0deg));
+  }
+}
+
+@keyframes ovs-slot-author-in {
+  from {
+    opacity: 0;
+    transform: translate(
+        calc(var(--ovs-anim-author-translate-x, -6px) + var(--ovs-slot-author-translate-x, 0px)),
+        calc(var(--ovs-anim-author-translate-y, 0px) + var(--ovs-slot-author-translate-y, 0px))
+      )
+      rotate(var(--ovs-slot-author-rotate, 0deg));
+  }
+  to {
+    opacity: 1;
+    transform: translate(var(--ovs-slot-author-translate-x, 0), var(--ovs-slot-author-translate-y, 0))
+      rotate(var(--ovs-slot-author-rotate, 0deg));
+  }
+}
+
+@keyframes ovs-slot-badges-in {
+  from {
+    opacity: 0;
+    transform: translate(
+        calc(var(--ovs-anim-badges-translate-x, -4px) + var(--ovs-slot-badges-translate-x, 0px)),
+        calc(var(--ovs-anim-badges-translate-y, 0px) + var(--ovs-slot-badges-translate-y, 0px))
+      )
+      rotate(var(--ovs-slot-badges-rotate, 0deg));
+  }
+  to {
+    opacity: 1;
+    transform: translate(var(--ovs-slot-badges-translate-x, 0), var(--ovs-slot-badges-translate-y, 0))
+      rotate(var(--ovs-slot-badges-rotate, 0deg));
+  }
+}
+
+@keyframes ovs-slot-message-in {
+  from {
+    opacity: 0;
+    transform: translate(
+        calc(var(--ovs-anim-message-translate-x, 0px) + var(--ovs-slot-message-translate-x, 0px)),
+        calc(var(--ovs-anim-message-translate-y, 6px) + var(--ovs-slot-message-translate-y, 0px))
+      )
+      rotate(var(--ovs-slot-message-rotate, 0deg));
+  }
+  to {
+    opacity: 1;
+    transform: translate(var(--ovs-slot-message-translate-x, 0), var(--ovs-slot-message-translate-y, 0))
+      rotate(var(--ovs-slot-message-rotate, 0deg));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ovs-avatar.ovs-slot-enter,
+  .ovs-author.ovs-slot-enter,
+  .ovs-badges.ovs-slot-enter,
+  .ovs-text.ovs-slot-enter {
+    animation: none;
+  }
+}
