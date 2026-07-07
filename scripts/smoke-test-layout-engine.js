@@ -115,28 +115,44 @@ function checkSlotPosition() {
   console.log('[smoke] slot absolute positioning compiles ✔');
 }
 
-function checkBubbleScope() {
-  const messageScope = compileFromConfig({
+function checkBubbleWrap() {
+  const messageOnly = compileFromConfig({
     ...DEFAULT_LAYOUT_CONFIG,
-    screen: { ...DEFAULT_LAYOUT_CONFIG.screen, bubbleScope: 'message' },
+    screen: { bubbleWrapRow: false, bubbleWrapMessage: true },
   });
-  if (messageScope['--ovs-bubble-scope'] !== 'message') {
-    fail('bubbleScope message should compile');
-  }
+  if (messageOnly['--ovs-bubble-wrap-row'] !== '0') fail('split mode should disable row wrap');
+  if (messageOnly['--ovs-bubble-wrap-message'] !== '1') fail('message wrap should compile');
 
-  const rowScope = compileFromConfig(DEFAULT_LAYOUT_CONFIG);
-  if (rowScope['--ovs-bubble-scope'] !== 'row') fail('default bubbleScope should be row');
+  const rowDefault = compileFromConfig(DEFAULT_LAYOUT_CONFIG);
+  if (rowDefault['--ovs-bubble-wrap-row'] !== '1') fail('default should be row wrap');
 
-  const contracted = contractSimpleLayout({
+  const legacyMessage = compileFromConfig({
     ...DEFAULT_LAYOUT_CONFIG,
     screen: { bubbleScope: 'message' },
   });
-  if (contracted.bubbleScope !== 'message') fail('contract bubbleScope failed');
+  if (legacyMessage['--ovs-bubble-wrap-message'] !== '1') fail('legacy bubbleScope message should migrate');
 
-  const expanded = expandSimpleLayout({ bubbleScope: 'message' });
-  if (expanded.screen.bubbleScope !== 'message') fail('expand bubbleScope failed');
+  const contracted = contractSimpleLayout({
+    ...DEFAULT_LAYOUT_CONFIG,
+    screen: { bubbleWrapRow: false, bubbleWrapAuthor: true, bubbleWrapMessage: true },
+  });
+  if (contracted.bubbleWrapMode !== 'split') fail('contract split mode failed');
+  if (!contracted.bubbleWrapAuthor) fail('contract author wrap failed');
 
-  console.log('[smoke] bubbleScope compiles and roundtrips ✔');
+  const expandedSplit = expandSimpleLayout({
+    bubbleWrapMode: 'split',
+    bubbleWrapAuthor: true,
+    bubbleWrapMessage: false,
+  });
+  if (expandedSplit.screen.bubbleWrapRow !== false) fail('expand split should set bubbleWrapRow false');
+  if (!expandedSplit.screen.bubbleWrapAuthor) fail('expand author wrap failed');
+
+  const expandedRow = expandSimpleLayout({ bubbleWrapMode: 'row' });
+  if (expandedRow.screen.bubbleWrapRow !== true) fail('expand row should set bubbleWrapRow true');
+  if (expandedRow.screen.bubbleWrapMessage) fail('expand row should clear message wrap');
+  if (expandedRow.screen.bubbleScope != null) fail('expand row should clear legacy bubbleScope');
+
+  console.log('[smoke] bubbleWrap compiles and roundtrips ✔');
 }
 
 function main() {
@@ -148,7 +164,7 @@ function main() {
   checkRtlMirror();
   checkSimpleRoundtrip();
   checkSlotPosition();
-  checkBubbleScope();
+  checkBubbleWrap();
   EXPECTED_THEME_IDS.forEach(checkTheme);
   console.log('[smoke] ALL CHECKS PASSED');
 }

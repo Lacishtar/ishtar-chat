@@ -25,7 +25,7 @@ main/                  Main process (Node) — nguồn sự thật duy nhất
 preload/dashboard-preload.js   contextBridge — window.api cho Dashboard
 renderer-dashboard/    Dashboard UI (React + Tailwind, build bằng Vite)
 overlay/               Trang overlay thuần HTML/CSS/JS (OBS Browser Source load trang này)
-themes/                7 theme: classic, bubble, glass, minimal, anime, cyber, danmaku
+themes/                9 theme: classic, bubble, glass, minimal, anime, cyber, danmaku, ticker, scrapbook
                        (mỗi theme = template.html + style.css + default-config.json)
 shared/                Schema dùng chung (ChatMessage, CustomizeConfig)
 scripts/smoke-test-server.js   Test HTTP+WS server độc lập, không cần Electron
@@ -47,7 +47,7 @@ Khi app mở, dán link `youtube.com/watch?v=...`, `/live/...` hoặc `youtu.be/
 đang có live chat vào Connect Panel. Overlay URL để dán vào OBS Browser Source
 nằm ngay dưới khung preview (nút "Copy URL cho OBS").
 
-## 7 theme có sẵn
+## 9 theme có sẵn
 
 | Theme | Phong cách |
 |---|---|
@@ -58,14 +58,16 @@ nằm ngay dưới khung preview (nút "Copy URL cho OBS").
 | `anime` | Pastel hồng/tím, viền avatar đứt nét, có icon ✦ trang trí, phù hợp VTuber |
 | `cyber` | Cyberpunk neon — viền phát sáng, chữ hoa, font mono |
 | `danmaku` | Bullet-comment kiểu Niconico/Bilibili — tin bay ngang màn hình thay vì xếp chồng dọc |
+| `ticker` | News ticker — chữ chạy ngang kiểu bản tin, phù hợp overlay dưới cùng màn hình |
+| `scrapbook` | Scrapbook/collage — layout riêng qua `layout-config.json` + `slot-style-config.json` |
 
 Tất cả theme dùng chung 1 bộ CSS variable do Customize Panel điều khiển
 (`shared/customize-config.js#toCssVariables`), nên panel hoạt động giống nhau
-dù đang dùng theme nào — trừ 2 ngoại lệ có ghi chú ngay trong
-`themes/minimal/style.css` và `themes/danmaku/style.css` (minimal bỏ qua màu
-nền bubble/bo góc vì không có khung; danmaku bỏ qua tốc độ animation vì tốc
-độ bay được set riêng theo "làn" để tránh chồng chữ — xem comment đầu file
-`themes/danmaku/style.css` để biết chi tiết cách hoạt động và giới hạn của nó).
+dù đang dùng theme nào — trừ các ngoại lệ có ghi chú ngay trong CSS theme
+(`themes/minimal/style.css`, `themes/danmaku/style.css`, `themes/ticker/style.css`:
+minimal bỏ qua màu nền bubble/bo góc vì không có khung; danmaku và ticker bỏ
+qua một số tuỳ chỉnh animation vì tốc độ/chuyển động được set riêng theo layout
+— xem comment đầu file CSS tương ứng để biết chi tiết).
 
 Thêm theme mới bằng cách tạo 1 thư mục trong `/themes` với `template.html`
 (giữ nguyên 4 hook `data-slot="avatar|author|badges|message"` để tương thích
@@ -92,12 +94,12 @@ không cho domain youtube.com/ytimg.com), nên tôi đã:
 - ✅ Syntax-check toàn bộ file trong `main/`, `preload/`, `shared/`, `overlay/`
 - ✅ Chạy thật HTTP+WS server (Express/`ws`) qua `scripts/smoke-test-server.js` — pass
 - ✅ Build thật Dashboard React/Tailwind bằng Vite — pass
-- ✅ Viết thêm 1 script kiểm tra riêng cho vòng lặp "7 theme": xác nhận
-  `theme-registry.listThemes()` trả đúng 7 theme, mỗi theme có `_label`,
+- ✅ Viết thêm script kiểm tra riêng cho vòng lặp "9 theme": xác nhận
+  `theme-registry.listThemes()` trả đúng 9 theme, mỗi theme có `_label`,
   `template.html` (đủ 4 `data-slot`), `style.css` (đọc đủ các CSS variable
   liên quan), và cả `template.html` + `style.css` đều serve được qua HTTP
   server thật (`/themes/:id/template.html`, `/themes/:id/style.css`) — pass
-  cho cả 7 theme
+  cho cả 9 theme
 - ❌ **Chưa** kiểm tra được `main/selectors.config.json` khớp với DOM thật của
   `youtube.com/live_chat` — các selector (`yt-live-chat-text-message-renderer`,
   `#author-name`, `#message`...) là dựa theo cấu trúc YouTube hay dùng, nhưng

@@ -18,6 +18,7 @@
     }
   },
   "screen": {
-    "bubbleScope": "message"
+    "bubbleWrapRow": false,
+    "bubbleWrapMessage": true
   }
 }

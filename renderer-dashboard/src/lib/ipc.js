@@ -92,7 +92,7 @@ function createMock() {
       slotStyleConfig,
       animationConfig,
     }),
-    isThemeDirty: async () => ({ dirty: false }),
+    isThemeDirty: async () => ({ dirty: false, dirtyFields: [] }),
     resetPreset: async () => ({
       ok: true,
       config,
@@ -112,6 +112,7 @@ function createMock() {
         messageRow: { ...layoutConfig.messageRow, ...(partial.messageRow || {}) },
         metaRow: { ...layoutConfig.metaRow, ...(partial.metaRow || {}) },
         bodyColumn: { ...layoutConfig.bodyColumn, ...(partial.bodyColumn || {}) },
+        screen: { ...layoutConfig.screen, ...(partial.screen || {}) },
         slots: {
           ...layoutConfig.slots,
           ...(partial.slots

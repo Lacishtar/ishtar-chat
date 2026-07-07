@@ -46,7 +46,11 @@ const DEFAULT_LAYOUT_CONFIG = {
   screen: {
     chatAlign: 'left', // 'left' | 'center' | 'right'
     contentDirection: 'ltr', // 'ltr' | 'rtl'
-    bubbleScope: null, // null | 'row' | 'message' — null compiles as 'row'
+    /** @deprecated use bubbleWrapRow / bubbleWrapAuthor / bubbleWrapMessage */
+    bubbleScope: null,
+    bubbleWrapRow: null, // null | true = bọc cả hàng; false = bọc riêng slot
+    bubbleWrapAuthor: null, // null | boolean — bọc tên (khi bubbleWrapRow === false)
+    bubbleWrapMessage: null, // null | boolean — bọc nội dung chat
   },
 };
 
@@ -100,6 +104,7 @@ function compileSlotPositionVars(prefix, slot) {
 function mergeLayoutConfig(base, overrides) {
   const b = base || DEFAULT_LAYOUT_CONFIG;
   const o = overrides || {};
+  const mergedScreen = { ...b.screen, ...(o.screen || {}) };
   return {
     messageRow: { ...b.messageRow, ...(o.messageRow || {}) },
     metaRow: { ...b.metaRow, ...(o.metaRow || {}) },
@@ -110,8 +115,51 @@ function mergeLayoutConfig(base, overrides) {
       badges: { ...b.slots.badges, ...(o.slots?.badges || {}) },
       message: { ...b.slots.message, ...(o.slots?.message || {}) },
     },
-    screen: { ...b.screen, ...(o.screen || {}) },
+    screen: normalizeBubbleWrapScreen(mergedScreen),
   };
+}
+
+/** Resolves legacy bubbleScope and normalizes wrap flags. */
+function normalizeBubbleWrapScreen(screen) {
+  const s = screen || {};
+
+  // Legacy preset: only when no explicit wrap flags were saved yet.
+  if (
+    s.bubbleScope === 'message'
+    && s.bubbleWrapRow == null
+    && !s.bubbleWrapAuthor
+    && !s.bubbleWrapMessage
+  ) {
+    return {
+      ...s,
+      bubbleWrapRow: false,
+      bubbleWrapAuthor: false,
+      bubbleWrapMessage: true,
+      bubbleScope: null,
+    };
+  }
+
+  if (s.bubbleWrapRow === false || s.bubbleWrapAuthor === true || s.bubbleWrapMessage === true) {
+    return {
+      ...s,
+      bubbleWrapRow: false,
+      bubbleWrapAuthor: Boolean(s.bubbleWrapAuthor),
+      bubbleWrapMessage: Boolean(s.bubbleWrapMessage),
+      bubbleScope: null,
+    };
+  }
+
+  return {
+    ...s,
+    bubbleWrapRow: true,
+    bubbleWrapAuthor: false,
+    bubbleWrapMessage: false,
+    bubbleScope: null,
+  };
+}
+
+function isRowBubbleWrap(screen) {
+  return normalizeBubbleWrapScreen(screen).bubbleWrapRow === true;
 }
 
 /**
@@ -169,7 +217,9 @@ function compileLayoutToCssVariables(layout) {
 
     '--ovs-layout-chat-align': ALIGN_TO_FLEX[screen.chatAlign] || 'flex-start',
     '--ovs-layout-content-direction': 'ltr',
-    '--ovs-bubble-scope': screen.bubbleScope === 'message' ? 'message' : 'row',
+    '--ovs-bubble-wrap-row': isRowBubbleWrap(screen) ? '1' : '0',
+    '--ovs-bubble-wrap-author': !isRowBubbleWrap(screen) && screen.bubbleWrapAuthor ? '1' : '0',
+    '--ovs-bubble-wrap-message': !isRowBubbleWrap(screen) && screen.bubbleWrapMessage ? '1' : '0',
   };
 }
 
@@ -179,6 +229,7 @@ function compileLayoutToCssVariables(layout) {
  */
 function contractSimpleLayout(layout) {
   const l = mergeLayoutConfig(DEFAULT_LAYOUT_CONFIG, layout);
+  const screen = l.screen || {};
 
   let avatarPosition = 'left';
   if (l.messageRow.direction === 'vertical') avatarPosition = 'top';
@@ -205,9 +256,11 @@ function contractSimpleLayout(layout) {
     messagePosition,
     gap: l.messageRow.gap ?? 10,
     padding: l.messageRow.padding ?? 8,
-    chatAlign: l.screen?.chatAlign ?? 'left',
-    contentDirection: l.screen?.contentDirection ?? 'ltr',
-    bubbleScope: l.screen?.bubbleScope === 'message' ? 'message' : 'row',
+    chatAlign: screen.chatAlign ?? 'left',
+    contentDirection: screen.contentDirection ?? 'ltr',
+    bubbleWrapMode: isRowBubbleWrap(screen) ? 'row' : 'split',
+    bubbleWrapAuthor: Boolean(screen.bubbleWrapAuthor),
+    bubbleWrapMessage: Boolean(screen.bubbleWrapMessage),
     avatarPadding: l.slots.avatar?.padding ?? 0,
     avatarMargin: l.slots.avatar?.margin ?? 0,
     authorPadding: l.slots.author?.padding ?? 0,
@@ -279,10 +332,17 @@ function expandSimpleLayout(simple) {
     message: slotFromSimple('message', 1),
   };
 
+  const wrapRow = s.bubbleWrapMode !== 'split';
+  const wrapAuthor = !wrapRow && Boolean(s.bubbleWrapAuthor);
+  const wrapMessage = !wrapRow && Boolean(s.bubbleWrapMessage);
+
   return { messageRow, metaRow, bodyColumn, slots, screen: {
     chatAlign: s.chatAlign || 'left',
     contentDirection: s.contentDirection || 'ltr',
-    bubbleScope: s.bubbleScope === 'message' ? 'message' : null,
+    bubbleWrapRow: wrapRow,
+    bubbleWrapAuthor: wrapAuthor,
+    bubbleWrapMessage: wrapMessage,
+    bubbleScope: null,
   } };
 }
 
@@ -291,6 +351,8 @@ module.exports = {
   createRowLayout,
   createSlotLayout,
   mergeLayoutConfig,
+  normalizeBubbleWrapScreen,
+  isRowBubbleWrap,
   compileLayoutToCssVariables,
   flexDirectionForRow,
   contractSimpleLayout,

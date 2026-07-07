@@ -4,6 +4,7 @@
  */
 
 const { DEFAULT_CUSTOMIZE_CONFIG } = require('./customize-config');
+const { compileSlotBubblesToCssVariables, createSlotBubbleDefaults } = require('./slot-bubble-config');
 
 function createTransformDefaults(overrides = {}) {
   return {
@@ -42,7 +43,7 @@ const DEFAULT_SLOT_STYLE_CONFIG = {
       margin: 0,
       ...createTransformDefaults(),
     },
-    author: createTextSlotDefaults(),
+    author: { ...createTextSlotDefaults(), ...createSlotBubbleDefaults() },
     badges: {
       visible: null,
       fontSize: null,
@@ -50,7 +51,7 @@ const DEFAULT_SLOT_STYLE_CONFIG = {
       margin: 0,
       ...createTransformDefaults(),
     },
-    message: createTextSlotDefaults(),
+    message: { ...createTextSlotDefaults(), ...createSlotBubbleDefaults() },
   },
 };
 
@@ -195,6 +196,8 @@ function compileSlotStyleToCssVariables(slotStyle, customizeConfig) {
   if (e.message.opacity != null) vars['--ovs-slot-message-opacity'] = String(e.message.opacity);
   if (e.message.margin != null) vars['--ovs-slot-message-margin'] = px(e.message.margin);
   Object.assign(vars, compileTransformVars('message', e.message));
+
+  Object.assign(vars, compileSlotBubblesToCssVariables(s, customizeConfig));
 
   return vars;
 }

@@ -146,6 +146,180 @@ function TransformFields({ slotLocal, slot, pushSlotUpdate }) {
   );
 }
 
+function slotBubbleVal(slotLocal, slot, key, globalConfig, fallback) {
+  const slotValRaw = slotLocal?.slots?.[slot]?.[key];
+  if (slotValRaw !== undefined && slotValRaw !== null) return slotValRaw;
+  const globalVal = globalConfig?.[key];
+  if (globalVal !== undefined && globalVal !== null) return globalVal;
+  return fallback;
+}
+
+function isSlotBubbleUserSet(slotLocal, slot, key) {
+  const v = slotLocal?.slots?.[slot]?.[key];
+  return v !== undefined && v !== null;
+}
+
+function SlotBubbleFields({ title, slot, slotLocal, globalConfig, pushSlotUpdate }) {
+  const bg = slotBubbleVal(slotLocal, slot, 'bubbleBg', globalConfig, globalConfig.bubbleBg);
+  const { hex, alpha } = rgbaToHexAlpha(bg);
+  const padX = slotBubbleVal(
+    slotLocal,
+    slot,
+    'bubblePaddingX',
+    globalConfig,
+    slotBubbleVal(slotLocal, slot, 'bubblePadding', globalConfig, 14),
+  );
+  const padY = slotBubbleVal(
+    slotLocal,
+    slot,
+    'bubblePaddingY',
+    globalConfig,
+    slotBubbleVal(slotLocal, slot, 'bubblePadding', globalConfig, 10),
+  );
+
+  return (
+    <div className="border-t border-line pt-3 flex flex-col gap-3 col-span-2">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-xs font-medium text-inkMuted uppercase tracking-wide">{title}</h3>
+        <button
+          type="button"
+          onClick={() =>
+            pushSlotUpdate(slot, {
+              bubbleBg: null,
+              bubbleRadius: null,
+              bubbleOpacity: null,
+              bubbleBorderWidth: null,
+              bubbleBorderStyle: null,
+              bubbleBorderColor: null,
+              bubbleBoxShadow: null,
+              bubblePadding: null,
+              bubblePaddingX: null,
+              bubblePaddingY: null,
+            })
+          }
+          className="text-[10px] text-inkMuted hover:text-ink underline"
+        >
+          Dùng mặc định chung
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={`Bo góc — ${slotBubbleVal(slotLocal, slot, 'bubbleRadius', globalConfig, globalConfig.bubbleRadius ?? 14)}px`}>
+          <input
+            type="range"
+            min={0}
+            max={32}
+            value={slotBubbleVal(slotLocal, slot, 'bubbleRadius', globalConfig, globalConfig.bubbleRadius ?? 14)}
+            onChange={(e) => pushSlotUpdate(slot, { bubbleRadius: Number(e.target.value) })}
+          />
+        </Field>
+        <Field label="Màu nền bubble">
+          <input
+            type="color"
+            className="h-8 w-full rounded-lg border border-line bg-panelAlt"
+            value={hex}
+            onChange={(e) => pushSlotUpdate(slot, { bubbleBg: hexAlphaToRgba(e.target.value, alpha) })}
+          />
+        </Field>
+        <Field label={`Độ trong nền — ${Math.round(alpha * 100)}%`}>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={alpha}
+            onChange={(e) => pushSlotUpdate(slot, { bubbleBg: hexAlphaToRgba(hex, Number(e.target.value)) })}
+          />
+        </Field>
+        <Field label={`Độ mờ bubble — ${Math.round(slotBubbleVal(slotLocal, slot, 'bubbleOpacity', globalConfig, globalConfig.bubbleOpacity ?? 1) * 100)}%`}>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={slotBubbleVal(slotLocal, slot, 'bubbleOpacity', globalConfig, globalConfig.bubbleOpacity ?? 1)}
+            onChange={(e) => pushSlotUpdate(slot, { bubbleOpacity: Number(e.target.value) })}
+          />
+        </Field>
+        <Field
+          label={
+            <span className="flex items-center gap-2">
+              {`Độ dày viền — ${slotBubbleVal(slotLocal, slot, 'bubbleBorderWidth', globalConfig, 0)}px`}
+              {!isSlotBubbleUserSet(slotLocal, slot, 'bubbleBorderWidth') && <PresetBadge />}
+            </span>
+          }
+        >
+          <input
+            type="range"
+            min={0}
+            max={6}
+            value={slotBubbleVal(slotLocal, slot, 'bubbleBorderWidth', globalConfig, 0)}
+            onChange={(e) => pushSlotUpdate(slot, { bubbleBorderWidth: Number(e.target.value) })}
+          />
+        </Field>
+        <Field label="Kiểu viền">
+          <select
+            className={inputClass}
+            value={slotBubbleVal(slotLocal, slot, 'bubbleBorderStyle', globalConfig, 'solid')}
+            onChange={(e) => pushSlotUpdate(slot, { bubbleBorderStyle: e.target.value })}
+          >
+            {BORDER_STYLE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Màu viền">
+          <input
+            type="color"
+            className="h-8 w-full rounded-lg border border-line bg-panelAlt"
+            value={slotBubbleVal(slotLocal, slot, 'bubbleBorderColor', globalConfig, globalConfig.textColor)}
+            onChange={(e) => pushSlotUpdate(slot, { bubbleBorderColor: e.target.value })}
+          />
+        </Field>
+        <Field label={`Padding ngang — ${padX}px`}>
+          <input
+            type="range"
+            min={0}
+            max={40}
+            value={padX}
+            onChange={(e) => pushSlotUpdate(slot, { bubblePaddingX: Number(e.target.value) })}
+          />
+        </Field>
+        <Field label={`Padding dọc — ${padY}px`}>
+          <input
+            type="range"
+            min={0}
+            max={40}
+            value={padY}
+            onChange={(e) => pushSlotUpdate(slot, { bubblePaddingY: Number(e.target.value) })}
+          />
+        </Field>
+        <Field label="Shadow">
+          <select
+            className={inputClass}
+            value={
+              SHADOW_PRESETS.find((p) => p.value === slotBubbleVal(slotLocal, slot, 'bubbleBoxShadow', globalConfig, 'none'))?.id
+              || (slotBubbleVal(slotLocal, slot, 'bubbleBoxShadow', globalConfig, null) ? 'custom' : 'none')
+            }
+            onChange={(e) => {
+              const preset = SHADOW_PRESETS.find((p) => p.id === e.target.value);
+              if (preset) pushSlotUpdate(slot, { bubbleBoxShadow: preset.value });
+            }}
+          >
+            {SHADOW_PRESETS.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
+            <option value="custom">Tuỳ chỉnh</option>
+          </select>
+        </Field>
+      </div>
+    </div>
+  );
+}
+
 export default function CustomizePanel({ api, config, slotStyleConfig }) {
   const [tab, setTab] = useState('global');
   const [local, setLocal] = useState(config);
@@ -302,6 +476,16 @@ export default function CustomizePanel({ api, config, slotStyleConfig }) {
                 onChange={(e) => pushUpdate({ maxMessages: Number(e.target.value) })}
               />
             </Field>
+            <Field label={`Tốc độ hiệu ứng — ${local.animationMs ?? 220}ms`}>
+              <input
+                type="range"
+                min={0}
+                max={800}
+                step={20}
+                value={local.animationMs ?? 220}
+                onChange={(e) => pushUpdate({ animationMs: Number(e.target.value) })}
+              />
+            </Field>
           </div>
 
           <Field label="Vị trí tin mới">
@@ -317,7 +501,7 @@ export default function CustomizePanel({ api, config, slotStyleConfig }) {
 
           <div className="border-t border-line pt-3 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-xs font-medium text-inkMuted uppercase tracking-wide">Khung bubble</h3>
+              <h3 className="text-xs font-medium text-inkMuted uppercase tracking-wide">Bubble cả tin nhắn</h3>
               <button
                 type="button"
                 onClick={() =>
@@ -581,6 +765,13 @@ export default function CustomizePanel({ api, config, slotStyleConfig }) {
             />
           </Field>
           <TransformFields slotLocal={slotLocal} slot="author" pushSlotUpdate={pushSlotUpdate} />
+          <SlotBubbleFields
+            title="Bubble tên (bọc riêng)"
+            slot="author"
+            slotLocal={slotLocal}
+            globalConfig={local}
+            pushSlotUpdate={pushSlotUpdate}
+          />
         </div>
       )}
 
@@ -632,6 +823,13 @@ export default function CustomizePanel({ api, config, slotStyleConfig }) {
             />
           </Field>
           <TransformFields slotLocal={slotLocal} slot="message" pushSlotUpdate={pushSlotUpdate} />
+          <SlotBubbleFields
+            title="Bubble nội dung (bọc riêng)"
+            slot="message"
+            slotLocal={slotLocal}
+            globalConfig={local}
+            pushSlotUpdate={pushSlotUpdate}
+          />
         </div>
       )}
 

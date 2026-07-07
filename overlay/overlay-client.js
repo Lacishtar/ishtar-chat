@@ -87,6 +87,48 @@
     }
   }
 
+  // Keep in sync with shared/layout-config.js#normalizeBubbleWrapScreen.
+  function normalizeBubbleWrapScreen(screen) {
+    const s = screen || {};
+
+    if (
+      s.bubbleScope === 'message'
+      && s.bubbleWrapRow == null
+      && !s.bubbleWrapAuthor
+      && !s.bubbleWrapMessage
+    ) {
+      return {
+        ...s,
+        bubbleWrapRow: false,
+        bubbleWrapAuthor: false,
+        bubbleWrapMessage: true,
+        bubbleScope: null,
+      };
+    }
+
+    if (s.bubbleWrapRow === false || s.bubbleWrapAuthor === true || s.bubbleWrapMessage === true) {
+      return {
+        ...s,
+        bubbleWrapRow: false,
+        bubbleWrapAuthor: Boolean(s.bubbleWrapAuthor),
+        bubbleWrapMessage: Boolean(s.bubbleWrapMessage),
+        bubbleScope: null,
+      };
+    }
+
+    return {
+      ...s,
+      bubbleWrapRow: true,
+      bubbleWrapAuthor: false,
+      bubbleWrapMessage: false,
+      bubbleScope: null,
+    };
+  }
+
+  function isRowBubbleWrap(screen) {
+    return normalizeBubbleWrapScreen(screen).bubbleWrapRow === true;
+  }
+
   // Keep in sync with shared/layout-config.js#compileLayoutToCssVariables.
   function compileLayoutToCssVariables(layout) {
     const l = layout || {};
@@ -94,7 +136,7 @@
     const meta = l.metaRow || {};
     const body = l.bodyColumn || {};
     const slots = l.slots || {};
-    const screen = l.screen || {};
+    const screen = normalizeBubbleWrapScreen(l.screen || {});
     const mirrorHorizontal = screen.contentDirection === 'rtl';
 
     return {
@@ -158,7 +200,9 @@
 
       '--ovs-layout-chat-align': ALIGN_TO_FLEX[screen.chatAlign] || 'flex-start',
       '--ovs-layout-content-direction': 'ltr',
-      '--ovs-bubble-scope': screen.bubbleScope === 'message' ? 'message' : 'row',
+      '--ovs-bubble-wrap-row': isRowBubbleWrap(screen) ? '1' : '0',
+      '--ovs-bubble-wrap-author': !isRowBubbleWrap(screen) && screen.bubbleWrapAuthor ? '1' : '0',
+      '--ovs-bubble-wrap-message': !isRowBubbleWrap(screen) && screen.bubbleWrapMessage ? '1' : '0',
     };
   }
 
@@ -188,6 +232,34 @@
       badges: { visible: slotVis('badges', 'showBadges', true) },
       message: { visible: slotVis('message', null, true) },
     };
+  }
+
+  // Keep in sync with shared/slot-bubble-config.js#compileSlotBubbleDecoration.
+  function compileSlotBubbleDecoration(prefix, slot, globalConfig) {
+    const cfg = globalConfig || {};
+    const isSetLocal = (v) => v !== undefined && v !== null;
+    const resolve = (key) => (isSetLocal(slot?.[key]) ? slot[key] : cfg[key]);
+    const vars = {};
+    const pxLocal = (v) => (Number.isFinite(Number(v)) ? `${Number(v)}px` : undefined);
+
+    const bg = resolve('bubbleBg');
+    if (bg) vars[`--ovs-slot-${prefix}-bubble-bg`] = bg;
+    if (resolve('bubbleRadius') != null) vars[`--ovs-slot-${prefix}-bubble-radius`] = pxLocal(resolve('bubbleRadius'));
+    if (resolve('bubbleOpacity') != null) vars[`--ovs-slot-${prefix}-bubble-opacity`] = String(resolve('bubbleOpacity'));
+    if (isSetLocal(resolve('bubbleBorderWidth'))) vars[`--ovs-slot-${prefix}-bubble-border-width`] = pxLocal(resolve('bubbleBorderWidth'));
+    if (isSetLocal(resolve('bubbleBorderStyle'))) vars[`--ovs-slot-${prefix}-bubble-border-style`] = resolve('bubbleBorderStyle');
+    if (isSetLocal(resolve('bubbleBorderColor'))) vars[`--ovs-slot-${prefix}-bubble-border-color`] = resolve('bubbleBorderColor');
+    if (isSetLocal(resolve('bubbleBoxShadow'))) vars[`--ovs-slot-${prefix}-bubble-box-shadow`] = resolve('bubbleBoxShadow');
+
+    const padX = isSetLocal(resolve('bubblePaddingX'))
+      ? resolve('bubblePaddingX')
+      : (isSetLocal(resolve('bubblePadding')) ? resolve('bubblePadding') : null);
+    const padY = isSetLocal(resolve('bubblePaddingY'))
+      ? resolve('bubblePaddingY')
+      : (isSetLocal(resolve('bubblePadding')) ? resolve('bubblePadding') : null);
+    if (padX != null) vars[`--ovs-slot-${prefix}-bubble-pad-x`] = pxLocal(padX);
+    if (padY != null) vars[`--ovs-slot-${prefix}-bubble-pad-y`] = pxLocal(padY);
+    return vars;
   }
 
   // Keep in sync with shared/slot-style-config.js#compileSlotStyleToCssVariables.
@@ -250,6 +322,9 @@
     if (pick('message', 'opacity') != null) vars['--ovs-slot-message-opacity'] = String(pick('message', 'opacity'));
     if (pick('message', 'margin') != null) vars['--ovs-slot-message-margin'] = px(pick('message', 'margin'));
     assignTransform('message', pickTransform('message'));
+
+    Object.assign(vars, compileSlotBubbleDecoration('author', slots.author, cfg));
+    Object.assign(vars, compileSlotBubbleDecoration('message', slots.message, cfg));
 
     return vars;
   }
@@ -317,8 +392,11 @@
       }
     });
 
-    const bubbleScope = layout?.screen?.bubbleScope === 'message' ? 'message' : 'row';
-    root.dataset.ovsBubbleScope = bubbleScope;
+    const screen = normalizeBubbleWrapScreen(layout?.screen || {});
+    root.dataset.ovsBubbleWrapRow = isRowBubbleWrap(screen) ? 'true' : 'false';
+    root.dataset.ovsBubbleWrapAuthor = !isRowBubbleWrap(screen) && screen.bubbleWrapAuthor ? 'true' : 'false';
+    root.dataset.ovsBubbleWrapMessage = !isRowBubbleWrap(screen) && screen.bubbleWrapMessage ? 'true' : 'false';
+    delete root.dataset.ovsBubbleScope;
 
     listEl.classList.toggle('ovs-position-top-down', config.position === 'top-down');
     refreshAllSlotVisibility();

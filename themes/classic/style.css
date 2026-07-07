@@ -40,7 +40,9 @@ body {
   border-style: var(--ovs-bubble-border-style, solid);
   border-color: var(--ovs-bubble-border-color, transparent);
   box-shadow: var(--ovs-bubble-box-shadow, none);
-  backdrop-filter: blur(6px);
+  --ovs-bubble-backdrop: blur(6px);
+  backdrop-filter: var(--ovs-bubble-backdrop);
+  -webkit-backdrop-filter: var(--ovs-bubble-backdrop);
 }
 
 .ovs-avatar {

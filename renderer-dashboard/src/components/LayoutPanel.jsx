@@ -23,7 +23,9 @@ function contractSimpleLayout(layout) {
       padding: 8,
       chatAlign: 'left',
       contentDirection: 'ltr',
-      bubbleScope: 'row',
+      bubbleWrapMode: 'row',
+      bubbleWrapAuthor: false,
+      bubbleWrapMessage: false,
     };
   }
 
@@ -60,7 +62,9 @@ function contractSimpleLayout(layout) {
     padding: mr.padding ?? 8,
     chatAlign: screen.chatAlign ?? 'left',
     contentDirection: screen.contentDirection ?? 'ltr',
-    bubbleScope: screen.bubbleScope === 'message' ? 'message' : 'row',
+    bubbleWrapMode: screen.bubbleWrapRow === true ? 'row' : 'split',
+    bubbleWrapAuthor: Boolean(screen.bubbleWrapAuthor),
+    bubbleWrapMessage: Boolean(screen.bubbleWrapMessage),
     avatarPadding: slots.avatar?.padding ?? 0,
     avatarMargin: slots.avatar?.margin ?? 0,
     authorPadding: slots.author?.padding ?? 0,
@@ -97,6 +101,10 @@ function expandSimpleLayout(simple) {
     zIndex: s[`${key}ZIndex`] ?? null,
   });
 
+  const wrapRow = s.bubbleWrapMode !== 'split';
+  const wrapAuthor = !wrapRow && Boolean(s.bubbleWrapAuthor);
+  const wrapMessage = !wrapRow && Boolean(s.bubbleWrapMessage);
+
   return {
     messageRow: {
       direction: s.avatarPosition === 'top' ? 'vertical' : 'horizontal',
@@ -128,7 +136,10 @@ function expandSimpleLayout(simple) {
     screen: {
       chatAlign: s.chatAlign || 'left',
       contentDirection: s.contentDirection || 'ltr',
-      bubbleScope: s.bubbleScope === 'message' ? 'message' : null,
+      bubbleWrapRow: wrapRow,
+      bubbleWrapAuthor: wrapAuthor,
+      bubbleWrapMessage: wrapMessage,
+      bubbleScope: null,
     },
   };
 }
@@ -219,13 +230,47 @@ export default function LayoutPanel({ api, layoutConfig }) {
       <Field label="Khung chat bọc">
         <select
           className={inputClass}
-          value={local.bubbleScope}
-          onChange={(e) => pushUpdate({ bubbleScope: e.target.value })}
+          value={local.bubbleWrapMode}
+          onChange={(e) => {
+            const mode = e.target.value;
+            if (mode === 'row') {
+              pushUpdate({ bubbleWrapMode: 'row', bubbleWrapAuthor: false, bubbleWrapMessage: false });
+            } else {
+              pushUpdate({
+                bubbleWrapMode: 'split',
+                bubbleWrapAuthor: local.bubbleWrapAuthor || false,
+                bubbleWrapMessage: local.bubbleWrapMessage !== false,
+              });
+            }
+          }}
         >
           <option value="row">Cả tin nhắn (avatar + tên + nội dung)</option>
-          <option value="message">Chỉ nội dung chat</option>
+          <option value="split">Bọc riêng từng phần</option>
         </select>
       </Field>
+
+      {local.bubbleWrapMode === 'split' && (
+        <div className="flex flex-wrap gap-4 text-sm pl-1">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={local.bubbleWrapAuthor ?? false}
+              onChange={(e) => pushUpdate({ bubbleWrapAuthor: e.target.checked })}
+              className="accent-focusAccent"
+            />
+            Bọc tên
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={local.bubbleWrapMessage ?? true}
+              onChange={(e) => pushUpdate({ bubbleWrapMessage: e.target.checked })}
+              className="accent-focusAccent"
+            />
+            Bọc nội dung chat
+          </label>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <Field label={`Khoảng cách avatar — ${local.gap}px`}>

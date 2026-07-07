@@ -12,7 +12,7 @@ const { mergeLayoutConfig } = require('../shared/layout-config');
 const { mergeSlotStyleConfig } = require('../shared/slot-style-config');
 const { mergeAnimationConfig } = require('../shared/animation-config');
 const { resolveThemeState } = require('./store/theme-state');
-const { isProfileDirty } = require('./store/theme-baseline');
+const { getDirtyFields } = require('./store/theme-baseline');
 
 const sessionId = crypto.randomUUID();
 
@@ -43,6 +43,12 @@ function getOverlayUrl() {
   return `http://localhost:${httpPort}/overlay?session=${sessionId}`;
 }
 
+function safeSend(win, channel, payload) {
+  if (win && !win.isDestroyed()) {
+    win.webContents.send(channel, payload);
+  }
+}
+
 async function bootstrap() {
   configStore = new ConfigStore();
 
@@ -60,9 +66,7 @@ async function bootstrap() {
 
   scraperManager.on('status', (payload) => {
     latestStatus = payload;
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('status:changed', payload);
-    }
+    safeSend(mainWindow, 'status:changed', payload);
   });
 
   scraperManager.on('message', (message) => {
@@ -71,9 +75,7 @@ async function bootstrap() {
       messageHistory = messageHistory.slice(-MAX_HISTORY);
     }
 
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('chat:new', message);
-    }
+    safeSend(mainWindow, 'chat:new', message);
     if (wsBroadcast) wsBroadcast('chat:new', message);
   });
 
@@ -131,7 +133,7 @@ function registerIpcHandlers() {
       animationConfig,
       history: messageHistory,
     });
-    mainWindow.webContents.send('theme:changed', {
+    safeSend(mainWindow, 'theme:changed', {
       themeId,
       config,
       layoutConfig,
@@ -143,7 +145,8 @@ function registerIpcHandlers() {
 
   ipcMain.handle('theme:is-dirty', () => {
     const state = configStore.get();
-    return { dirty: isProfileDirty(state, state.selectedTheme) };
+    const dirtyFields = getDirtyFields(state, state.selectedTheme);
+    return { dirty: dirtyFields.length > 0, dirtyFields };
   });
 
   ipcMain.handle('theme:reset-preset', () => {
@@ -166,7 +169,7 @@ function registerIpcHandlers() {
       animationConfig,
       history: messageHistory,
     });
-    mainWindow.webContents.send('theme:changed', {
+    safeSend(mainWindow, 'theme:changed', {
       themeId,
       config,
       layoutConfig,

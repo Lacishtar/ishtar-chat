@@ -14,6 +14,7 @@ function buildUserOverlayProfile(state) {
     customizeConfig: state.customizeConfig,
     layoutConfig: state.layoutConfig,
     slotStyleConfig: state.slotStyleConfig,
+    animationConfig: state.animationConfig,
   };
 }
 
@@ -44,6 +45,7 @@ class ConfigStore {
         customizeConfig: profile.customizeConfig,
         layoutConfig: profile.layoutConfig ?? baseline.layoutConfig,
         slotStyleConfig: profile.slotStyleConfig ?? baseline.slotStyleConfig,
+        animationConfig: profile.animationConfig ?? baseline.animationConfig,
         lastSessionUrl: persisted.lastSessionUrl || '',
         windowBounds: persisted.windowBounds || DEFAULT_STATE.windowBounds,
       };
