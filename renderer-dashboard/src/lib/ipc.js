@@ -35,6 +35,14 @@ function createMock() {
     },
   };
   let slotStyleConfig = { slots: {} };
+  let decorationConfig = { layers: [] };
+  let roleStyleConfig = {
+    roles: {
+      moderator: { enabled: true, authorColor: '#fca5a5', badge: 'MOD' },
+      member: { enabled: true, authorColor: '#93c5fd', badge: '★' },
+      superchat: { enabled: true, authorColor: '#fde047', badge: '✦', showAmount: true },
+    },
+  };
   let animationConfig = {
     enabled: true,
     targets: {
@@ -49,7 +57,8 @@ function createMock() {
   const configListeners = new Set();
   const layoutListeners = new Set();
   const slotStyleListeners = new Set();
-  const animationListeners = new Set();
+  const decorationListeners = new Set();
+  const roleStyleListeners = new Set();
 
   return {
     getInitialState: async () => ({
@@ -66,6 +75,8 @@ function createMock() {
       customizeConfig: config,
       layoutConfig,
       slotStyleConfig,
+      decorationConfig,
+      roleStyleConfig,
       animationConfig,
       lastSessionUrl: '',
       overlayUrl: 'http://localhost:3000/overlay?session=mock',
@@ -90,6 +101,8 @@ function createMock() {
       config,
       layoutConfig,
       slotStyleConfig,
+      decorationConfig,
+      roleStyleConfig,
       animationConfig,
     }),
     isThemeDirty: async () => ({ dirty: false, dirtyFields: [] }),
@@ -98,6 +111,8 @@ function createMock() {
       config,
       layoutConfig,
       slotStyleConfig,
+      decorationConfig,
+      roleStyleConfig,
       animationConfig,
     }),
     updateConfig: async (partial) => {
@@ -161,6 +176,24 @@ function createMock() {
       animationListeners.forEach((cb) => cb(animationConfig));
       return { ok: true, animationConfig };
     },
+    updateDecorationConfig: async (partial) => {
+      if (Array.isArray(partial.layers)) {
+        decorationConfig = { layers: partial.layers };
+      }
+      decorationListeners.forEach((cb) => cb(decorationConfig));
+      return { ok: true, decorationConfig };
+    },
+    updateRoleStyleConfig: async (partial) => {
+      const roles = { ...(roleStyleConfig.roles || {}) };
+      if (partial.roles) {
+        Object.entries(partial.roles).forEach(([key, value]) => {
+          roles[key] = { ...(roles[key] || {}), ...value };
+        });
+      }
+      roleStyleConfig = { roles };
+      roleStyleListeners.forEach((cb) => cb(roleStyleConfig));
+      return { ok: true, roleStyleConfig };
+    },
     onStatusChanged: (cb) => {
       statusListeners.add(cb);
       return () => statusListeners.delete(cb);
@@ -180,6 +213,14 @@ function createMock() {
     onAnimationUpdated: (cb) => {
       animationListeners.add(cb);
       return () => animationListeners.delete(cb);
+    },
+    onDecorationUpdated: (cb) => {
+      decorationListeners.add(cb);
+      return () => decorationListeners.delete(cb);
+    },
+    onRoleStyleUpdated: (cb) => {
+      roleStyleListeners.add(cb);
+      return () => roleStyleListeners.delete(cb);
     },
     onThemeChanged: () => () => {},
   };

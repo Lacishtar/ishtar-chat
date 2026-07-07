@@ -3,6 +3,7 @@ const path = require('path');
 const http = require('http');
 const express = require('express');
 const { createAvatarProxyRouter } = require('./avatar-proxy');
+const { createImageProxyRouter } = require('./image-proxy');
 
 const OVERLAY_DIR = path.join(__dirname, '..', '..', 'overlay');
 const THEMES_DIR = path.join(__dirname, '..', '..', 'themes');
@@ -17,7 +18,17 @@ function createApp(getState, options = {}) {
   const app = express();
 
   app.get('/overlay', (req, res) => {
-    const { themeId, config, layoutConfig, sessionId, history, slotStyleConfig, animationConfig } = getState();
+    const {
+      themeId,
+      config,
+      layoutConfig,
+      sessionId,
+      history,
+      slotStyleConfig,
+      animationConfig,
+      decorationConfig,
+      roleStyleConfig,
+    } = getState();
     const initialState = {
       theme: themeId,
       themeId,
@@ -25,6 +36,8 @@ function createApp(getState, options = {}) {
       layoutConfig,
       slotStyleConfig,
       animationConfig,
+      decorationConfig,
+      roleStyleConfig,
       session: sessionId,
       history,
     };
@@ -42,6 +55,7 @@ function createApp(getState, options = {}) {
   app.use('/overlay', express.static(OVERLAY_DIR));
   app.use('/themes', express.static(THEMES_DIR));
   app.use('/avatar', createAvatarProxyRouter());
+  app.use('/image', createImageProxyRouter());
 
   app.get('/health', (req, res) => res.json({ ok: true }));
 

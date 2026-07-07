@@ -17,11 +17,15 @@ contextBridge.exposeInMainWorld('api', {
   updateLayout: (partialLayout) => ipcRenderer.invoke('layout:update', partialLayout),
   updateSlotStyle: (partialSlotStyle) => ipcRenderer.invoke('slot-style:update', partialSlotStyle),
   updateAnimation: (partialAnimation) => ipcRenderer.invoke('animation:update', partialAnimation),
+  updateDecorationConfig: (partialDecoration) => ipcRenderer.invoke('decoration:update', partialDecoration),
+  updateRoleStyleConfig: (partialRoleStyle) => ipcRenderer.invoke('role-style:update', partialRoleStyle),
 
   onStatusChanged: (callback) => subscribe('status:changed', callback),
   onConfigUpdated: (callback) => subscribe('config:updated', callback),
   onLayoutUpdated: (callback) => subscribe('layout:updated', callback),
   onSlotStyleUpdated: (callback) => subscribe('slot-style:updated', callback),
   onAnimationUpdated: (callback) => subscribe('animation:updated', callback),
+  onDecorationUpdated: (callback) => subscribe('decoration:updated', callback),
+  onRoleStyleUpdated: (callback) => subscribe('role-style:updated', callback),
   onThemeChanged: (callback) => subscribe('theme:changed', callback),
 });

@@ -1,0 +1,188 @@
+/* Role-based styling — moderator, member, superchat (user-tunable via --ovs-role-* vars). */
+
+/* Fallback chain when a role omits message/row bg — keep default bubble vars, not inherit (parent is transparent). */
+:root {
+  --ovs-role-fallback-message-bg: var(--ovs-slot-message-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
+  --ovs-role-fallback-row-bg: var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72));
+  --ovs-role-fallback-message-border: var(
+    --ovs-slot-message-bubble-border-color,
+    var(--ovs-bubble-border-color, transparent)
+  );
+  --ovs-role-fallback-row-border: var(--ovs-bubble-border-color, transparent);
+}
+
+:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator .ovs-author,
+:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member .ovs-author,
+:root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-author {
+  position: relative;
+}
+
+:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator .ovs-author::before {
+  content: var(--ovs-role-mod-badge-before-content, none);
+  margin-right: 0.35em;
+  font-size: 0.82em;
+  opacity: 0.92;
+}
+
+:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator .ovs-author::after {
+  content: var(--ovs-role-mod-badge-after-content, none);
+  margin-left: 0.35em;
+  font-size: 0.82em;
+  opacity: 0.92;
+}
+
+:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member .ovs-author::before {
+  content: var(--ovs-role-member-badge-before-content, none);
+  margin-right: 0.35em;
+  font-size: 0.82em;
+  opacity: 0.92;
+}
+
+:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member .ovs-author::after {
+  content: var(--ovs-role-member-badge-after-content, none);
+  margin-left: 0.35em;
+  font-size: 0.82em;
+  opacity: 0.92;
+}
+
+:root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-author::before {
+  content: var(--ovs-role-superchat-badge-before-content, none);
+  margin-right: 0.35em;
+  font-size: 0.82em;
+  opacity: 0.92;
+}
+
+:root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-author::after {
+  content: var(--ovs-role-superchat-badge-after-content, none);
+  margin-left: 0.35em;
+  font-size: 0.82em;
+  opacity: 0.92;
+}
+
+/* --- Moderator --- */
+:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator .ovs-author {
+  color: var(--ovs-role-mod-author-color, inherit) !important;
+}
+
+:root[data-ovs-role-mod-enabled='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-moderator .ovs-text {
+  background: var(--ovs-role-mod-message-bg, var(--ovs-role-fallback-message-bg)) !important;
+  border-color: var(--ovs-role-mod-message-border-color, var(--ovs-role-fallback-message-border)) !important;
+  color: var(--ovs-role-mod-message-text-color, inherit) !important;
+  box-shadow: inset 0 0 0 1px var(--ovs-role-mod-message-border-color, transparent);
+}
+
+:root[data-ovs-role-mod-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-moderator {
+  background: var(
+      --ovs-role-mod-row-bg,
+      var(--ovs-role-mod-message-bg, var(--ovs-role-fallback-row-bg))
+    ) !important;
+  border-color: var(
+      --ovs-role-mod-row-border-color,
+      var(--ovs-role-mod-message-border-color, var(--ovs-role-fallback-row-border))
+    ) !important;
+}
+
+/* --- Member --- */
+:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member .ovs-author {
+  color: var(--ovs-role-member-author-color, inherit) !important;
+}
+
+:root[data-ovs-role-member-enabled='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-member .ovs-text {
+  background: var(--ovs-role-member-message-bg, var(--ovs-role-fallback-message-bg)) !important;
+  border-color: var(--ovs-role-member-message-border-color, var(--ovs-role-fallback-message-border)) !important;
+  color: var(--ovs-role-member-message-text-color, inherit) !important;
+  box-shadow: inset 0 0 0 1px var(--ovs-role-member-message-border-color, transparent);
+}
+
+:root[data-ovs-role-member-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-member {
+  background: var(
+      --ovs-role-member-row-bg,
+      var(--ovs-role-member-message-bg, var(--ovs-role-fallback-row-bg))
+    ) !important;
+  border-color: var(
+      --ovs-role-member-row-border-color,
+      var(--ovs-role-member-message-border-color, var(--ovs-role-fallback-row-border))
+    ) !important;
+}
+
+/* --- Super Chat --- */
+:root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-author {
+  color: var(--ovs-role-superchat-author-color, inherit) !important;
+}
+
+:root[data-ovs-role-superchat-enabled='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-superchat .ovs-text {
+  background: var(--ovs-role-superchat-message-bg, var(--ovs-role-fallback-message-bg)) !important;
+  border-color: var(--ovs-role-superchat-message-border-color, var(--ovs-role-fallback-message-border)) !important;
+  color: var(--ovs-role-superchat-message-text-color, inherit) !important;
+  box-shadow: inset 0 0 0 1px var(--ovs-role-superchat-message-border-color, transparent);
+}
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-superchat {
+  background: var(
+      --ovs-role-superchat-row-bg,
+      var(--ovs-role-superchat-message-bg, var(--ovs-role-fallback-row-bg))
+    ) !important;
+  border-color: var(
+      --ovs-role-superchat-row-border-color,
+      var(--ovs-role-superchat-message-border-color, var(--ovs-role-fallback-row-border))
+    ) !important;
+}
+
+/* Combined roles + superchat (per-slot bubble) */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-member-enabled='true']:not([data-ovs-bubble-wrap-row='true'])
+  .ovs-message.ovs-member.ovs-superchat
+  .ovs-text {
+  background: linear-gradient(
+    135deg,
+    rgba(96, 165, 250, 0.18),
+    rgba(255, 202, 40, 0.22),
+    var(--ovs-slot-message-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)))
+  ) !important;
+  border-color: var(--ovs-role-member-message-border-color, rgba(96, 165, 250, 0.55)) !important;
+}
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-mod-enabled='true']:not([data-ovs-bubble-wrap-row='true'])
+  .ovs-message.ovs-moderator.ovs-superchat
+  .ovs-text {
+  background: linear-gradient(
+    135deg,
+    rgba(248, 113, 113, 0.2),
+    rgba(255, 202, 40, 0.24),
+    var(--ovs-slot-message-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)))
+  ) !important;
+  border-color: var(--ovs-role-mod-message-border-color, rgba(248, 113, 113, 0.6)) !important;
+}
+
+.ovs-superchat-amount {
+  display: none;
+  margin-left: 0.35em;
+  padding: 0.1em 0.45em;
+  border-radius: 999px;
+  font-size: 0.72em;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1a1400;
+  background: rgba(255, 202, 40, 0.92);
+  white-space: nowrap;
+}
+
+:root[data-ovs-role-superchat-show-amount='true'] .ovs-message.ovs-superchat .ovs-superchat-amount {
+  display: inline-block;
+}
+
+/* Danmaku / ticker — compact accents */
+#ovs-chat-list.ovs-theme-danmaku .ovs-message.ovs-moderator,
+#ovs-chat-list.ovs-theme-ticker .ovs-message.ovs-moderator {
+  outline: 2px solid var(--ovs-role-mod-message-border-color, rgba(248, 113, 113, 0.65));
+}
+
+#ovs-chat-list.ovs-theme-danmaku .ovs-message.ovs-member,
+#ovs-chat-list.ovs-theme-ticker .ovs-message.ovs-member {
+  outline: 2px solid var(--ovs-role-member-message-border-color, rgba(96, 165, 250, 0.55));
+}
+
+#ovs-chat-list.ovs-theme-danmaku .ovs-message.ovs-superchat,
+#ovs-chat-list.ovs-theme-ticker .ovs-message.ovs-superchat {
+  background: var(--ovs-role-superchat-row-bg, rgba(255, 202, 40, 0.35)) !important;
+  border: 1px solid var(--ovs-role-superchat-row-border-color, rgba(255, 202, 40, 0.7)) !important;
+}

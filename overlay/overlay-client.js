@@ -5,11 +5,26 @@
   let currentLayout = state.layoutConfig || {};
   let currentSlotStyle = state.slotStyleConfig || {};
   let currentAnimation = state.animationConfig || {};
+  let currentDecoration = state.decorationConfig || { layers: [] };
+  let currentRoleStyle = state.roleStyleConfig || { roles: {} };
   let messageTemplate = null;
   let messageHistory = Array.isArray(state.history) ? [...state.history] : [];
 
   const listEl = document.getElementById('ovs-chat-list');
   const themeStyleEl = document.getElementById('ovs-theme-style');
+
+  const TICKER_THEMES = new Set(['ticker']);
+  const DANMAKU_THEMES = new Set(['danmaku']);
+
+  const DANMAKU_LANE_COUNT = 12;
+  const DANMAKU_LANE_TOP = ['4%', '12%', '20%', '28%', '36%', '44%', '52%', '60%', '68%', '76%', '84%', '92%'];
+  const DANMAKU_LANE_BASE_DURATION_SEC = [9, 11, 8, 10, 12, 9, 11, 8, 10, 12, 9, 11];
+  const DANMAKU_SPEED = 3;
+  let danmakuLaneCursor = 0;
+
+  function danmakuLaneDurationSec(lane) {
+    return DANMAKU_LANE_BASE_DURATION_SEC[lane] / DANMAKU_SPEED;
+  }
 
   if (!listEl || !themeStyleEl) {
     console.error('[ovs] overlay markup missing #ovs-chat-list or #ovs-theme-style');
@@ -34,6 +49,54 @@
     return mirrorHorizontal ? 'row-reverse' : 'row';
   }
 
+  function syncThemeModeClass() {
+    if (!listEl) return;
+    listEl.classList.toggle('ovs-theme-danmaku', DANMAKU_THEMES.has(currentTheme));
+    listEl.classList.toggle('ovs-theme-ticker', TICKER_THEMES.has(currentTheme));
+    if (DANMAKU_THEMES.has(currentTheme)) {
+      listEl.dataset.ovsThemeMode = 'danmaku';
+    } else if (TICKER_THEMES.has(currentTheme)) {
+      listEl.dataset.ovsThemeMode = 'ticker';
+    } else {
+      listEl.dataset.ovsThemeMode = 'stack';
+    }
+  }
+
+  function isFlythroughTheme() {
+    return DANMAKU_THEMES.has(currentTheme) || TICKER_THEMES.has(currentTheme);
+  }
+
+  function pickDanmakuLane() {
+    const lane = danmakuLaneCursor % DANMAKU_LANE_COUNT;
+    danmakuLaneCursor += 1;
+    return lane;
+  }
+
+  function bindDanmakuRemoval(node) {
+    node.addEventListener(
+      'animationend',
+      (ev) => {
+        if (ev.target === node && ev.animationName === 'ovs-danmaku-fly' && node.isConnected) {
+          node.remove();
+        }
+      },
+      { once: true }
+    );
+  }
+
+  function appendDanmakuMessage(msg) {
+    const node = createMessageNode(msg);
+    const lane = pickDanmakuLane();
+    const durationSec = danmakuLaneDurationSec(lane);
+
+    node.dataset.danmakuLane = String(lane);
+    node.style.top = DANMAKU_LANE_TOP[lane];
+    node.style.animationDuration = `${durationSec}s`;
+    bindDanmakuRemoval(node);
+
+    listEl.appendChild(node);
+  }
+
   function px(value) {
     const n = Number(value);
     return Number.isFinite(n) ? `${n}px` : '0px';
@@ -47,7 +110,201 @@
     return value != null && Number.isFinite(Number(value)) ? String(value) : 'auto';
   }
 
-  // Keep in sync with shared/avatar-url.js#toAvatarProxyUrl.
+  // Keep in sync with shared/image-url.js#toImageProxyUrl.
+  function toImageProxyUrl(rawUrl) {
+    if (!rawUrl || typeof rawUrl !== 'string') return '';
+    try {
+      const u = new URL(rawUrl);
+      if (u.protocol !== 'https:') return '';
+      const host = u.hostname.toLowerCase();
+      const allowed = [
+        'i.ibb.co',
+        'ibb.co',
+        'i.imgur.com',
+        'imgur.com',
+        'cdn.discordapp.com',
+        'media.discordapp.net',
+        'raw.githubusercontent.com',
+        'images.unsplash.com',
+        'placehold.co',
+        'placekitten.com',
+      ];
+      if (!allowed.some((h) => host === h || host.endsWith('.' + h))) return '';
+      return `/image/proxy?url=${encodeURIComponent(rawUrl)}`;
+    } catch (_err) {
+      return '';
+    }
+  }
+
+  // Keep in sync with shared/decoration-config.js#compileLayerInlineStyle.
+  const PLACEMENT_CORNERS = {
+    'top-left': { left: '0', top: '0' },
+    'top-right': { left: '100%', top: '0' },
+    'bottom-left': { left: '0', top: '100%' },
+    'bottom-right': { left: '100%', top: '100%' },
+    'top-center': { left: '50%', top: '0' },
+    'bottom-center': { left: '50%', top: '100%' },
+    'center-left': { left: '0', top: '50%' },
+    'center-right': { left: '100%', top: '50%' },
+    center: { left: '50%', top: '50%' },
+  };
+
+  function compileLayerInlineStyle(layer) {
+    const translateX = Number(layer.translateX) || 0;
+    const translateY = Number(layer.translateY) || 0;
+    const rotate = Number(layer.rotate) || 0;
+    const zIndex = layer.zIndex != null ? Number(layer.zIndex) : 5;
+    const opacity = layer.opacity != null ? Number(layer.opacity) : 1;
+    const width = layer.width != null ? Number(layer.width) : 48;
+    const height = layer.height != null ? Number(layer.height) : 48;
+    const placement = layer.placement || 'custom';
+    const base = {
+      position: 'absolute',
+      right: 'auto',
+      bottom: 'auto',
+      zIndex: String(zIndex),
+      opacity: String(opacity),
+      width: `${width}px`,
+      height: `${height}px`,
+      objectFit: 'contain',
+      pointerEvents: 'none',
+    };
+    const rot = `${rotate}deg`;
+
+    if (placement === 'custom') {
+      return {
+        ...base,
+        left: '0',
+        top: '0',
+        transform: `translate(${translateX}px, ${translateY}px) rotate(${rot})`,
+        transformOrigin: 'center center',
+      };
+    }
+
+    const corner = PLACEMENT_CORNERS[placement] || PLACEMENT_CORNERS['bottom-left'];
+    return {
+      ...base,
+      left: corner.left,
+      top: corner.top,
+      transform: `translate(calc(-50% + ${translateX}px), calc(-50% + ${translateY}px)) rotate(${rot})`,
+      transformOrigin: 'center center',
+    };
+  }
+
+  function ensurePositionedAnchor(el) {
+    if (!el) return null;
+    if (getComputedStyle(el).position === 'static') {
+      el.style.position = 'relative';
+    }
+    return el;
+  }
+
+  function resolveBubbleAnchor(messageNode) {
+    if (!messageNode) return null;
+    const root = document.documentElement;
+    const msgWrap = root.dataset.ovsBubbleWrapMessage === 'true';
+    if (msgWrap) {
+      return messageNode.querySelector('[data-slot="message"]') || messageNode;
+    }
+    return messageNode;
+  }
+
+  function applyInlineStyle(el, styleMap) {
+    Object.entries(styleMap).forEach(([key, value]) => {
+      el.style[key] = value;
+    });
+  }
+
+  function ensureDecorationAnchor(el, anchorName) {
+    if (!el) return null;
+    if (anchorName === 'avatar' && el.tagName === 'IMG') {
+      const existing = el.closest('.ovs-decoration-anchor[data-anchor="avatar"]');
+      if (existing) return existing;
+      const wrap = document.createElement('span');
+      wrap.className = 'ovs-decoration-anchor';
+      wrap.dataset.anchor = 'avatar';
+      el.parentNode.insertBefore(wrap, el);
+      wrap.appendChild(el);
+      return wrap;
+    }
+    return el;
+  }
+
+  function resolveAnchorElement(messageNode, anchor) {
+    if (!messageNode) return null;
+    if (anchor === 'bubble') return resolveBubbleAnchor(messageNode);
+    if (anchor === 'row') return messageNode;
+    if (anchor === 'body') return messageNode.querySelector('.ovs-body') || messageNode;
+    if (anchor === 'avatar') {
+      const avatarEl = messageNode.querySelector('[data-slot="avatar"]');
+      return ensureDecorationAnchor(avatarEl, 'avatar') || messageNode;
+    }
+    if (anchor === 'author') {
+      return messageNode.querySelector('[data-slot="author"]') || messageNode;
+    }
+    if (anchor === 'message') {
+      return messageNode.querySelector('[data-slot="message"]') || messageNode;
+    }
+    return messageNode;
+  }
+
+  function ensureDecorationHost(anchorEl, anchorName) {
+    if (!anchorEl) return null;
+    ensurePositionedAnchor(anchorEl);
+    let host = anchorEl.querySelector(`:scope > .ovs-decoration-host[data-for-anchor="${anchorName}"]`);
+    if (!host) {
+      host = document.createElement('div');
+      host.className = 'ovs-decoration-host';
+      host.dataset.forAnchor = anchorName;
+      anchorEl.insertBefore(host, anchorEl.firstChild);
+    }
+    return host;
+  }
+
+  function clearDecorationLayers(messageNode) {
+    if (!messageNode) return;
+    messageNode.querySelectorAll('.ovs-decoration-layer').forEach((el) => el.remove());
+  }
+
+  function applyDecorationLayers(messageNode, decorationConfig) {
+    if (!messageNode) return;
+    const layers = Array.isArray(decorationConfig?.layers) ? decorationConfig.layers : [];
+    layers.forEach((layer) => {
+      if (!layer || layer.enabled === false || !layer.imageUrl) return;
+      const anchorEl = resolveAnchorElement(messageNode, layer.anchor || 'message');
+      const host = ensureDecorationHost(anchorEl, layer.anchor || 'message');
+      if (!host) return;
+
+      const img = document.createElement('img');
+      img.className = 'ovs-decoration-layer';
+      img.alt = '';
+      img.decoding = 'async';
+      img.dataset.layerId = layer.id || '';
+      img.dataset.placement = layer.placement || 'custom';
+      applyInlineStyle(img, compileLayerInlineStyle(layer));
+
+      const proxied = toImageProxyUrl(layer.imageUrl);
+      img.referrerPolicy = 'no-referrer';
+      img.onerror = () => img.setAttribute('data-load-error', 'true');
+      img.onload = () => img.removeAttribute('data-load-error');
+      img.src = proxied || layer.imageUrl;
+
+      host.appendChild(img);
+    });
+  }
+
+  function refreshAllDecorations() {
+    if (isFlythroughTheme()) return;
+    const applyTo = (node) => {
+      clearDecorationLayers(node);
+      applyDecorationLayers(node, currentDecoration);
+    };
+    listEl.querySelectorAll('.ovs-message').forEach(applyTo);
+    if (tickerTrackEl) {
+      tickerTrackEl.querySelectorAll('.ovs-message').forEach(applyTo);
+    }
+  }
+
   function toAvatarProxyUrl(rawUrl) {
     if (!rawUrl || typeof rawUrl !== 'string') return '';
     try {
@@ -368,9 +625,87 @@
     return vars;
   }
 
-  function applyCssVariables(config, layout, slotStyle, animationConfig) {
+  // Keep in sync with shared/role-style-config.js#compileRoleStyleToCssVariables.
+  function compileRoleStyleToCssVariables(roleStyle) {
+    const roles = roleStyle?.roles || {};
+    const vars = {};
+    const rootFlags = {};
+    const defs = {
+      moderator: {
+        prefix: 'mod',
+        authorColor: '#fca5a5',
+        messageBg: '#f87171',
+        messageTextColor: '#ffffff',
+        badge: 'MOD',
+        badgePosition: 'before',
+      },
+      member: {
+        prefix: 'member',
+        authorColor: '#93c5fd',
+        messageBg: '#60a5fa',
+        messageTextColor: '#ffffff',
+        badge: '★',
+        badgePosition: 'before',
+      },
+      superchat: {
+        prefix: 'superchat',
+        authorColor: '#fde047',
+        messageBg: '#facc15',
+        messageTextColor: '#1f2937',
+        badge: '✦',
+        badgePosition: 'before',
+        showAmount: true,
+      },
+    };
+
+    Object.keys(defs).forEach((roleKey) => {
+      const def = defs[roleKey];
+      const role = { ...def, ...(roles[roleKey] || {}) };
+      const prefix = def.prefix;
+      const enabled = role.enabled !== false;
+      rootFlags[`ovsRole${prefix.charAt(0).toUpperCase()}${prefix.slice(1)}Enabled`] = enabled ? 'true' : 'false';
+
+      if (!enabled) return;
+
+      const messageBg = role.messageBg || role.messageBgColor;
+      const rowBg = role.rowBg || role.rowBgColor;
+
+      if (role.authorColor) vars[`--ovs-role-${prefix}-author-color`] = role.authorColor;
+      if (messageBg) vars[`--ovs-role-${prefix}-message-bg`] = messageBg;
+      if (role.messageTextColor) vars[`--ovs-role-${prefix}-message-text-color`] = role.messageTextColor;
+      if (rowBg) vars[`--ovs-role-${prefix}-row-bg`] = rowBg;
+      vars[`--ovs-role-${prefix}-badge-before-content`] = role.badgeBefore
+        ? `"${String(role.badgeBefore).replace(/"/g, '\\"')}"`
+        : 'none';
+      vars[`--ovs-role-${prefix}-badge-after-content`] = role.badgeAfter
+        ? `"${String(role.badgeAfter).replace(/"/g, '\\"')}"`
+        : 'none';
+
+      if (roleKey === 'superchat') {
+        rootFlags.ovsRoleSuperchatShowAmount = role.showAmount === false ? 'false' : 'true';
+      }
+    });
+
+    return { vars, rootFlags };
+  }
+
+  function applyRoleStyleFlags(rootFlags) {
+    const root = document.documentElement;
+    const map = {
+      ovsRoleModEnabled: 'data-ovs-role-mod-enabled',
+      ovsRoleMemberEnabled: 'data-ovs-role-member-enabled',
+      ovsRoleSuperchatEnabled: 'data-ovs-role-superchat-enabled',
+      ovsRoleSuperchatShowAmount: 'data-ovs-role-superchat-show-amount',
+    };
+    Object.entries(map).forEach(([key, attr]) => {
+      if (rootFlags[key] !== undefined) root.setAttribute(attr, rootFlags[key]);
+    });
+  }
+
+  function applyCssVariables(config, layout, slotStyle, animationConfig, roleStyle) {
     const cfg = config || {};
     const root = document.documentElement;
+    const roleCompiled = compileRoleStyleToCssVariables(roleStyle || currentRoleStyle);
     const map = {
       '--ovs-font-family': cfg.fontFamily,
       '--ovs-font-size': cfg.fontSize != null ? `${cfg.fontSize}px` : undefined,
@@ -385,12 +720,14 @@
       ...compileLayoutToCssVariables(layout),
       ...compileSlotStyleToCssVariables(slotStyle || currentSlotStyle, cfg),
       ...compileAnimationToCssVariables(animationConfig || currentAnimation, cfg),
+      ...roleCompiled.vars,
     };
     Object.entries(map).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== 'undefinedpx') {
         root.style.setProperty(key, value);
       }
     });
+    applyRoleStyleFlags(roleCompiled.rootFlags);
 
     const screen = normalizeBubbleWrapScreen(layout?.screen || {});
     root.dataset.ovsBubbleWrapRow = isRowBubbleWrap(screen) ? 'true' : 'false';
@@ -399,6 +736,7 @@
     delete root.dataset.ovsBubbleScope;
 
     listEl.classList.toggle('ovs-position-top-down', config.position === 'top-down');
+    syncThemeModeClass();
     refreshAllSlotVisibility();
   }
 
@@ -414,6 +752,7 @@
       if (!tpl) throw new Error('template element missing');
       currentTheme = id;
       themeStyleEl.href = `/themes/${encodeURIComponent(id)}/style.css`;
+      syncThemeModeClass();
       messageTemplate = tpl;
       return true;
     } catch (err) {
@@ -430,18 +769,24 @@
     if (data.layoutConfig) currentLayout = data.layoutConfig;
     if (data.slotStyleConfig) currentSlotStyle = data.slotStyleConfig;
     if (data.animationConfig) currentAnimation = data.animationConfig;
+    if (data.decorationConfig) currentDecoration = data.decorationConfig;
+    if (data.roleStyleConfig) currentRoleStyle = data.roleStyleConfig;
 
     const incomingHistory = Array.isArray(data.history) ? data.history : null;
 
     const finish = () => {
-      applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation);
+      applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation, currentRoleStyle);
       if (themeSwitch) {
         resetTickerPlayback();
+        danmakuLaneCursor = 0;
         listEl.innerHTML = '';
       }
       if (incomingHistory && (themeSwitch || options.forceHistory || listEl.children.length === 0)) {
         messageHistory = [...incomingHistory];
         renderHistory(messageHistory);
+      }
+      if (!isFlythroughTheme()) {
+        refreshAllDecorations();
       }
     };
 
@@ -454,7 +799,6 @@
     return Promise.resolve();
   }
 
-  const TICKER_THEMES = new Set(['ticker']);
   const TICKER_SCROLL_PX_PER_SEC = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 100 : 260;
 
   let tickerTrackEl = null;
@@ -586,6 +930,13 @@
       applyTickerTransform();
       return;
     }
+    if (DANMAKU_THEMES.has(currentTheme)) {
+      danmakuLaneCursor = 0;
+      listEl.innerHTML = '';
+      const ordered = currentConfig.position === 'top-down' ? [...history].reverse() : history;
+      ordered.forEach((msg) => appendDanmakuMessage(msg));
+      return;
+    }
     history.forEach((msg) => renderMessage(msg, { trackHistory: false }));
   }
 
@@ -643,8 +994,6 @@
     }
   }
 
-  const DANMAKU_THEMES = new Set(['danmaku']);
-
   function applySlotEnterAnimation(node) {
     if (TICKER_THEMES.has(currentTheme) || DANMAKU_THEMES.has(currentTheme)) return;
     const root = getComputedStyle(document.documentElement);
@@ -697,7 +1046,26 @@
     // safely use innerHTML here instead of losing the emoji.
     if (messageEl) messageEl.innerHTML = msg.messageHtml;
 
-    if (msg.isSuperchat) node.classList.add('ovs-superchat');
+    const primaryRole = msg.isSuperchat
+      ? 'superchat'
+      : msg.roles?.includes('moderator')
+        ? 'moderator'
+        : msg.roles?.includes('member')
+          ? 'member'
+          : null;
+
+    if (primaryRole) node.classList.add(`ovs-${primaryRole}`);
+
+    if (msg.isSuperchat && msg.superchatCurrencyRaw && authorEl?.parentElement) {
+      const amountEl = document.createElement('span');
+      amountEl.className = 'ovs-superchat-amount';
+      amountEl.textContent = msg.superchatCurrencyRaw;
+      authorEl.parentElement.insertBefore(amountEl, authorEl.nextSibling);
+    }
+
+    if (!isFlythroughTheme()) {
+      applyDecorationLayers(node, currentDecoration);
+    }
     applySlotEnterAnimation(node);
     return node;
   }
@@ -716,6 +1084,11 @@
 
     if (TICKER_THEMES.has(currentTheme)) {
       appendTickerMessage(msg);
+      return;
+    }
+
+    if (DANMAKU_THEMES.has(currentTheme)) {
+      appendDanmakuMessage(msg);
       return;
     }
 
@@ -747,16 +1120,24 @@
         applyThemePayload(payload.data || {});
       } else if (payload.type === 'config:updated') {
         currentConfig = payload.data;
-        applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation);
+        applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation, currentRoleStyle);
+        if (!isFlythroughTheme()) refreshAllDecorations();
       } else if (payload.type === 'layout:updated') {
         currentLayout = payload.data;
-        applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation);
+        applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation, currentRoleStyle);
+        if (!isFlythroughTheme()) refreshAllDecorations();
       } else if (payload.type === 'slot-style:updated') {
         currentSlotStyle = payload.data;
-        applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation);
+        applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation, currentRoleStyle);
       } else if (payload.type === 'animation:updated') {
         currentAnimation = payload.data;
-        applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation);
+        applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation, currentRoleStyle);
+      } else if (payload.type === 'decoration:updated') {
+        currentDecoration = payload.data || { layers: [] };
+        refreshAllDecorations();
+      } else if (payload.type === 'role-style:updated') {
+        currentRoleStyle = payload.data || { roles: {} };
+        applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation, currentRoleStyle);
       }
     });
 
@@ -784,6 +1165,8 @@
         layoutConfig: currentLayout,
         slotStyleConfig: currentSlotStyle,
         animationConfig: currentAnimation,
+        decorationConfig: currentDecoration,
+        roleStyleConfig: currentRoleStyle,
         history: state.history,
       },
       { forceHistory: true }

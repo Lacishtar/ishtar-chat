@@ -2,11 +2,12 @@ const fs = require('fs');
 const path = require('path');
 
 const THEMES_DIR = path.join(__dirname, '..', 'themes');
+const HIDDEN_THEME_IDS = new Set(['ticker', 'scrapbook']);
 
 function listThemes() {
   return fs
     .readdirSync(THEMES_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
+    .filter((entry) => entry.isDirectory() && !HIDDEN_THEME_IDS.has(entry.name))
     .map((entry) => {
       const themeId = entry.name;
       const meta = readThemeConfig(themeId);
@@ -36,6 +37,9 @@ function readThemeConfig(themeId) {
 }
 
 function themeExists(themeId) {
+  if (HIDDEN_THEME_IDS.has(themeId)) {
+    return false;
+  }
   return fs.existsSync(path.join(THEMES_DIR, themeId, 'template.html'));
 }
 

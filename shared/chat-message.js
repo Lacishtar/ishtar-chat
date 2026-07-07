@@ -34,9 +34,9 @@ const crypto = require('crypto');
 // matching. Ship fixes as an update to this map, same spirit as
 // selectors.config.json's "edit data, not code" philosophy.
 const ROLE_KEYWORDS = {
-  moderator: ['moderator'],
-  member: ['member'],
-  verified: ['verified'],
+  moderator: ['moderator', 'mod', 'điều hành', 'dieu hanh', 'quản trị', 'quan tri'],
+  member: ['member', 'thành viên', 'thanh vien', 'hội viên', 'hoi vien'],
+  verified: ['verified', 'xác minh', 'xac minh'],
 };
 
 // Unicode script ranges used for a lightweight language/direction hint. This

@@ -11,6 +11,8 @@ const { listThemes, themeExists } = require('./theme-registry');
 const { mergeLayoutConfig } = require('../shared/layout-config');
 const { mergeSlotStyleConfig } = require('../shared/slot-style-config');
 const { mergeAnimationConfig } = require('../shared/animation-config');
+const { mergeDecorationConfig } = require('../shared/decoration-config');
+const { mergeRoleStyleConfig } = require('../shared/role-style-config');
 const { resolveThemeState } = require('./store/theme-state');
 const { getDirtyFields } = require('./store/theme-baseline');
 
@@ -34,6 +36,8 @@ function getOverlayState() {
     layoutConfig: state.layoutConfig,
     slotStyleConfig: state.slotStyleConfig,
     animationConfig: state.animationConfig,
+    decorationConfig: state.decorationConfig,
+    roleStyleConfig: state.roleStyleConfig,
     sessionId,
     history: messageHistory,
   };
@@ -98,6 +102,8 @@ function registerIpcHandlers() {
       layoutConfig: state.layoutConfig,
       slotStyleConfig: state.slotStyleConfig,
       animationConfig: state.animationConfig,
+      decorationConfig: state.decorationConfig,
+      roleStyleConfig: state.roleStyleConfig,
       lastSessionUrl: state.lastSessionUrl,
       overlayUrl: getOverlayUrl(),
       port: httpPort,
@@ -124,13 +130,22 @@ function registerIpcHandlers() {
     const themeState = resolveThemeState(themeId);
     configStore.set(themeState);
 
-    const { customizeConfig: config, layoutConfig, slotStyleConfig, animationConfig } = themeState;
+    const {
+      customizeConfig: config,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+      decorationConfig,
+      roleStyleConfig,
+    } = themeState;
     wsBroadcast('theme:changed', {
       themeId,
       config,
       layoutConfig,
       slotStyleConfig,
       animationConfig,
+      decorationConfig,
+      roleStyleConfig,
       history: messageHistory,
     });
     safeSend(mainWindow, 'theme:changed', {
@@ -139,8 +154,18 @@ function registerIpcHandlers() {
       layoutConfig,
       slotStyleConfig,
       animationConfig,
+      decorationConfig,
+      roleStyleConfig,
     });
-    return { ok: true, config, layoutConfig, slotStyleConfig, animationConfig };
+    return {
+      ok: true,
+      config,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+      decorationConfig,
+      roleStyleConfig,
+    };
   });
 
   ipcMain.handle('theme:is-dirty', () => {
@@ -157,16 +182,26 @@ function registerIpcHandlers() {
       layoutConfig: fresh.layoutConfig,
       slotStyleConfig: fresh.slotStyleConfig,
       animationConfig: fresh.animationConfig,
-      bubbleConfig: fresh.bubbleConfig,
+      decorationConfig: fresh.decorationConfig,
+      roleStyleConfig: fresh.roleStyleConfig,
     });
 
-    const { customizeConfig: config, layoutConfig, slotStyleConfig, animationConfig } = fresh;
+    const {
+      customizeConfig: config,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+      decorationConfig,
+      roleStyleConfig,
+    } = fresh;
     wsBroadcast('theme:changed', {
       themeId,
       config,
       layoutConfig,
       slotStyleConfig,
       animationConfig,
+      decorationConfig,
+      roleStyleConfig,
       history: messageHistory,
     });
     safeSend(mainWindow, 'theme:changed', {
@@ -175,8 +210,18 @@ function registerIpcHandlers() {
       layoutConfig,
       slotStyleConfig,
       animationConfig,
+      decorationConfig,
+      roleStyleConfig,
     });
-    return { ok: true, config, layoutConfig, slotStyleConfig, animationConfig };
+    return {
+      ok: true,
+      config,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+      decorationConfig,
+      roleStyleConfig,
+    };
   });
 
   ipcMain.handle('config:update', (_event, partialConfig) => {
@@ -209,6 +254,24 @@ function registerIpcHandlers() {
 
     wsBroadcast('animation:updated', merged);
     return { ok: true, animationConfig: merged };
+  });
+
+  ipcMain.handle('decoration:update', (_event, partialDecoration) => {
+    const merged = mergeDecorationConfig(configStore.get().decorationConfig, partialDecoration);
+    configStore.set({ decorationConfig: merged });
+
+    wsBroadcast('decoration:updated', merged);
+    safeSend(mainWindow, 'decoration:updated', merged);
+    return { ok: true, decorationConfig: merged };
+  });
+
+  ipcMain.handle('role-style:update', (_event, partialRoleStyle) => {
+    const merged = mergeRoleStyleConfig(configStore.get().roleStyleConfig, partialRoleStyle);
+    configStore.set({ roleStyleConfig: merged });
+
+    wsBroadcast('role-style:updated', merged);
+    safeSend(mainWindow, 'role-style:updated', merged);
+    return { ok: true, roleStyleConfig: merged };
   });
 }
 

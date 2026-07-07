@@ -13,7 +13,9 @@
     "build": "npm run build:dashboard && electron-builder",
     "smoke:layout": "node scripts/smoke-test-layout-engine.js",
     "smoke:slot-style": "node scripts/smoke-test-slot-style.js",
-    "smoke:bubble": "node scripts/smoke-test-bubble-engine.js"
+    "smoke:bubble": "node scripts/smoke-test-bubble-engine.js",
+    "smoke:decoration": "node scripts/smoke-test-decoration-config.js",
+    "smoke:role-style": "node scripts/smoke-test-role-style-config.js"
   },
   "dependencies": {
     "express": "^4.19.2",

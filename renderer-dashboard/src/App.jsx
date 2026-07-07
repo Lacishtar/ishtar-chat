@@ -4,6 +4,8 @@ import ConnectPanel from './components/ConnectPanel.jsx';
 import ThemeGallery from './components/ThemeGallery.jsx';
 import CustomizePanel from './components/CustomizePanel.jsx';
 import LayoutPanel from './components/LayoutPanel.jsx';
+import DecorationsPanel from './components/DecorationsPanel.jsx';
+import RoleStylesPanel from './components/RoleStylesPanel.jsx';
 import ChatPreview from './components/ChatPreview.jsx';
 import StatusBadge from './components/StatusBadge.jsx';
 
@@ -13,6 +15,8 @@ function applyInitialState(state, setters) {
   setters.setConfig(state.customizeConfig);
   setters.setLayoutConfig(state.layoutConfig);
   setters.setSlotStyleConfig(state.slotStyleConfig);
+  setters.setDecorationConfig(state.decorationConfig);
+  setters.setRoleStyleConfig(state.roleStyleConfig);
   setters.setOverlayUrl(state.overlayUrl);
   setters.setLastSessionUrl(state.lastSessionUrl || '');
   setters.setStatus(state.status);
@@ -26,6 +30,8 @@ export default function App() {
   const [config, setConfig] = useState(null);
   const [layoutConfig, setLayoutConfig] = useState(null);
   const [slotStyleConfig, setSlotStyleConfig] = useState(null);
+  const [decorationConfig, setDecorationConfig] = useState(null);
+  const [roleStyleConfig, setRoleStyleConfig] = useState(null);
   const [overlayUrl, setOverlayUrl] = useState('');
   const [lastSessionUrl, setLastSessionUrl] = useState('');
   const [status, setStatus] = useState({ status: 'idle', error: null });
@@ -44,6 +50,8 @@ export default function App() {
           setConfig,
           setLayoutConfig,
           setSlotStyleConfig,
+          setDecorationConfig,
+          setRoleStyleConfig,
           setOverlayUrl,
           setLastSessionUrl,
           setStatus,
@@ -58,7 +66,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    let unsubStatus, unsubConfig, unsubLayout, unsubSlotStyle, unsubTheme;
+    let unsubStatus, unsubConfig, unsubLayout, unsubSlotStyle, unsubDecoration, unsubRoleStyle, unsubTheme;
 
     loadInitialState();
 
@@ -66,11 +74,15 @@ export default function App() {
     unsubConfig = api.onConfigUpdated((payload) => setConfig(payload));
     unsubLayout = api.onLayoutUpdated((payload) => setLayoutConfig(payload));
     unsubSlotStyle = api.onSlotStyleUpdated((payload) => setSlotStyleConfig(payload));
+    unsubDecoration = api.onDecorationUpdated?.((payload) => setDecorationConfig(payload));
+    unsubRoleStyle = api.onRoleStyleUpdated?.((payload) => setRoleStyleConfig(payload));
     unsubTheme = api.onThemeChanged((payload) => {
       setSelectedTheme(payload.themeId);
       setConfig(payload.config);
       setLayoutConfig(payload.layoutConfig);
       setSlotStyleConfig(payload.slotStyleConfig);
+      setDecorationConfig(payload.decorationConfig);
+      setRoleStyleConfig(payload.roleStyleConfig);
       setPreviewKey((k) => k + 1);
     });
 
@@ -79,6 +91,8 @@ export default function App() {
       unsubConfig && unsubConfig();
       unsubLayout && unsubLayout();
       unsubSlotStyle && unsubSlotStyle();
+      unsubDecoration && unsubDecoration();
+      unsubRoleStyle && unsubRoleStyle();
       unsubTheme && unsubTheme();
     };
   }, [loadInitialState]);
@@ -103,6 +117,8 @@ export default function App() {
       setConfig(result.config);
       setLayoutConfig(result.layoutConfig);
       setSlotStyleConfig(result.slotStyleConfig);
+      setDecorationConfig(result.decorationConfig);
+      setRoleStyleConfig(result.roleStyleConfig);
       setPreviewKey((k) => k + 1);
     }
   }
@@ -153,6 +169,8 @@ export default function App() {
           <ThemeGallery themes={themes} selectedTheme={selectedTheme} onSelect={handleSelectTheme} />
           <CustomizePanel api={api} config={config} slotStyleConfig={slotStyleConfig} />
           <LayoutPanel api={api} layoutConfig={layoutConfig} />
+          <DecorationsPanel api={api} decorationConfig={decorationConfig} />
+          <RoleStylesPanel api={api} roleStyleConfig={roleStyleConfig} />
         </div>
 
         <ChatPreview

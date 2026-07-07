@@ -272,28 +272,6 @@ export default function LayoutPanel({ api, layoutConfig }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={`Khoảng cách avatar — ${local.gap}px`}>
-          <input
-            type="range"
-            min={0}
-            max={24}
-            value={local.gap}
-            onChange={(e) => pushUpdate({ gap: Number(e.target.value) })}
-          />
-        </Field>
-
-        <Field label={`Padding bubble — ${local.padding}px`}>
-          <input
-            type="range"
-            min={0}
-            max={24}
-            value={local.padding}
-            onChange={(e) => pushUpdate({ padding: Number(e.target.value) })}
-          />
-        </Field>
-      </div>
-
       <h3 className="text-xs uppercase tracking-wide text-inkMuted pt-1">Ẩn/hiện (layout)</h3>
       <div className="flex flex-wrap gap-4 text-sm">
         <label className="flex items-center gap-2">

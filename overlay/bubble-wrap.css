@@ -91,18 +91,3 @@
   backdrop-filter: var(--ovs-bubble-backdrop, none);
   -webkit-backdrop-filter: var(--ovs-bubble-backdrop, none);
 }
-
-/* Superchat accents when bubbles are split per slot */
-:root:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-superchat .ovs-author {
-  border-color: rgba(255, 202, 40, 0.55);
-}
-
-:root:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-superchat .ovs-text {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 202, 40, 0.28),
-    var(--ovs-slot-message-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)))
-  );
-  border: 1px solid rgba(255, 202, 40, 0.45);
-  box-shadow: 0 0 0 1px rgba(255, 202, 40, 0.35) inset;
-}

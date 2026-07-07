@@ -1,0 +1,48 @@
+/* Decoration layers — stack themes only. Danmaku/ticker use absolute fly-through layout. */
+
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-message {
+  position: relative !important;
+  isolation: isolate;
+  overflow: visible;
+}
+
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-message,
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-body,
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-meta,
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-decoration-anchor,
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-author,
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-text {
+  overflow: visible;
+}
+
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-body,
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-meta,
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-decoration-anchor,
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-author,
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-text {
+  position: relative;
+}
+
+.ovs-decoration-anchor {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.ovs-decoration-host {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.ovs-decoration-layer {
+  position: absolute;
+  transform-origin: center center;
+  pointer-events: none;
+  object-fit: contain;
+}
+
+.ovs-decoration-layer[data-load-error='true'] {
+  display: none;
+}

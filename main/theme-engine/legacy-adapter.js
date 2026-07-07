@@ -5,6 +5,7 @@ const { DEFAULT_LAYOUT_CONFIG } = require('../../shared/layout-config');
 const { DEFAULT_BUBBLE_CONFIG, mergeBubbleConfig } = require('../../shared/bubble-config');
 
 const THEMES_DIR = path.join(__dirname, '..', '..', 'themes');
+const HIDDEN_THEME_IDS = new Set(['ticker', 'scrapbook']);
 
 // The 4 data-slots every legacy template.html uses (see themes/*/template.html)
 // mapped to the component names the future Layout Engine will look up in its
@@ -140,6 +141,9 @@ function readJson(filePath, fallback = {}) {
 }
 
 function legacyThemeExists(themeId) {
+  if (HIDDEN_THEME_IDS.has(themeId)) {
+    return false;
+  }
   return fs.existsSync(path.join(THEMES_DIR, themeId, 'template.html'));
 }
 
@@ -182,7 +186,7 @@ function adaptLegacyTheme(themeId) {
 function listLegacyThemeIds() {
   return fs
     .readdirSync(THEMES_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && legacyThemeExists(entry.name))
+    .filter((entry) => entry.isDirectory() && !HIDDEN_THEME_IDS.has(entry.name) && legacyThemeExists(entry.name))
     .map((entry) => entry.name);
 }
 

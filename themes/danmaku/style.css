@@ -1,26 +1,14 @@
 /* Danmaku ("bullet comments") theme. Unlike every other theme, messages
    don't stack in a list — they fly across the screen right-to-left, like
-   Niconico/Bilibili scrolling comments. This needs a different container
-   layout (absolute positioning instead of flex-stack), so read this file
-   alongside themes/danmaku/template.html rather than assuming the same
-   structure as themes/classic.
-
-   Lane assignment is a CSS-only approximation: each message is placed in
-   one of 12 vertical "lanes" via :nth-child cycling, with slightly
-   different flight durations per lane to reduce (not eliminate) the
-   chance two comments overlap. This is not true collision-avoidance —
-   just a cheap trick that looks right most of the time without needing
-   any changes to the shared overlay-client.js renderer.
+   Niconico/Bilibili scrolling comments. Lane assignment + cleanup are
+   handled in overlay-client.js (appendDanmakuMessage).
 
    Notes on customize-panel controls that don't apply here by design:
    - "Hiện badge" (showBadges) has no visible effect — badges are always
      hidden to keep bullet comments short and readable in a single line.
    - "Tốc độ animation" (animationMs) has no visible effect — flight speed
-     is controlled per-lane below instead, since it needs to stay in a
-     narrow "still readable while crossing the screen" range regardless
-     of what a generic 0–600ms entrance-transition slider would produce.
-   - "Vị trí tin mới" (position) only affects DOM insertion order, not the
-     flight direction (always right-to-left, like the genre's convention). */
+     is controlled per-lane in overlay-client.js (3× base speed).
+   - "Vị trí tin mới" (position) only affects trim order, not flight direction. */
 
 html,
 body {
@@ -40,8 +28,8 @@ body {
   padding: 0;
 }
 
-.ovs-message {
-  position: absolute;
+#ovs-chat-list.ovs-theme-danmaku .ovs-message {
+  position: absolute !important;
   top: 0;
   left: 0;
   display: inline-flex;
@@ -50,7 +38,7 @@ body {
   align-items: var(--ovs-layout-message-align, center);
   gap: var(--ovs-layout-message-gap, 8px);
   padding: var(--ovs-bubble-pad-y, 5px) var(--ovs-bubble-pad-x, 14px);
-  margin: var(--ovs-layout-message-margin, 0);
+  margin: 0;
   white-space: nowrap;
   border-radius: var(--ovs-bubble-radius, 999px);
   background: var(--ovs-bubble-bg, rgba(10, 10, 14, 0.55));
@@ -59,11 +47,14 @@ body {
   border-style: var(--ovs-bubble-border-style, solid);
   border-color: var(--ovs-bubble-border-color, transparent);
   box-shadow: var(--ovs-bubble-box-shadow, none);
-  transform: translateX(100vw);
   animation-name: ovs-danmaku-fly;
   animation-timing-function: linear;
   animation-fill-mode: forwards;
   will-change: transform;
+  contain: layout style;
+  isolation: auto;
+  overflow: visible;
+  transform: translate3d(100vw, 0, 0);
 }
 
 .ovs-avatar {
@@ -129,64 +120,15 @@ body {
 
 @keyframes ovs-danmaku-fly {
   from {
-    transform: translateX(100vw);
+    transform: translate3d(100vw, 0, 0);
   }
   to {
-    transform: translateX(-110%);
+    transform: translate3d(calc(-100% - 24px), 0, 0);
   }
-}
-
-.ovs-message:nth-child(12n + 1) {
-  top: 4%;
-  animation-duration: 9s;
-}
-.ovs-message:nth-child(12n + 2) {
-  top: 12%;
-  animation-duration: 11s;
-}
-.ovs-message:nth-child(12n + 3) {
-  top: 20%;
-  animation-duration: 8s;
-}
-.ovs-message:nth-child(12n + 4) {
-  top: 28%;
-  animation-duration: 10s;
-}
-.ovs-message:nth-child(12n + 5) {
-  top: 36%;
-  animation-duration: 12s;
-}
-.ovs-message:nth-child(12n + 6) {
-  top: 44%;
-  animation-duration: 9s;
-}
-.ovs-message:nth-child(12n + 7) {
-  top: 52%;
-  animation-duration: 11s;
-}
-.ovs-message:nth-child(12n + 8) {
-  top: 60%;
-  animation-duration: 8s;
-}
-.ovs-message:nth-child(12n + 9) {
-  top: 68%;
-  animation-duration: 10s;
-}
-.ovs-message:nth-child(12n + 10) {
-  top: 76%;
-  animation-duration: 12s;
-}
-.ovs-message:nth-child(12n + 11) {
-  top: 84%;
-  animation-duration: 9s;
-}
-.ovs-message:nth-child(12n) {
-  top: 92%;
-  animation-duration: 11s;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ovs-message {
-    animation-duration: 20s;
+  #ovs-chat-list.ovs-theme-danmaku .ovs-message {
+    animation-duration: 6.7s !important;
   }
 }

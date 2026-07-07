@@ -15,6 +15,8 @@ function buildUserOverlayProfile(state) {
     layoutConfig: state.layoutConfig,
     slotStyleConfig: state.slotStyleConfig,
     animationConfig: state.animationConfig,
+    decorationConfig: state.decorationConfig,
+    roleStyleConfig: state.roleStyleConfig,
   };
 }
 
@@ -46,6 +48,8 @@ class ConfigStore {
         layoutConfig: profile.layoutConfig ?? baseline.layoutConfig,
         slotStyleConfig: profile.slotStyleConfig ?? baseline.slotStyleConfig,
         animationConfig: profile.animationConfig ?? baseline.animationConfig,
+        decorationConfig: profile.decorationConfig ?? baseline.decorationConfig,
+        roleStyleConfig: profile.roleStyleConfig ?? baseline.roleStyleConfig,
         lastSessionUrl: persisted.lastSessionUrl || '',
         windowBounds: persisted.windowBounds || DEFAULT_STATE.windowBounds,
       };
