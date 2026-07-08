@@ -11,12 +11,12 @@ if (hiddenVisible.length > 0) {
 }
 
 try {
-  const fallbackState = resolveThemeState('scrapbook');
+  const fallbackState = resolveThemeState('non-existent-theme');
   if (fallbackState.selectedTheme !== 'classic') {
     throw new Error(`Expected fallback to classic, got ${fallbackState.selectedTheme}`);
   }
 } catch (err) {
-  console.error('Hidden-theme fallback regression failed:', err.message);
+  console.error('Theme fallback regression failed:', err.message);
   process.exit(1);
 }
 

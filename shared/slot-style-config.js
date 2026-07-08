@@ -11,7 +11,8 @@ function createTransformDefaults(overrides = {}) {
     rotate: 0,
     translateX: 0,
     translateY: 0,
-    transformOrigin: 'center center',
+    transformOrigin: null,
+    zIndex: null,
     ...overrides,
   };
 }
@@ -82,10 +83,11 @@ function resolveSlotVisibility(slotVisible, globalVisible) {
 /**
  * Resolves effective slot values with CustomizeConfig fallbacks.
  */
-function resolveEffectiveSlotStyle(slotStyle, customizeConfig) {
+function resolveEffectiveSlotStyle(slotStyle, customizeConfig, layoutConfig) {
   const cfg = { ...DEFAULT_CUSTOMIZE_CONFIG, ...customizeConfig };
   const s = mergeSlotStyleConfig(DEFAULT_SLOT_STYLE_CONFIG, slotStyle);
   const { slots } = s;
+  const isRtl = layoutConfig?.screen?.contentDirection === 'rtl';
 
   return {
     avatar: {
@@ -97,7 +99,7 @@ function resolveEffectiveSlotStyle(slotStyle, customizeConfig) {
       borderColor: slots.avatar.borderColor ?? null,
       opacity: slots.avatar.opacity ?? 1,
       margin: slots.avatar.margin ?? 0,
-      ...resolveTransform(slots.avatar),
+      ...resolveTransform(slots.avatar, false, isRtl),
     },
     author: {
       visible: resolveSlotVisibility(slots.author.visible, true),
@@ -107,14 +109,14 @@ function resolveEffectiveSlotStyle(slotStyle, customizeConfig) {
       fontWeight: slots.author.fontWeight ?? 700,
       opacity: slots.author.opacity ?? 1,
       margin: slots.author.margin ?? 0,
-      ...resolveTransform(slots.author),
+      ...resolveTransform(slots.author, false, isRtl),
     },
     badges: {
       visible: resolveSlotVisibility(slots.badges.visible, cfg.showBadges),
       fontSize: slots.badges.fontSize ?? Math.round(cfg.fontSize * 0.65),
       opacity: slots.badges.opacity ?? 1,
       margin: slots.badges.margin ?? 0,
-      ...resolveTransform(slots.badges),
+      ...resolveTransform(slots.badges, false, isRtl),
     },
     message: {
       visible: resolveSlotVisibility(slots.message.visible, true),
@@ -124,7 +126,7 @@ function resolveEffectiveSlotStyle(slotStyle, customizeConfig) {
       fontWeight: slots.message.fontWeight ?? null,
       opacity: slots.message.opacity ?? 1,
       margin: slots.message.margin ?? 0,
-      ...resolveTransform(slots.message),
+      ...resolveTransform(slots.message, true, isRtl),
     },
   };
 }
@@ -141,30 +143,40 @@ function formatBorderRadius(value) {
   return Number.isFinite(n) ? `${n}px` : String(value);
 }
 
-function resolveTransform(slot) {
+function resolveTransform(slot, isMessageSlot, isRtl) {
+  let defaultOrigin = 'center center';
+  if (isMessageSlot) {
+    defaultOrigin = isRtl ? 'right center' : 'left center';
+  }
   return {
     rotate: slot.rotate ?? 0,
     translateX: slot.translateX ?? 0,
     translateY: slot.translateY ?? 0,
-    transformOrigin: slot.transformOrigin ?? 'center center',
+    transformOrigin: slot.transformOrigin ?? defaultOrigin,
+    zIndex: slot.zIndex ?? null,
   };
 }
 
-function compileTransformVars(prefix, transform) {
-  const t = resolveTransform(transform);
-  return {
+function compileTransformVars(prefix, transform, isRtl) {
+  const t = resolveTransform(transform, prefix === 'message', isRtl);
+  const vars = {
     [`--ovs-slot-${prefix}-rotate`]: `${t.rotate}deg`,
     [`--ovs-slot-${prefix}-translate-x`]: px(t.translateX),
     [`--ovs-slot-${prefix}-translate-y`]: px(t.translateY),
     [`--ovs-slot-${prefix}-transform-origin`]: t.transformOrigin,
   };
+  if (t.zIndex != null) {
+    vars[`--ovs-slot-${prefix}-z-index`] = String(t.zIndex);
+  }
+  return vars;
 }
 
-function compileSlotStyleToCssVariables(slotStyle, customizeConfig) {
+function compileSlotStyleToCssVariables(slotStyle, customizeConfig, layoutConfig) {
   const s = mergeSlotStyleConfig(DEFAULT_SLOT_STYLE_CONFIG, slotStyle);
-  const e = resolveEffectiveSlotStyle(slotStyle, customizeConfig);
+  const e = resolveEffectiveSlotStyle(slotStyle, customizeConfig, layoutConfig);
   const vars = {};
   const { avatar } = s.slots;
+  const isRtl = layoutConfig?.screen?.contentDirection === 'rtl';
 
   if (e.avatar.size != null) vars['--ovs-slot-avatar-size'] = px(e.avatar.size);
   const radius = formatBorderRadius(avatar.borderRadius);
@@ -174,7 +186,7 @@ function compileSlotStyleToCssVariables(slotStyle, customizeConfig) {
   if (isSet(avatar.borderColor)) vars['--ovs-slot-avatar-border-color'] = avatar.borderColor;
   if (e.avatar.opacity != null) vars['--ovs-slot-avatar-opacity'] = String(e.avatar.opacity);
   if (e.avatar.margin != null) vars['--ovs-slot-avatar-margin'] = px(e.avatar.margin);
-  Object.assign(vars, compileTransformVars('avatar', e.avatar));
+  Object.assign(vars, compileTransformVars('avatar', e.avatar, isRtl));
 
   if (e.author.fontFamily) vars['--ovs-slot-author-font-family'] = e.author.fontFamily;
   if (e.author.fontSize != null) vars['--ovs-slot-author-font-size'] = px(e.author.fontSize);
@@ -182,12 +194,12 @@ function compileSlotStyleToCssVariables(slotStyle, customizeConfig) {
   if (e.author.fontWeight != null) vars['--ovs-slot-author-font-weight'] = String(e.author.fontWeight);
   if (e.author.opacity != null) vars['--ovs-slot-author-opacity'] = String(e.author.opacity);
   if (e.author.margin != null) vars['--ovs-slot-author-margin'] = px(e.author.margin);
-  Object.assign(vars, compileTransformVars('author', e.author));
+  Object.assign(vars, compileTransformVars('author', e.author, isRtl));
 
   if (e.badges.fontSize != null) vars['--ovs-slot-badges-font-size'] = px(e.badges.fontSize);
   if (e.badges.opacity != null) vars['--ovs-slot-badges-opacity'] = String(e.badges.opacity);
   if (e.badges.margin != null) vars['--ovs-slot-badges-margin'] = px(e.badges.margin);
-  Object.assign(vars, compileTransformVars('badges', e.badges));
+  Object.assign(vars, compileTransformVars('badges', e.badges, isRtl));
 
   if (e.message.fontFamily) vars['--ovs-slot-message-font-family'] = e.message.fontFamily;
   if (e.message.fontSize != null) vars['--ovs-slot-message-font-size'] = px(e.message.fontSize);
@@ -195,7 +207,7 @@ function compileSlotStyleToCssVariables(slotStyle, customizeConfig) {
   if (e.message.fontWeight != null) vars['--ovs-slot-message-font-weight'] = String(e.message.fontWeight);
   if (e.message.opacity != null) vars['--ovs-slot-message-opacity'] = String(e.message.opacity);
   if (e.message.margin != null) vars['--ovs-slot-message-margin'] = px(e.message.margin);
-  Object.assign(vars, compileTransformVars('message', e.message));
+  Object.assign(vars, compileTransformVars('message', e.message, isRtl));
 
   Object.assign(vars, compileSlotBubblesToCssVariables(s, customizeConfig));
 
@@ -209,6 +221,7 @@ function componentOverridesToSlotStyle(componentOverrides) {
     if (src.translateX != null) target.translateX = src.translateX;
     if (src.translateY != null) target.translateY = src.translateY;
     if (src.transformOrigin != null) target.transformOrigin = src.transformOrigin;
+    if (src.zIndex != null) target.zIndex = src.zIndex;
   };
 
   const mapText = (key, target) => {

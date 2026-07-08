@@ -61,6 +61,7 @@ function contractSimpleLayout(layout) {
     gap: mr.gap ?? 10,
     padding: mr.padding ?? 8,
     chatAlign: screen.chatAlign ?? 'left',
+    chatGap: screen.chatGap ?? 10,
     contentDirection: screen.contentDirection ?? 'ltr',
     bubbleWrapMode: screen.bubbleWrapRow === true ? 'row' : 'split',
     bubbleWrapAuthor: Boolean(screen.bubbleWrapAuthor),
@@ -135,6 +136,7 @@ function expandSimpleLayout(simple) {
     },
     screen: {
       chatAlign: s.chatAlign || 'left',
+      chatGap: s.chatGap,
       contentDirection: s.contentDirection || 'ltr',
       bubbleWrapRow: wrapRow,
       bubbleWrapAuthor: wrapAuthor,
@@ -179,6 +181,16 @@ export default function LayoutPanel({ api, layoutConfig }) {
           <option value="center">Giữa</option>
           <option value="right">Phải</option>
         </select>
+      </Field>
+
+      <Field label={`Khoảng cách giữa các tin nhắn — ${local.chatGap ?? 10}px`}>
+        <input
+          type="range"
+          min={0}
+          max={60}
+          value={local.chatGap ?? 10}
+          onChange={(e) => pushUpdate({ chatGap: Number(e.target.value) })}
+        />
       </Field>
 
       <Field label="Chiều ngang nội dung">

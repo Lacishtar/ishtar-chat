@@ -10,16 +10,16 @@ const ANCHOR_OPTIONS = [
 ];
 
 const PLACEMENT_OPTIONS = [
-  { value: 'bottom-left', label: 'Cuối bên trái bubble' },
-  { value: 'bottom-right', label: 'Cuối bên phải bubble' },
-  { value: 'top-left', label: 'Đầu bên trái bubble' },
-  { value: 'top-right', label: 'Đầu bên phải bubble' },
-  { value: 'bottom-center', label: 'Cuối giữa bubble' },
-  { value: 'top-center', label: 'Đầu giữa bubble' },
-  { value: 'center-left', label: 'Giữa bên trái' },
-  { value: 'center-right', label: 'Giữa bên phải' },
-  { value: 'center', label: 'Giữa bubble' },
-  { value: 'custom', label: 'Tùy chỉnh (X/Y tự do)' },
+  { value: 'bottom-left', label: 'Góc dưới bên trái (Bottom Left)' },
+  { value: 'bottom-right', label: 'Góc dưới bên phải (Bottom Right)' },
+  { value: 'top-left', label: 'Góc trên bên trái (Top Left)' },
+  { value: 'top-right', label: 'Góc trên bên phải (Top Right)' },
+  { value: 'bottom-center', label: 'Cạnh dưới ở giữa (Bottom Center)' },
+  { value: 'top-center', label: 'Cạnh trên ở giữa (Top Center)' },
+  { value: 'center-left', label: 'Cạnh trái ở giữa (Center Left)' },
+  { value: 'center-right', label: 'Cạnh phải ở giữa (Center Right)' },
+  { value: 'center', label: 'Chính giữa (Center)' },
+  { value: 'custom', label: 'Tùy chỉnh tự do (Custom X/Y)' },
 ];
 
 const inputClass =

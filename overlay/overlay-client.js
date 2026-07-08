@@ -305,6 +305,117 @@
     }
   }
 
+  function ensureBubbleTexture(parent) {
+    if (!parent) return;
+    let tex = parent.querySelector(`:scope > .ovs-bubble-texture`);
+    if (!tex) {
+      tex = document.createElement('div');
+      tex.className = 'ovs-bubble-texture';
+      parent.appendChild(tex);
+    }
+  }
+
+  // ── Bunny Ears: Real DOM span injection ──────────────────────────────────
+  // Dùng <span class="ovs-bunny-ear ovs-bunny-ear--left/right"> thật thay vì
+  // ::before/::after để không xung đột với custom badges trên .ovs-author.
+
+  function ensureBunnyEarSpans(el) {
+    let left = el.querySelector(':scope > .ovs-bunny-ear--left');
+    let right = el.querySelector(':scope > .ovs-bunny-ear--right');
+    if (!left) {
+      left = document.createElement('span');
+      left.className = 'ovs-bunny-ear ovs-bunny-ear--left';
+      left.setAttribute('aria-hidden', 'true');
+      el.insertBefore(left, el.firstChild);
+    }
+    if (!right) {
+      right = document.createElement('span');
+      right.className = 'ovs-bunny-ear ovs-bunny-ear--right';
+      right.setAttribute('aria-hidden', 'true');
+      // Insert right after left so both are at top of DOM
+      left.after(right);
+    }
+    return { left, right };
+  }
+
+  function removeBunnyEarSpans(el) {
+    el.querySelectorAll(':scope > .ovs-bunny-ear').forEach((s) => s.remove());
+  }
+
+  // Resolve màu tai thỏ theo role từ currentRoleStyle config
+  function resolveEarBgForNode(node) {
+    const roles = currentRoleStyle?.roles || {};
+    const ROLE_MAP = [
+      { cls: 'ovs-moderator',  key: 'moderator',  defaultBg: '#f87171' },
+      { cls: 'ovs-member',     key: 'member',     defaultBg: '#60a5fa' },
+      { cls: 'ovs-superchat',  key: 'superchat',  defaultBg: '#facc15' },
+    ];
+    for (const { cls, key, defaultBg } of ROLE_MAP) {
+      if (!node.classList.contains(cls)) continue;
+      const roleCfg = roles[key] || {};
+      if (roleCfg.enabled === false) continue;
+      // Ưu tiên: rowBg → messageBg → default
+      const bg = roleCfg.rowBg || roleCfg.rowBgColor
+               || roleCfg.messageBg || roleCfg.messageBgColor
+               || defaultBg;
+      return bg || null;
+    }
+    return null; // không có role → dùng CSS var (--ovs-bubble-bg)
+  }
+
+  function applyMessageBunnyEars(node) {
+    if (!node) return;
+    const enabled = currentConfig.bubbleBunnyEars;
+    if (!enabled) {
+      removeBunnyEarSpans(node);
+      node.removeAttribute('data-bunny-ears');
+      return;
+    }
+    node.setAttribute('data-bunny-ears', 'true');
+    const { left, right } = ensureBunnyEarSpans(node);
+    // Set màu theo role (inline style override CSS var)
+    const bg = resolveEarBgForNode(node);
+    if (bg) {
+      left.style.background = bg;
+      right.style.background = bg;
+    } else {
+      left.style.removeProperty('background');
+      right.style.removeProperty('background');
+    }
+  }
+
+  function applySlotBunnyEars(el, slotName) {
+    if (!el) return;
+    const slotCfg = currentSlotStyle?.slots?.[slotName];
+    const enabled = slotCfg?.bubbleBunnyEars !== undefined && slotCfg.bubbleBunnyEars !== null
+      ? slotCfg.bubbleBunnyEars
+      : currentConfig.bubbleBunnyEars;
+    if (!enabled) {
+      removeBunnyEarSpans(el);
+      el.removeAttribute('data-bunny-ears');
+      return;
+    }
+    el.setAttribute('data-bunny-ears', 'true');
+    ensureBunnyEarSpans(el);
+    // Slot ears dùng CSS vars từ parent slot bubble bg (không cần JS color)
+  }
+
+  function refreshAllSlotBunnyEars() {
+    if (isFlythroughTheme()) return;
+    const applyTo = (node) => {
+      applyMessageBunnyEars(node);
+      const authorEl = node.querySelector('[data-slot="author"]');
+      const messageEl = node.querySelector('[data-slot="message"]');
+      applySlotBunnyEars(authorEl, 'author');
+      applySlotBunnyEars(messageEl, 'message');
+    };
+    listEl.querySelectorAll('.ovs-message').forEach(applyTo);
+    if (tickerTrackEl) {
+      tickerTrackEl.querySelectorAll('.ovs-message').forEach(applyTo);
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   function toAvatarProxyUrl(rawUrl) {
     if (!rawUrl || typeof rawUrl !== 'string') return '';
     try {
@@ -456,6 +567,7 @@
       '--ovs-layout-slot-message-z-index': zIndexVar(slots.message?.zIndex),
 
       '--ovs-layout-chat-align': ALIGN_TO_FLEX[screen.chatAlign] || 'flex-start',
+      '--ovs-layout-chat-gap': px(screen.chatGap ?? 10),
       '--ovs-layout-content-direction': 'ltr',
       '--ovs-bubble-wrap-row': isRowBubbleWrap(screen) ? '1' : '0',
       '--ovs-bubble-wrap-author': !isRowBubbleWrap(screen) && screen.bubbleWrapAuthor ? '1' : '0',
@@ -516,26 +628,48 @@
       : (isSetLocal(resolve('bubblePadding')) ? resolve('bubblePadding') : null);
     if (padX != null) vars[`--ovs-slot-${prefix}-bubble-pad-x`] = pxLocal(padX);
     if (padY != null) vars[`--ovs-slot-${prefix}-bubble-pad-y`] = pxLocal(padY);
+
+    const clampPctLocal = (v) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? Math.min(Math.max(n, 0), 100) : 0;
+    };
+    if (resolve('bubbleBunnyEarsWidth') != null) vars[`--ovs-slot-${prefix}-bunny-ears-width`] = pxLocal(resolve('bubbleBunnyEarsWidth'));
+    if (resolve('bubbleBunnyEarsHeight') != null) vars[`--ovs-slot-${prefix}-bunny-ears-height`] = pxLocal(resolve('bubbleBunnyEarsHeight'));
+    if (resolve('bubbleBunnyEarsRoundness') != null) vars[`--ovs-slot-${prefix}-bunny-ears-radius-v`] = `${clampPctLocal(resolve('bubbleBunnyEarsRoundness'))}%`;
+    if (resolve('bubbleBunnyEarsOffsetX') != null) vars[`--ovs-slot-${prefix}-bunny-ears-offset-x`] = pxLocal(resolve('bubbleBunnyEarsOffsetX'));
+    if (resolve('bubbleBunnyEarsOffsetY') != null) vars[`--ovs-slot-${prefix}-bunny-ears-top`] = pxLocal(-Math.abs(Number(resolve('bubbleBunnyEarsOffsetY')) || 0));
+    if (resolve('bubbleBunnyEarsZIndex') != null) vars[`--ovs-slot-${prefix}-bunny-ears-z`] = String(Math.round(Number(resolve('bubbleBunnyEarsZIndex')) || 0));
     return vars;
   }
 
   // Keep in sync with shared/slot-style-config.js#compileSlotStyleToCssVariables.
-  function compileSlotStyleToCssVariables(slotStyle, customizeConfig) {
+  function compileSlotStyleToCssVariables(slotStyle, customizeConfig, layoutConfig) {
     const cfg = customizeConfig || {};
     const slots = (slotStyle && slotStyle.slots) || {};
     const px = (v) => (Number.isFinite(Number(v)) ? `${Number(v)}px` : undefined);
     const pick = (slot, key) => (slots[slot] && slots[slot][key] != null ? slots[slot][key] : null);
-    const pickTransform = (slot) => ({
-      rotate: pick(slot, 'rotate') ?? 0,
-      translateX: pick(slot, 'translateX') ?? 0,
-      translateY: pick(slot, 'translateY') ?? 0,
-      transformOrigin: pick(slot, 'transformOrigin') ?? 'center center',
-    });
+    const pickTransform = (slot) => {
+      let defaultOrigin = 'center center';
+      if (slot === 'message') {
+        const isRtl = layoutConfig?.screen?.contentDirection === 'rtl';
+        defaultOrigin = isRtl ? 'right center' : 'left center';
+      }
+      return {
+        rotate: pick(slot, 'rotate') ?? 0,
+        translateX: pick(slot, 'translateX') ?? 0,
+        translateY: pick(slot, 'translateY') ?? 0,
+        transformOrigin: pick(slot, 'transformOrigin') ?? defaultOrigin,
+        zIndex: pick(slot, 'zIndex') ?? null,
+      };
+    };
     const assignTransform = (prefix, t) => {
       vars[`--ovs-slot-${prefix}-rotate`] = `${t.rotate}deg`;
       vars[`--ovs-slot-${prefix}-translate-x`] = px(t.translateX);
       vars[`--ovs-slot-${prefix}-translate-y`] = px(t.translateY);
       vars[`--ovs-slot-${prefix}-transform-origin`] = t.transformOrigin;
+      if (t.zIndex != null) {
+        vars[`--ovs-slot-${prefix}-z-index`] = String(t.zIndex);
+      }
     };
     const vars = {};
 
@@ -621,6 +755,18 @@
     const padY = isSetLocal(c.bubblePaddingY) ? c.bubblePaddingY : (isSetLocal(c.bubblePadding) ? c.bubblePadding : null);
     if (padX != null) vars['--ovs-bubble-pad-x'] = pxLocal(padX);
     if (padY != null) vars['--ovs-bubble-pad-y'] = pxLocal(padY);
+
+    const clampPctLocal = (v) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? Math.min(Math.max(n, 0), 100) : 0;
+    };
+    if (isSetLocal(c.bubbleBunnyEarsWidth)) vars['--ovs-bunny-ears-width'] = pxLocal(c.bubbleBunnyEarsWidth);
+    if (isSetLocal(c.bubbleBunnyEarsHeight)) vars['--ovs-bunny-ears-height'] = pxLocal(c.bubbleBunnyEarsHeight);
+    if (isSetLocal(c.bubbleBunnyEarsRoundness)) vars['--ovs-bunny-ears-radius-v'] = `${clampPctLocal(c.bubbleBunnyEarsRoundness)}%`;
+    if (isSetLocal(c.bubbleBunnyEarsOffsetX)) vars['--ovs-bunny-ears-offset-x'] = pxLocal(c.bubbleBunnyEarsOffsetX);
+    if (isSetLocal(c.bubbleBunnyEarsOffsetY)) vars['--ovs-bunny-ears-top'] = pxLocal(-Math.abs(Number(c.bubbleBunnyEarsOffsetY) || 0));
+    if (isSetLocal(c.bubbleBunnyEarsRotate)) vars['--ovs-bunny-ears-rotate'] = `${Number(c.bubbleBunnyEarsRotate) || 0}deg`;
+    if (isSetLocal(c.bubbleBunnyEarsZIndex)) vars['--ovs-bunny-ears-z'] = String(Math.round(Number(c.bubbleBunnyEarsZIndex) || 0));
 
     return vars;
   }
@@ -716,9 +862,16 @@
       '--ovs-bubble-opacity': cfg.bubbleOpacity != null ? String(cfg.bubbleOpacity) : undefined,
       '--ovs-avatar-size': cfg.avatarSize != null ? `${cfg.avatarSize}px` : undefined,
       '--ovs-animation-ms': cfg.animationMs != null ? `${cfg.animationMs}ms` : undefined,
+      '--ovs-bubble-texture-url': cfg.bubbleTextureUrl && typeof cfg.bubbleTextureUrl === 'string' && cfg.bubbleTextureUrl.trim()
+        ? `url("${toImageProxyUrl(cfg.bubbleTextureUrl) || cfg.bubbleTextureUrl.trim()}")`
+        : 'none',
+      '--ovs-bubble-texture-repeat': cfg.bubbleTextureRepeat || 'repeat',
+      '--ovs-bubble-texture-size': typeof cfg.bubbleTextureSize === 'number' ? `${cfg.bubbleTextureSize}px` : (cfg.bubbleTextureSize || 'auto'),
+      '--ovs-bubble-texture-opacity': cfg.bubbleTextureOpacity != null ? String(cfg.bubbleTextureOpacity) : undefined,
+      '--ovs-bubble-min-width': cfg.bubbleMinWidth != null ? `${cfg.bubbleMinWidth}px` : undefined,
       ...compileBubbleDecorationToCssVariables(cfg),
       ...compileLayoutToCssVariables(layout),
-      ...compileSlotStyleToCssVariables(slotStyle || currentSlotStyle, cfg),
+      ...compileSlotStyleToCssVariables(slotStyle || currentSlotStyle, cfg, layout || currentLayout),
       ...compileAnimationToCssVariables(animationConfig || currentAnimation, cfg),
       ...roleCompiled.vars,
     };
@@ -1034,7 +1187,28 @@
     applySlotVisibility(authorEl, 'author');
     applySlotVisibility(messageEl, 'message');
 
-    if (authorEl) authorEl.textContent = msg.author;
+    // Set role class TRƯỚC khi gọi applyMessageBunnyEars
+    // để resolveEarBgForNode có thể đọc classList ngay lập tức
+    const primaryRole = msg.isSuperchat
+      ? 'superchat'
+      : msg.roles?.includes('moderator')
+        ? 'moderator'
+        : msg.roles?.includes('member')
+          ? 'member'
+          : null;
+    if (primaryRole) node.classList.add(`ovs-${primaryRole}`);
+
+    ensureBubbleTexture(node);
+    if (!isFlythroughTheme()) {
+      applyMessageBunnyEars(node);
+    }
+    if (authorEl) {
+      authorEl.textContent = msg.author;
+      ensureBubbleTexture(authorEl);
+      if (!isFlythroughTheme()) {
+        applySlotBunnyEars(authorEl, 'author');
+      }
+    }
     if (badgesEl) {
       if (msg.badges?.length) {
         badgesEl.textContent = msg.badges.map((b) => `[${b}]`).join(' ');
@@ -1044,17 +1218,13 @@
     // messageHtml originates from YouTube's own already-sanitized chat
     // renderer (plain text + their emoji <img> tags) — that's what lets us
     // safely use innerHTML here instead of losing the emoji.
-    if (messageEl) messageEl.innerHTML = msg.messageHtml;
-
-    const primaryRole = msg.isSuperchat
-      ? 'superchat'
-      : msg.roles?.includes('moderator')
-        ? 'moderator'
-        : msg.roles?.includes('member')
-          ? 'member'
-          : null;
-
-    if (primaryRole) node.classList.add(`ovs-${primaryRole}`);
+    if (messageEl) {
+      messageEl.innerHTML = msg.messageHtml;
+      ensureBubbleTexture(messageEl);
+      if (!isFlythroughTheme()) {
+        applySlotBunnyEars(messageEl, 'message');
+      }
+    }
 
     if (msg.isSuperchat && msg.superchatCurrencyRaw && authorEl?.parentElement) {
       const amountEl = document.createElement('span');
@@ -1121,7 +1291,10 @@
       } else if (payload.type === 'config:updated') {
         currentConfig = payload.data;
         applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation, currentRoleStyle);
-        if (!isFlythroughTheme()) refreshAllDecorations();
+        if (!isFlythroughTheme()) {
+          refreshAllDecorations();
+          refreshAllSlotBunnyEars();
+        }
       } else if (payload.type === 'layout:updated') {
         currentLayout = payload.data;
         applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation, currentRoleStyle);
@@ -1129,6 +1302,7 @@
       } else if (payload.type === 'slot-style:updated') {
         currentSlotStyle = payload.data;
         applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation, currentRoleStyle);
+        if (!isFlythroughTheme()) refreshAllSlotBunnyEars();
       } else if (payload.type === 'animation:updated') {
         currentAnimation = payload.data;
         applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation, currentRoleStyle);
@@ -1138,6 +1312,8 @@
       } else if (payload.type === 'role-style:updated') {
         currentRoleStyle = payload.data || { roles: {} };
         applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation, currentRoleStyle);
+        // Refresh ear colors vì màu phụ thuộc vào role config
+        if (!isFlythroughTheme()) refreshAllSlotBunnyEars();
       }
     });
 

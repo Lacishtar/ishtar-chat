@@ -4,6 +4,8 @@
  * but every theme MUST support this base set so the Customize Panel works
  * the same way regardless of which theme is active.
  */
+const { toImageProxyUrl } = require('./image-url');
+
 const DEFAULT_CUSTOMIZE_CONFIG = {
   fontFamily: 'Inter, system-ui, sans-serif',
   fontSize: 16, // px
@@ -19,6 +21,19 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   bubblePadding: null, // uniform px for bubble shell
   bubblePaddingX: null,
   bubblePaddingY: null,
+  bubbleTextureUrl: null,
+  bubbleTextureSize: 'auto',
+  bubbleTextureRepeat: 'repeat',
+  bubbleTextureOpacity: 1,
+  bubbleBunnyEars: false,
+  bubbleBunnyEarsWidth: 32, // px
+  bubbleBunnyEarsHeight: 30, // px
+  bubbleBunnyEarsRoundness: 0, // 0-100 (%): 0 = ear/leaf shape, 100 = fully round blob
+  bubbleBunnyEarsOffsetX: 20, // px inset from left/right edge of bubble
+  bubbleBunnyEarsOffsetY: 28, // px the ears poke up above the bubble top
+  bubbleBunnyEarsRotate: 0, // deg, tilts ears outward (mirrored L/R)
+  bubbleBunnyEarsZIndex: -1, // stacking order vs. the bubble (negative = behind)
+  bubbleMinWidth: 0,
   avatarSize: 32, // px
   showAvatar: true,
   showBadges: true,
@@ -36,6 +51,12 @@ function px(value) {
   return Number.isFinite(n) ? `${n}px` : '0px';
 }
 
+function clampPct(value, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(Math.max(n, 0), 100);
+}
+
 function compileBubbleDecorationToCssVariables(config) {
   const c = { ...DEFAULT_CUSTOMIZE_CONFIG, ...config };
   const vars = {};
@@ -49,6 +70,18 @@ function compileBubbleDecorationToCssVariables(config) {
   const padY = isSet(c.bubblePaddingY) ? c.bubblePaddingY : (isSet(c.bubblePadding) ? c.bubblePadding : null);
   if (padX != null) vars['--ovs-bubble-pad-x'] = px(padX);
   if (padY != null) vars['--ovs-bubble-pad-y'] = px(padY);
+
+  if (isSet(c.bubbleBunnyEarsWidth)) vars['--ovs-bunny-ears-width'] = px(c.bubbleBunnyEarsWidth);
+  if (isSet(c.bubbleBunnyEarsHeight)) vars['--ovs-bunny-ears-height'] = px(c.bubbleBunnyEarsHeight);
+  if (isSet(c.bubbleBunnyEarsRoundness)) {
+    vars['--ovs-bunny-ears-radius-v'] = `${clampPct(c.bubbleBunnyEarsRoundness, 0)}%`;
+  }
+  if (isSet(c.bubbleBunnyEarsOffsetX)) vars['--ovs-bunny-ears-offset-x'] = px(c.bubbleBunnyEarsOffsetX);
+  if (isSet(c.bubbleBunnyEarsOffsetY)) {
+    vars['--ovs-bunny-ears-top'] = px(-Math.abs(Number(c.bubbleBunnyEarsOffsetY) || 0));
+  }
+  if (isSet(c.bubbleBunnyEarsRotate)) vars['--ovs-bunny-ears-rotate'] = `${Number(c.bubbleBunnyEarsRotate) || 0}deg`;
+  if (isSet(c.bubbleBunnyEarsZIndex)) vars['--ovs-bunny-ears-z'] = String(Math.round(Number(c.bubbleBunnyEarsZIndex) || 0));
 
   return vars;
 }
@@ -70,6 +103,12 @@ function toCssVariables(config) {
     '--ovs-bubble-opacity': String(c.bubbleOpacity),
     '--ovs-avatar-size': `${c.avatarSize}px`,
     '--ovs-animation-ms': `${c.animationMs}ms`,
+    '--ovs-bubble-texture-url': c.bubbleTextureUrl && typeof c.bubbleTextureUrl === 'string' && c.bubbleTextureUrl.trim()
+      ? `url("${toImageProxyUrl(c.bubbleTextureUrl) || c.bubbleTextureUrl.trim()}")`
+      : 'none',
+    '--ovs-bubble-texture-repeat': c.bubbleTextureRepeat || 'repeat',
+    '--ovs-bubble-texture-size': typeof c.bubbleTextureSize === 'number' ? px(c.bubbleTextureSize) : (c.bubbleTextureSize || 'auto'),
+    '--ovs-bubble-texture-opacity': String(c.bubbleTextureOpacity ?? 1),
     ...compileBubbleDecorationToCssVariables(c),
   };
 }

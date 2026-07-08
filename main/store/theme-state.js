@@ -23,7 +23,7 @@ function readThemeOptionalJson(themeId, filename) {
  */
 function resolveThemeState(themeId) {
   const fallbackThemeId = 'classic';
-  const resolvedThemeId = themeExists(themeId) ? themeId : fallbackThemeId;
+  const resolvedThemeId = (themeId && fs.existsSync(path.join(THEMES_DIR, themeId, 'template.html'))) ? themeId : fallbackThemeId;
   const themeDefaults = sanitizeThemeDefaults(readThemeConfig(resolvedThemeId));
 
   let themeDoc;

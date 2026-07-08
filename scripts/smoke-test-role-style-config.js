@@ -9,22 +9,22 @@ function assert(condition, message) {
 }
 
 const defaults = normalizeRoleStyleConfig(null);
-assert(defaults.roles.moderator.badge === 'MOD', 'moderator default badge');
+assert(defaults.roles.moderator.badgeBefore === 'MOD', 'moderator default badgeBefore');
 assert(defaults.roles.superchat.showAmount === true, 'superchat showAmount default');
 
 const merged = mergeRoleStyleConfig(defaults, {
   roles: {
-    member: { authorColor: '#00ff00', badge: 'VIP' },
+    member: { authorColor: '#00ff00', badgeBefore: 'VIP' },
     superchat: { showAmount: false },
   },
 });
 assert(merged.roles.member.authorColor === '#00ff00', 'member color merged');
-assert(merged.roles.member.badge === 'VIP', 'member badge merged');
+assert(merged.roles.member.badgeBefore === 'VIP', 'member badge merged');
 assert(merged.roles.superchat.showAmount === false, 'superchat showAmount override');
 
 const compiled = compileRoleStyleToCssVariables(merged);
 assert(compiled.vars['--ovs-role-member-author-color'] === '#00ff00', 'member css var');
-assert(compiled.vars['--ovs-role-member-badge-content'] === '"VIP"', 'member badge css');
+assert(compiled.vars['--ovs-role-member-badge-before-content'] === '"VIP"', 'member badge css');
 assert(compiled.rootFlags['data-ovs-role-superchat-show-amount'] === 'false', 'superchat amount flag');
 
 const disabled = compileRoleStyleToCssVariables({

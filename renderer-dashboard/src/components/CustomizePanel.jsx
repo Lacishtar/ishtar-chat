@@ -110,6 +110,9 @@ function SlotToggle({ label, checked, onChange }) {
 }
 
 function TransformFields({ slotLocal, slot, pushSlotUpdate }) {
+  const zIndex = slotVal(slotLocal, slot, 'zIndex', null);
+  const displayZIndex = zIndex !== null ? zIndex : 'Mặc định (auto)';
+
   return (
     <>
       <Field label={`Góc xoay — ${slotVal(slotLocal, slot, 'rotate', 0)}°`}>
@@ -142,6 +145,31 @@ function TransformFields({ slotLocal, slot, pushSlotUpdate }) {
           onChange={(e) => pushSlotUpdate(slot, { translateY: Number(e.target.value) })}
         />
       </Field>
+      <Field
+        label={
+          <span className="flex items-center justify-between">
+            <span>Thứ tự hiển thị (z-index) — {displayZIndex}</span>
+            {zIndex !== null && (
+              <button
+                type="button"
+                onClick={() => pushSlotUpdate(slot, { zIndex: null })}
+                className="text-[10px] text-inkMuted hover:text-ink underline ml-1"
+              >
+                Mặc định
+              </button>
+            )}
+          </span>
+        }
+      >
+        <input
+          type="range"
+          min={-10}
+          max={20}
+          step={1}
+          value={zIndex !== null ? zIndex : 0}
+          onChange={(e) => pushSlotUpdate(slot, { zIndex: Number(e.target.value) })}
+        />
+      </Field>
     </>
   );
 }
@@ -158,6 +186,97 @@ function isSlotBubbleUserSet(slotLocal, slot, key) {
   const v = slotLocal?.slots?.[slot]?.[key];
   return v !== undefined && v !== null;
 }
+
+
+
+
+
+function TextureFields({ localValue, onChange, onReset }) {
+  return (
+    <div className="col-span-2 border-t border-line/60 pt-3 flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-semibold text-inkMuted uppercase tracking-wider">Texture nền bubble</h4>
+        {onReset && (
+          <button
+            type="button"
+            onClick={onReset}
+            className="text-[10px] text-inkMuted hover:text-ink underline"
+          >
+            Dùng mặc định chung
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="col-span-2">
+          <Field label="URL Texture (Ảnh lặp nền)">
+            <input
+              type="text"
+              className={inputClass}
+              placeholder="Ví dụ: /overlay/assets/texture.png hoặc url ảnh"
+              value={localValue.bubbleTextureUrl || ''}
+              onChange={(e) => onChange({ bubbleTextureUrl: e.target.value.trim() || null })}
+            />
+          </Field>
+        </div>
+        <Field label="Chế độ lặp">
+          <select
+            className={inputClass}
+            value={localValue.bubbleTextureRepeat || 'repeat'}
+            onChange={(e) => onChange({ bubbleTextureRepeat: e.target.value })}
+          >
+            <option value="repeat">Lặp ngang & dọc (Tile)</option>
+            <option value="repeat-x">Lặp ngang</option>
+            <option value="repeat-y">Lặp dọc</option>
+            <option value="no-repeat">Không lặp</option>
+          </select>
+        </Field>
+        <Field label="Kích thước texture (Size)">
+          <select
+            className={inputClass}
+            value={['auto', 'contain', 'cover'].includes(localValue.bubbleTextureSize) ? localValue.bubbleTextureSize : 'custom'}
+            onChange={(e) => {
+              const v = e.target.value;
+              onChange({ bubbleTextureSize: v === 'custom' ? '32px' : v });
+            }}
+          >
+            <option value="auto">Mặc định (Auto)</option>
+            <option value="contain">Khớp khung (Contain)</option>
+            <option value="cover">Tràn khung (Cover)</option>
+            <option value="custom">Tự chọn kích thước...</option>
+          </select>
+        </Field>
+        {localValue.bubbleTextureSize && !['auto', 'contain', 'cover'].includes(localValue.bubbleTextureSize) && (
+          <div className="col-span-2">
+            <Field label="Kích thước tự chọn (CSS background-size)">
+              <input
+                type="text"
+                className={inputClass}
+                placeholder="Ví dụ: 32px hoặc 50% 50%"
+                value={localValue.bubbleTextureSize || ''}
+                onChange={(e) => onChange({ bubbleTextureSize: e.target.value })}
+              />
+            </Field>
+          </div>
+        )}
+        <div className="col-span-2">
+          <Field label={`Độ hiển thị texture — ${Math.round((localValue.bubbleTextureOpacity ?? 1) * 100)}%`}>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={localValue.bubbleTextureOpacity ?? 1}
+              onChange={(e) => onChange({ bubbleTextureOpacity: Number(e.target.value) })}
+              className="w-full accent-focusAccent"
+            />
+          </Field>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 
 function SlotBubbleFields({ title, slot, slotLocal, globalConfig, pushSlotUpdate }) {
   const bg = slotBubbleVal(slotLocal, slot, 'bubbleBg', globalConfig, globalConfig.bubbleBg);
@@ -177,6 +296,22 @@ function SlotBubbleFields({ title, slot, slotLocal, globalConfig, pushSlotUpdate
     slotBubbleVal(slotLocal, slot, 'bubblePadding', globalConfig, 10),
   );
 
+  const textureVal = {
+    bubbleTextureUrl: slotBubbleVal(slotLocal, slot, 'bubbleTextureUrl', globalConfig, null),
+    bubbleTextureSize: slotBubbleVal(slotLocal, slot, 'bubbleTextureSize', globalConfig, 'auto'),
+    bubbleTextureRepeat: slotBubbleVal(slotLocal, slot, 'bubbleTextureRepeat', globalConfig, 'repeat'),
+    bubbleTextureOpacity: slotBubbleVal(slotLocal, slot, 'bubbleTextureOpacity', globalConfig, 1),
+  };
+
+  const handleTextureReset = () => {
+    pushSlotUpdate(slot, {
+      bubbleTextureUrl: null,
+      bubbleTextureSize: null,
+      bubbleTextureRepeat: null,
+      bubbleTextureOpacity: null,
+    });
+  };
+
   return (
     <div className="border-t border-line pt-3 flex flex-col gap-3 col-span-2">
       <div className="flex items-center justify-between gap-2">
@@ -195,6 +330,17 @@ function SlotBubbleFields({ title, slot, slotLocal, globalConfig, pushSlotUpdate
               bubblePadding: null,
               bubblePaddingX: null,
               bubblePaddingY: null,
+              bubbleTextureUrl: null,
+              bubbleTextureSize: null,
+              bubbleTextureRepeat: null,
+              bubbleTextureOpacity: null,
+              bubbleBunnyEars: null,
+              bubbleBunnyEarsWidth: null,
+              bubbleBunnyEarsHeight: null,
+              bubbleBunnyEarsRoundness: null,
+              bubbleBunnyEarsOffsetX: null,
+              bubbleBunnyEarsOffsetY: null,
+              bubbleBunnyEarsZIndex: null,
             })
           }
           className="text-[10px] text-inkMuted hover:text-ink underline"
@@ -315,6 +461,103 @@ function SlotBubbleFields({ title, slot, slotLocal, globalConfig, pushSlotUpdate
             <option value="custom">Tuỳ chỉnh</option>
           </select>
         </Field>
+
+        <TextureFields
+          localValue={textureVal}
+          onChange={(patch) => pushSlotUpdate(slot, patch)}
+          onReset={handleTextureReset}
+        />
+
+        <div className="col-span-2 border-t border-line/60 pt-3 grid grid-cols-2 gap-3">
+          <Field label="Tai thỏ (Bunny Ears)">
+            <select
+              className={inputClass}
+              value={
+                slotLocal?.slots?.[slot]?.bubbleBunnyEars === true
+                  ? 'true'
+                  : slotLocal?.slots?.[slot]?.bubbleBunnyEars === false
+                  ? 'false'
+                  : 'default'
+              }
+              onChange={(e) => {
+                const val = e.target.value;
+                pushSlotUpdate(slot, {
+                  bubbleBunnyEars: val === 'true' ? true : val === 'false' ? false : null,
+                });
+              }}
+            >
+              <option value="default">Kế thừa chung ({globalConfig.bubbleBunnyEars ? 'Bật' : 'Tắt'})</option>
+              <option value="true">Bật</option>
+              <option value="false">Tắt</option>
+            </select>
+          </Field>
+
+          <Field label={`Độ rộng tối thiểu — ${slotBubbleVal(slotLocal, slot, 'bubbleMinWidth', globalConfig, globalConfig.bubbleMinWidth ?? 0)}px`}>
+            <input
+              type="range"
+              min={0}
+              max={320}
+              step={10}
+              value={slotBubbleVal(slotLocal, slot, 'bubbleMinWidth', globalConfig, globalConfig.bubbleMinWidth ?? 0)}
+              onChange={(e) => pushSlotUpdate(slot, { bubbleMinWidth: Number(e.target.value) })}
+            />
+          </Field>
+
+          <Field label={`Chiều rộng tai — ${slotBubbleVal(slotLocal, slot, 'bubbleBunnyEarsWidth', globalConfig, globalConfig.bubbleBunnyEarsWidth ?? 32)}px`}>
+            <input
+              type="range"
+              min={8}
+              max={80}
+              value={slotBubbleVal(slotLocal, slot, 'bubbleBunnyEarsWidth', globalConfig, globalConfig.bubbleBunnyEarsWidth ?? 32)}
+              onChange={(e) => pushSlotUpdate(slot, { bubbleBunnyEarsWidth: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label={`Chiều cao tai — ${slotBubbleVal(slotLocal, slot, 'bubbleBunnyEarsHeight', globalConfig, globalConfig.bubbleBunnyEarsHeight ?? 30)}px`}>
+            <input
+              type="range"
+              min={8}
+              max={80}
+              value={slotBubbleVal(slotLocal, slot, 'bubbleBunnyEarsHeight', globalConfig, globalConfig.bubbleBunnyEarsHeight ?? 30)}
+              onChange={(e) => pushSlotUpdate(slot, { bubbleBunnyEarsHeight: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label={`Độ bo tròn — ${slotBubbleVal(slotLocal, slot, 'bubbleBunnyEarsRoundness', globalConfig, globalConfig.bubbleBunnyEarsRoundness ?? 0)}%`}>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={slotBubbleVal(slotLocal, slot, 'bubbleBunnyEarsRoundness', globalConfig, globalConfig.bubbleBunnyEarsRoundness ?? 0)}
+              onChange={(e) => pushSlotUpdate(slot, { bubbleBunnyEarsRoundness: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label={`Vị trí X (cách mép) — ${slotBubbleVal(slotLocal, slot, 'bubbleBunnyEarsOffsetX', globalConfig, globalConfig.bubbleBunnyEarsOffsetX ?? 20)}px`}>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={slotBubbleVal(slotLocal, slot, 'bubbleBunnyEarsOffsetX', globalConfig, globalConfig.bubbleBunnyEarsOffsetX ?? 20)}
+              onChange={(e) => pushSlotUpdate(slot, { bubbleBunnyEarsOffsetX: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label={`Vị trí Y (nhô lên trên) — ${slotBubbleVal(slotLocal, slot, 'bubbleBunnyEarsOffsetY', globalConfig, globalConfig.bubbleBunnyEarsOffsetY ?? 28)}px`}>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={slotBubbleVal(slotLocal, slot, 'bubbleBunnyEarsOffsetY', globalConfig, globalConfig.bubbleBunnyEarsOffsetY ?? 28)}
+              onChange={(e) => pushSlotUpdate(slot, { bubbleBunnyEarsOffsetY: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label={`Vị trí Z (lớp hiển thị) — ${slotBubbleVal(slotLocal, slot, 'bubbleBunnyEarsZIndex', globalConfig, globalConfig.bubbleBunnyEarsZIndex ?? -1)}`}>
+            <input
+              type="range"
+              min={-5}
+              max={5}
+              value={slotBubbleVal(slotLocal, slot, 'bubbleBunnyEarsZIndex', globalConfig, globalConfig.bubbleBunnyEarsZIndex ?? -1)}
+              onChange={(e) => pushSlotUpdate(slot, { bubbleBunnyEarsZIndex: Number(e.target.value) })}
+            />
+          </Field>
+        </div>
       </div>
     </div>
   );
@@ -486,6 +729,102 @@ export default function CustomizePanel({ api, config, slotStyleConfig }) {
                 onChange={(e) => pushUpdate({ animationMs: Number(e.target.value) })}
               />
             </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <TextureFields
+              localValue={{
+                bubbleTextureUrl: local.bubbleTextureUrl,
+                bubbleTextureSize: local.bubbleTextureSize,
+                bubbleTextureRepeat: local.bubbleTextureRepeat,
+                bubbleTextureOpacity: local.bubbleTextureOpacity,
+              }}
+              onChange={(patch) => pushUpdate(patch)}
+            />
+            <div className="col-span-2 border-t border-line/60 pt-3 grid grid-cols-2 gap-3">
+              <div className="flex items-center">
+                <SlotToggle
+                  label="Bật tai thỏ (Bunny Ears)"
+                  checked={local.bubbleBunnyEars || false}
+                  onChange={(e) => pushUpdate({ bubbleBunnyEars: e.target.checked })}
+                />
+              </div>
+
+              <Field label={`Độ rộng tối thiểu của bubble — ${local.bubbleMinWidth ?? 0}px`}>
+                <input
+                  type="range"
+                  min={0}
+                  max={320}
+                  step={10}
+                  value={local.bubbleMinWidth ?? 0}
+                  onChange={(e) => pushUpdate({ bubbleMinWidth: Number(e.target.value) })}
+                />
+              </Field>
+
+              <Field label={`Chiều rộng tai — ${local.bubbleBunnyEarsWidth ?? 32}px`}>
+                <input
+                  type="range"
+                  min={8}
+                  max={80}
+                  value={local.bubbleBunnyEarsWidth ?? 32}
+                  onChange={(e) => pushUpdate({ bubbleBunnyEarsWidth: Number(e.target.value) })}
+                />
+              </Field>
+              <Field label={`Chiều cao tai — ${local.bubbleBunnyEarsHeight ?? 30}px`}>
+                <input
+                  type="range"
+                  min={8}
+                  max={80}
+                  value={local.bubbleBunnyEarsHeight ?? 30}
+                  onChange={(e) => pushUpdate({ bubbleBunnyEarsHeight: Number(e.target.value) })}
+                />
+              </Field>
+              <Field label={`Độ bo tròn — ${local.bubbleBunnyEarsRoundness ?? 0}%`}>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={local.bubbleBunnyEarsRoundness ?? 0}
+                  onChange={(e) => pushUpdate({ bubbleBunnyEarsRoundness: Number(e.target.value) })}
+                />
+              </Field>
+              <Field label={`Vị trí X (cách mép) — ${local.bubbleBunnyEarsOffsetX ?? 20}px`}>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={local.bubbleBunnyEarsOffsetX ?? 20}
+                  onChange={(e) => pushUpdate({ bubbleBunnyEarsOffsetX: Number(e.target.value) })}
+                />
+              </Field>
+              <Field label={`Vị trí Y (nhô lên trên) — ${local.bubbleBunnyEarsOffsetY ?? 28}px`}>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={local.bubbleBunnyEarsOffsetY ?? 28}
+                  onChange={(e) => pushUpdate({ bubbleBunnyEarsOffsetY: Number(e.target.value) })}
+                />
+              </Field>
+              <Field label={`Vị trí Z (lớp hiển thị) — ${local.bubbleBunnyEarsZIndex ?? -1}`}>
+                <input
+                  type="range"
+                  min={-5}
+                  max={5}
+                  value={local.bubbleBunnyEarsZIndex ?? -1}
+                  onChange={(e) => pushUpdate({ bubbleBunnyEarsZIndex: Number(e.target.value) })}
+                />
+              </Field>
+              <Field label={`Độ nghiêng — ${local.bubbleBunnyEarsRotate ?? 0}°`}>
+                <input
+                  type="range"
+                  min={-45}
+                  max={45}
+                  value={local.bubbleBunnyEarsRotate ?? 0}
+                  onChange={(e) => pushUpdate({ bubbleBunnyEarsRotate: Number(e.target.value) })}
+                />
+              </Field>
+            </div>
           </div>
 
           <Field label="Vị trí tin mới">

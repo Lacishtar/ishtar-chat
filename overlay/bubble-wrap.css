@@ -23,6 +23,7 @@
   box-shadow: var(--ovs-bubble-box-shadow, none) !important;
   backdrop-filter: var(--ovs-bubble-backdrop, none) !important;
   -webkit-backdrop-filter: var(--ovs-bubble-backdrop, none) !important;
+  min-width: var(--ovs-bubble-min-width, 0px) !important;
 }
 
 :root[data-ovs-bubble-wrap-row='true'] .ovs-text {
@@ -58,6 +59,7 @@
   width: fit-content;
   max-width: 100%;
   align-self: flex-start;
+  min-width: var(--ovs-slot-author-bubble-min-width, var(--ovs-bubble-min-width, 0px)) !important;
   box-sizing: border-box;
   background: var(--ovs-slot-author-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
   opacity: var(--ovs-slot-author-bubble-opacity, var(--ovs-bubble-opacity, 1));
@@ -76,7 +78,7 @@
   display: inline-block;
   width: fit-content;
   max-width: 100%;
-  min-width: 0;
+  min-width: var(--ovs-slot-message-bubble-min-width, var(--ovs-bubble-min-width, 0px)) !important;
   align-self: flex-start;
   box-sizing: border-box;
   background: var(--ovs-slot-message-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
@@ -90,4 +92,202 @@
     var(--ovs-slot-message-bubble-pad-x, var(--ovs-bubble-pad-x, 12px));
   backdrop-filter: var(--ovs-bubble-backdrop, none);
   -webkit-backdrop-filter: var(--ovs-bubble-backdrop, none);
+}
+
+/* Bubble background textures and layer settings */
+/* .ovs-author and .ovs-text keep isolation:isolate for their .ovs-bubble-texture z-index:-1 child.
+   .ovs-message must NOT use isolation:isolate so that bunny-ear ::before/::after
+   with negative z-index can render BEHIND the message bubble background. */
+.ovs-author,
+.ovs-text {
+  position: relative;
+  isolation: isolate;
+}
+.ovs-message {
+  position: relative;
+}
+
+.ovs-bubble-texture {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: -1;
+  border-radius: inherit;
+}
+
+.ovs-message > .ovs-bubble-texture {
+  background-image: var(--ovs-slot-message-bubble-texture-url, var(--ovs-bubble-texture-url));
+  background-repeat: var(--ovs-slot-message-bubble-texture-repeat, var(--ovs-bubble-texture-repeat, repeat));
+  background-size: var(--ovs-slot-message-bubble-texture-size, var(--ovs-bubble-texture-size, auto));
+  opacity: var(--ovs-slot-message-bubble-texture-opacity, var(--ovs-bubble-texture-opacity, 1));
+}
+
+.ovs-author > .ovs-bubble-texture {
+  background-image: var(--ovs-slot-author-bubble-texture-url, var(--ovs-bubble-texture-url));
+  background-repeat: var(--ovs-slot-author-bubble-texture-repeat, var(--ovs-bubble-texture-repeat, repeat));
+  background-size: var(--ovs-slot-author-bubble-texture-size, var(--ovs-bubble-texture-size, auto));
+  opacity: var(--ovs-slot-author-bubble-texture-opacity, var(--ovs-bubble-texture-opacity, 1));
+}
+
+.ovs-text > .ovs-bubble-texture {
+  background-image: var(--ovs-slot-message-bubble-texture-url, var(--ovs-bubble-texture-url));
+  background-repeat: var(--ovs-slot-message-bubble-texture-repeat, var(--ovs-bubble-texture-repeat, repeat));
+  background-size: var(--ovs-slot-message-bubble-texture-size, var(--ovs-bubble-texture-size, auto));
+  opacity: var(--ovs-slot-message-bubble-texture-opacity, var(--ovs-bubble-texture-opacity, 1));
+}
+
+/* Conditional display of texture layers based on active wrapping mode */
+:root:not([data-ovs-bubble-wrap-row='true']) .ovs-message > .ovs-bubble-texture {
+  background-image: none !important;
+}
+
+:root[data-ovs-bubble-wrap-row='true'] .ovs-author > .ovs-bubble-texture,
+:root[data-ovs-bubble-wrap-row='true'] .ovs-text > .ovs-bubble-texture {
+  background-image: none !important;
+}
+
+/* ============================================================
+   BUNNY EARS — Real DOM spans (.ovs-bunny-ear--left / right)
+   Thay thế pseudo-elements để không xung đột với ::before/::after
+   của badges và các decoration khác.
+   JS inject: <span class="ovs-bunny-ear ovs-bunny-ear--left" aria-hidden="true"></span>
+   ============================================================ */
+
+/* Allow ears to overflow the bubble box */
+.ovs-message[data-bunny-ears="true"],
+.ovs-author[data-bunny-ears="true"],
+.ovs-text[data-bunny-ears="true"] {
+  overflow: visible !important;
+}
+
+/* Base ear span — hidden by default, shown per-target below */
+.ovs-bunny-ear {
+  display: none;
+  position: absolute;
+  pointer-events: none;
+  box-sizing: border-box;
+  transform-origin: bottom center;
+}
+
+/* ── Row bubble (message-level) ears ── */
+.ovs-message[data-bunny-ears="true"] > .ovs-bunny-ear {
+  display: block;
+  width: var(--ovs-bunny-ears-width, 32px);
+  height: var(--ovs-bunny-ears-height, 30px);
+  border-radius: 50% / 100% 100% var(--ovs-bunny-ears-radius-v, 0%) var(--ovs-bunny-ears-radius-v, 0%);
+  top: var(--ovs-bunny-ears-top, -28px);
+  z-index: var(--ovs-bunny-ears-z, 0);
+  /* clip-path cắt phần tai đè lên bubble (phần dưới cùng của tai).
+     Công thức: overlap = height + top (vd: 30px + (-28px) = 2px)
+     → clip bottom 2px → tai trông như đang đứng sau bubble.
+     Dùng max(0px,...) để tránh giá trị âm khi tai không đè lên bubble. */
+  clip-path: inset(
+    0
+    0
+    max(0px, calc(var(--ovs-bunny-ears-height, 30px) + var(--ovs-bunny-ears-top, -28px)))
+    0
+  );
+  background: var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72));
+  opacity: var(--ovs-bubble-opacity, 1);
+  border-width: var(--ovs-bubble-border-width, 0px);
+  border-style: var(--ovs-bubble-border-style, solid);
+  border-color: var(--ovs-bubble-border-color, transparent);
+  box-shadow: var(--ovs-bubble-box-shadow, none);
+}
+.ovs-message[data-bunny-ears="true"] > .ovs-bunny-ear--left {
+  left: var(--ovs-bunny-ears-offset-x, 20px);
+  transform: rotate(calc(-1 * var(--ovs-bunny-ears-rotate, 0deg)));
+}
+.ovs-message[data-bunny-ears="true"] > .ovs-bunny-ear--right {
+  right: var(--ovs-bunny-ears-offset-x, 20px);
+  transform: rotate(var(--ovs-bunny-ears-rotate, 0deg));
+}
+
+/* ── Author slot ears ── */
+.ovs-author[data-bunny-ears="true"] > .ovs-bunny-ear {
+  display: block;
+  width: var(--ovs-slot-author-bunny-ears-width, var(--ovs-bunny-ears-width, 32px));
+  height: var(--ovs-slot-author-bunny-ears-height, var(--ovs-bunny-ears-height, 30px));
+  border-radius: 50% / 100% 100%
+    var(--ovs-slot-author-bunny-ears-radius-v, var(--ovs-bunny-ears-radius-v, 0%))
+    var(--ovs-slot-author-bunny-ears-radius-v, var(--ovs-bunny-ears-radius-v, 0%));
+  top: var(--ovs-slot-author-bunny-ears-top, var(--ovs-bunny-ears-top, -28px));
+  z-index: var(--ovs-slot-author-bunny-ears-z, var(--ovs-bunny-ears-z, 0));
+  clip-path: inset(
+    0
+    0
+    max(0px, calc(
+      var(--ovs-slot-author-bunny-ears-height, var(--ovs-bunny-ears-height, 30px)) +
+      var(--ovs-slot-author-bunny-ears-top, var(--ovs-bunny-ears-top, -28px))
+    ))
+    0
+  );
+  background: var(--ovs-slot-author-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
+  opacity: var(--ovs-slot-author-bubble-opacity, var(--ovs-bubble-opacity, 1));
+  border-width: var(--ovs-slot-author-bubble-border-width, var(--ovs-bubble-border-width, 0px));
+  border-style: var(--ovs-slot-author-bubble-border-style, var(--ovs-bubble-border-style, solid));
+  border-color: var(--ovs-slot-author-bubble-border-color, var(--ovs-bubble-border-color, transparent));
+  box-shadow: var(--ovs-slot-author-bubble-box-shadow, var(--ovs-bubble-box-shadow, none));
+}
+.ovs-author[data-bunny-ears="true"] > .ovs-bunny-ear--left {
+  left: var(--ovs-slot-author-bunny-ears-offset-x, var(--ovs-bunny-ears-offset-x, 20px));
+  transform: rotate(calc(-1 * var(--ovs-bunny-ears-rotate, 0deg)));
+}
+.ovs-author[data-bunny-ears="true"] > .ovs-bunny-ear--right {
+  right: var(--ovs-slot-author-bunny-ears-offset-x, var(--ovs-bunny-ears-offset-x, 20px));
+  transform: rotate(var(--ovs-bunny-ears-rotate, 0deg));
+}
+
+/* ── Message slot ears ── */
+.ovs-text[data-bunny-ears="true"] > .ovs-bunny-ear {
+  display: block;
+  width: var(--ovs-slot-message-bunny-ears-width, var(--ovs-bunny-ears-width, 32px));
+  height: var(--ovs-slot-message-bunny-ears-height, var(--ovs-bunny-ears-height, 30px));
+  border-radius: 50% / 100% 100%
+    var(--ovs-slot-message-bunny-ears-radius-v, var(--ovs-bunny-ears-radius-v, 0%))
+    var(--ovs-slot-message-bunny-ears-radius-v, var(--ovs-bunny-ears-radius-v, 0%));
+  top: var(--ovs-slot-message-bunny-ears-top, var(--ovs-bunny-ears-top, -28px));
+  z-index: var(--ovs-slot-message-bunny-ears-z, var(--ovs-bunny-ears-z, 0));
+  clip-path: inset(
+    0
+    0
+    max(0px, calc(
+      var(--ovs-slot-message-bunny-ears-height, var(--ovs-bunny-ears-height, 30px)) +
+      var(--ovs-slot-message-bunny-ears-top, var(--ovs-bunny-ears-top, -28px))
+    ))
+    0
+  );
+  background: var(--ovs-slot-message-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
+  opacity: var(--ovs-slot-message-bubble-opacity, var(--ovs-bubble-opacity, 1));
+  border-width: var(--ovs-slot-message-bubble-border-width, var(--ovs-bubble-border-width, 0px));
+  border-style: var(--ovs-slot-message-bubble-border-style, var(--ovs-bubble-border-style, solid));
+  border-color: var(--ovs-slot-message-bubble-border-color, var(--ovs-bubble-border-color, transparent));
+  box-shadow: var(--ovs-slot-message-bubble-box-shadow, var(--ovs-bubble-box-shadow, none));
+}
+.ovs-text[data-bunny-ears="true"] > .ovs-bunny-ear--left {
+  left: var(--ovs-slot-message-bunny-ears-offset-x, var(--ovs-bunny-ears-offset-x, 20px));
+  transform: rotate(calc(-1 * var(--ovs-bunny-ears-rotate, 0deg)));
+}
+.ovs-text[data-bunny-ears="true"] > .ovs-bunny-ear--right {
+  right: var(--ovs-slot-message-bunny-ears-offset-x, var(--ovs-bunny-ears-offset-x, 20px));
+  transform: rotate(var(--ovs-bunny-ears-rotate, 0deg));
+}
+
+/* ── Conditional visibility by wrap mode ── */
+/* Row ears: ẩn khi không ở row-wrap mode */
+:root:not([data-ovs-bubble-wrap-row='true']) .ovs-message > .ovs-bunny-ear {
+  display: none !important;
+}
+/* Slot ears: ẩn khi đang ở row-wrap mode */
+:root[data-ovs-bubble-wrap-row='true'] .ovs-author > .ovs-bunny-ear,
+:root[data-ovs-bubble-wrap-row='true'] .ovs-text > .ovs-bunny-ear {
+  display: none !important;
+}
+
+/* Chat spacing control override */
+#ovs-chat-list {
+  gap: var(--ovs-layout-chat-gap, 10px) !important;
 }

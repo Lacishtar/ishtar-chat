@@ -46,6 +46,7 @@ const DEFAULT_LAYOUT_CONFIG = {
   screen: {
     chatAlign: 'left', // 'left' | 'center' | 'right'
     contentDirection: 'ltr', // 'ltr' | 'rtl'
+    chatGap: 10,
     /** @deprecated use bubbleWrapRow / bubbleWrapAuthor / bubbleWrapMessage */
     bubbleScope: null,
     bubbleWrapRow: null, // null | true = bọc cả hàng; false = bọc riêng slot
@@ -216,6 +217,7 @@ function compileLayoutToCssVariables(layout) {
     ...compileSlotPositionVars('message', slots.message),
 
     '--ovs-layout-chat-align': ALIGN_TO_FLEX[screen.chatAlign] || 'flex-start',
+    '--ovs-layout-chat-gap': px(screen.chatGap ?? 10),
     '--ovs-layout-content-direction': 'ltr',
     '--ovs-bubble-wrap-row': isRowBubbleWrap(screen) ? '1' : '0',
     '--ovs-bubble-wrap-author': !isRowBubbleWrap(screen) && screen.bubbleWrapAuthor ? '1' : '0',
@@ -257,6 +259,7 @@ function contractSimpleLayout(layout) {
     gap: l.messageRow.gap ?? 10,
     padding: l.messageRow.padding ?? 8,
     chatAlign: screen.chatAlign ?? 'left',
+    chatGap: screen.chatGap ?? 10,
     contentDirection: screen.contentDirection ?? 'ltr',
     bubbleWrapMode: isRowBubbleWrap(screen) ? 'row' : 'split',
     bubbleWrapAuthor: Boolean(screen.bubbleWrapAuthor),
@@ -338,6 +341,7 @@ function expandSimpleLayout(simple) {
 
   return { messageRow, metaRow, bodyColumn, slots, screen: {
     chatAlign: s.chatAlign || 'left',
+    chatGap: s.chatGap,
     contentDirection: s.contentDirection || 'ltr',
     bubbleWrapRow: wrapRow,
     bubbleWrapAuthor: wrapAuthor,

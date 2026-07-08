@@ -46,6 +46,23 @@ assert(vars['--ovs-slot-avatar-size'] === '48px', 'avatar size override');
 assert(vars['--ovs-slot-avatar-rotate'] === '-7deg', 'avatar rotate');
 assert(vars['--ovs-slot-avatar-translate-x'] === '4px', 'avatar translateX');
 
+const textureStyle = mergeSlotStyleConfig(DEFAULT_SLOT_STYLE_CONFIG, {
+  slots: {
+    message: {
+      bubbleTextureUrl: 'https://i.ibb.co/4JYHhPq/polka-dots.png',
+      bubbleTextureRepeat: 'repeat-x',
+      bubbleTextureSize: '32px',
+      bubbleTextureOpacity: 0.8
+    }
+  }
+});
+const textureVars = compileSlotStyleToCssVariables(textureStyle, custom);
+assert(textureVars['--ovs-slot-message-bubble-texture-url'].includes('image/proxy?url='), 'texture url proxy');
+assert(textureVars['--ovs-slot-message-bubble-texture-repeat'] === 'repeat-x', 'texture repeat');
+assert(textureVars['--ovs-slot-message-bubble-texture-size'] === '32px', 'texture size');
+assert(textureVars['--ovs-slot-message-bubble-texture-opacity'] === '0.8', 'texture opacity');
+
+
 const borderStyle = mergeSlotStyleConfig(DEFAULT_SLOT_STYLE_CONFIG, {
   slots: {
     avatar: {
