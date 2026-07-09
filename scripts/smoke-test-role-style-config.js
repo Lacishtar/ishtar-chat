@@ -14,18 +14,25 @@ assert(defaults.roles.superchat.showAmount === true, 'superchat showAmount defau
 
 const merged = mergeRoleStyleConfig(defaults, {
   roles: {
-    member: { authorColor: '#00ff00', badgeBefore: 'VIP' },
+    member: { authorColor: '#00ff00', badgeBefore: 'VIP', authorBg: '#123456' },
     superchat: { showAmount: false },
   },
 });
 assert(merged.roles.member.authorColor === '#00ff00', 'member color merged');
 assert(merged.roles.member.badgeBefore === 'VIP', 'member badge merged');
+assert(merged.roles.member.authorBg === '#123456', 'member authorBg merged');
 assert(merged.roles.superchat.showAmount === false, 'superchat showAmount override');
 
 const compiled = compileRoleStyleToCssVariables(merged);
 assert(compiled.vars['--ovs-role-member-author-color'] === '#00ff00', 'member css var');
+assert(compiled.vars['--ovs-role-member-author-bg'] === '#123456', 'member authorBg css var');
+assert(compiled.rootFlags['data-ovs-role-member-author-bg'] === 'true', 'member authorBg flag');
 assert(compiled.vars['--ovs-role-member-badge-before-content'] === '"VIP"', 'member badge css');
 assert(compiled.rootFlags['data-ovs-role-superchat-show-amount'] === 'false', 'superchat amount flag');
+assert(
+  compiled.rootFlags['data-ovs-role-superchat-author-bg'] === undefined,
+  'superchat has no authorBg flag when unset',
+);
 
 const disabled = compileRoleStyleToCssVariables({
   roles: { moderator: { enabled: false } },

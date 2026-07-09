@@ -19,18 +19,40 @@ function Field({ label, children, hint }) {
   );
 }
 
+const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+const RGBA_RE = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*[\d.]+)?\)/i;
+
+// Một số giá trị mặc định (vd. nền moderator/superchat) là CSS gradient/rgba,
+// không phải hex thuần. <input type="color"> chỉ hiểu hex, nên trước đây nó
+// luôn rơi về màu tối mặc định (#16191f) dù giá trị thật vẫn được áp dụng
+// đúng lên overlay — nhìn như "lỗi hiển thị" dù vẫn hoạt động.
+// Hàm này rút ra một màu hex gần đúng để ô color-picker hiển thị đúng tinh thần màu.
+function toPreviewHex(value) {
+  if (!value) return '#16191f';
+  if (HEX_RE.test(value)) return value;
+  const match = RGBA_RE.exec(value);
+  if (match) {
+    const [, r, g, b] = match;
+    return `#${[r, g, b].map((v) => Number(v).toString(16).padStart(2, '0')).join('')}`;
+  }
+  return '#16191f';
+}
+
 function ColorField({ label, value, onChange }) {
-  const safeValue = value && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : '#16191f';
+  const isPlainHex = !!value && HEX_RE.test(value);
+  const previewHex = toPreviewHex(value);
   return (
     <Field label={label}>
       <div className="flex items-center gap-2">
         <input
           type="color"
           className="h-8 w-full rounded-lg border border-line bg-panelAlt cursor-pointer"
-          value={safeValue}
+          value={previewHex}
           onChange={(e) => onChange(e.target.value)}
         />
-        <span className="text-xs text-inkMuted whitespace-nowrap">{value || 'Mặc định'}</span>
+        <span className="text-xs text-inkMuted whitespace-nowrap">
+          {!value ? 'Mặc định' : isPlainHex ? value : 'Gradient (xem trước gần đúng)'}
+        </span>
       </div>
     </Field>
   );
@@ -56,6 +78,11 @@ function RoleEditor({ roleKey, role, onChange }) {
         value={role.authorColor}
         placeholder="#fca5a5"
         onChange={(v) => set({ authorColor: v })}
+      />
+      <ColorField
+        label="Nền bubble tên"
+        value={role.authorBg}
+        onChange={(v) => set({ authorBg: v })}
       />
       <ColorField
         label="Nền bubble chat"
@@ -110,6 +137,7 @@ const DEFAULT_ROLES = {
   moderator: {
     enabled: true,
     authorColor: '#fca5a5',
+    authorBg: null,
     messageBg: '#f87171',
     messageTextColor: '#ffffff',
     badgeBefore: 'MOD',
@@ -119,6 +147,7 @@ const DEFAULT_ROLES = {
   member: {
     enabled: true,
     authorColor: '#93c5fd',
+    authorBg: null,
     messageBg: '#60a5fa',
     messageTextColor: '#ffffff',
     badgeBefore: '★',
@@ -128,6 +157,7 @@ const DEFAULT_ROLES = {
   superchat: {
     enabled: true,
     authorColor: '#fde047',
+    authorBg: null,
     messageBg: '#facc15',
     messageTextColor: '#1f2937',
     badgeBefore: '✦',

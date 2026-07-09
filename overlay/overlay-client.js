@@ -817,6 +817,10 @@
       const rowBg = role.rowBg || role.rowBgColor;
 
       if (role.authorColor) vars[`--ovs-role-${prefix}-author-color`] = role.authorColor;
+      if (role.authorBg) {
+        vars[`--ovs-role-${prefix}-author-bg`] = role.authorBg;
+        rootFlags[`ovsRole${prefix.charAt(0).toUpperCase()}${prefix.slice(1)}AuthorBg`] = 'true';
+      }
       if (messageBg) vars[`--ovs-role-${prefix}-message-bg`] = messageBg;
       if (role.messageTextColor) vars[`--ovs-role-${prefix}-message-text-color`] = role.messageTextColor;
       if (rowBg) vars[`--ovs-role-${prefix}-row-bg`] = rowBg;
@@ -842,6 +846,9 @@
       ovsRoleMemberEnabled: 'data-ovs-role-member-enabled',
       ovsRoleSuperchatEnabled: 'data-ovs-role-superchat-enabled',
       ovsRoleSuperchatShowAmount: 'data-ovs-role-superchat-show-amount',
+      ovsRoleModAuthorBg: 'data-ovs-role-mod-author-bg',
+      ovsRoleMemberAuthorBg: 'data-ovs-role-member-author-bg',
+      ovsRoleSuperchatAuthorBg: 'data-ovs-role-superchat-author-bg',
     };
     Object.entries(map).forEach(([key, attr]) => {
       if (rootFlags[key] !== undefined) root.setAttribute(attr, rootFlags[key]);

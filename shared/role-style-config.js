@@ -16,6 +16,7 @@ function createRoleDefaults(overrides = {}) {
     enabled: true,
     authorColor: null,
     authorBorderColor: null,
+    authorBg: null,
     messageBg: null,
     messageBorderColor: null,
     messageTextColor: null,
@@ -64,6 +65,7 @@ function normalizeRole(raw, fallback) {
     authorColor: typeof role.authorColor === 'string' ? role.authorColor : base.authorColor,
     authorBorderColor:
       typeof role.authorBorderColor === 'string' ? role.authorBorderColor : base.authorBorderColor,
+    authorBg: typeof role.authorBg === 'string' ? role.authorBg : base.authorBg,
     messageBg:
       typeof role.messageBg === 'string'
         ? role.messageBg
@@ -137,6 +139,10 @@ function compileRoleStyleToCssVariables(roleStyle) {
 
     if (role.authorColor) vars[`--ovs-role-${prefix}-author-color`] = role.authorColor;
     if (role.authorBorderColor) vars[`--ovs-role-${prefix}-author-border-color`] = role.authorBorderColor;
+    if (role.authorBg) {
+      vars[`--ovs-role-${prefix}-author-bg`] = role.authorBg;
+      rootFlags[`data-ovs-role-${prefix}-author-bg`] = 'true';
+    }
     if (role.messageBg) vars[`--ovs-role-${prefix}-message-bg`] = role.messageBg;
     if (role.messageBorderColor) vars[`--ovs-role-${prefix}-message-border-color`] = role.messageBorderColor;
     if (role.messageTextColor) vars[`--ovs-role-${prefix}-message-text-color`] = role.messageTextColor;
