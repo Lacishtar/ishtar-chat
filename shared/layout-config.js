@@ -68,6 +68,26 @@ function directionToFlex(direction) {
   return direction === 'vertical' ? 'column' : 'row';
 }
 
+/**
+ * Flips a start/end-ish align value so content hugs the correct physical side
+ * once the layout has been horizontally mirrored (RTL). Only meaningful for
+ * containers that stack VERTICALLY (column) — their align-items controls the
+ * horizontal cross-axis, which is exactly what mirroring flips. Containers
+ * that stack horizontally (row/row-reverse) already get their mirroring from
+ * flexDirectionForRow, so their align (a vertical concern) must NOT be touched.
+ */
+function mirrorAlign(align, shouldMirror) {
+  if (!shouldMirror) return align;
+  if (align === 'start' || align === 'left') return 'end';
+  if (align === 'end' || align === 'right') return 'start';
+  // 'stretch' (the default) renders like flex-start here — no theme gives
+  // .ovs-meta/.ovs-body their own background, so nothing relies on the
+  // literal stretch-to-full-width box. Flip it too or content still hugs
+  // the wrong (far-from-avatar) side after mirroring.
+  if (align === 'stretch') return 'end';
+  return align; // 'center' has no side to flip
+}
+
 /** Mirror horizontal flex rows for RTL layout without CSS direction:rtl (preserves text/emoji order). */
 function flexDirectionForRow(rowDirection, mirrorHorizontal) {
   if (rowDirection === 'vertical') return 'column';
@@ -180,19 +200,19 @@ function compileLayoutToCssVariables(layout) {
   return {
     '--ovs-layout-message-direction': flexDirectionForRow(mr.direction, mirrorHorizontal),
     '--ovs-layout-message-gap': px(mr.gap),
-    '--ovs-layout-message-align': ALIGN_TO_FLEX[mr.align] || 'flex-start',
+    '--ovs-layout-message-align': ALIGN_TO_FLEX[mirrorAlign(mr.align, mirrorHorizontal && mr.direction !== 'horizontal')] || 'flex-start',
     '--ovs-layout-message-padding': px(mr.padding),
     '--ovs-layout-message-margin': px(mr.margin),
 
     '--ovs-layout-meta-direction': flexDirectionForRow(meta.direction, mirrorHorizontal),
     '--ovs-layout-meta-gap': px(meta.gap),
-    '--ovs-layout-meta-align': ALIGN_TO_FLEX[meta.align] || 'center',
+    '--ovs-layout-meta-align': ALIGN_TO_FLEX[mirrorAlign(meta.align, mirrorHorizontal && meta.direction !== 'horizontal')] || 'center',
     '--ovs-layout-meta-padding': px(meta.padding),
     '--ovs-layout-meta-margin': px(meta.margin),
 
     '--ovs-layout-body-direction': flexDirectionForRow(body.direction, mirrorHorizontal),
     '--ovs-layout-body-gap': px(body.gap),
-    '--ovs-layout-body-align': ALIGN_TO_FLEX[body.align] || 'stretch',
+    '--ovs-layout-body-align': ALIGN_TO_FLEX[mirrorAlign(body.align, mirrorHorizontal && body.direction !== 'horizontal')] || 'stretch',
     '--ovs-layout-body-padding': px(body.padding),
     '--ovs-layout-body-margin': px(body.margin),
 

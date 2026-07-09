@@ -49,6 +49,15 @@
     return mirrorHorizontal ? 'row-reverse' : 'row';
   }
 
+  // Keep in sync with shared/layout-config.js#mirrorAlign.
+  function mirrorAlign(align, shouldMirror) {
+    if (!shouldMirror) return align;
+    if (align === 'start' || align === 'left') return 'end';
+    if (align === 'end' || align === 'right') return 'start';
+    if (align === 'stretch') return 'end';
+    return align;
+  }
+
   function syncThemeModeClass() {
     if (!listEl) return;
     listEl.classList.toggle('ovs-theme-danmaku', DANMAKU_THEMES.has(currentTheme));
@@ -510,19 +519,19 @@
     return {
       '--ovs-layout-message-direction': flexDirectionForRow(mr.direction || 'horizontal', mirrorHorizontal),
       '--ovs-layout-message-gap': px(mr.gap ?? 10),
-      '--ovs-layout-message-align': ALIGN_TO_FLEX[mr.align] || 'flex-start',
+      '--ovs-layout-message-align': ALIGN_TO_FLEX[mirrorAlign(mr.align, mirrorHorizontal && (mr.direction || 'horizontal') !== 'horizontal')] || 'flex-start',
       '--ovs-layout-message-padding': px(mr.padding ?? 0),
       '--ovs-layout-message-margin': px(mr.margin ?? 0),
 
       '--ovs-layout-meta-direction': flexDirectionForRow(meta.direction || 'horizontal', mirrorHorizontal),
       '--ovs-layout-meta-gap': px(meta.gap ?? 6),
-      '--ovs-layout-meta-align': ALIGN_TO_FLEX[meta.align] || 'center',
+      '--ovs-layout-meta-align': ALIGN_TO_FLEX[mirrorAlign(meta.align, mirrorHorizontal && (meta.direction || 'horizontal') !== 'horizontal')] || 'center',
       '--ovs-layout-meta-padding': px(meta.padding ?? 0),
       '--ovs-layout-meta-margin': px(meta.margin ?? 0),
 
       '--ovs-layout-body-direction': flexDirectionForRow(body.direction || 'vertical', mirrorHorizontal),
       '--ovs-layout-body-gap': px(body.gap ?? 2),
-      '--ovs-layout-body-align': ALIGN_TO_FLEX[body.align] || 'stretch',
+      '--ovs-layout-body-align': ALIGN_TO_FLEX[mirrorAlign(body.align, mirrorHorizontal && (body.direction || 'vertical') !== 'horizontal')] || 'stretch',
       '--ovs-layout-body-padding': px(body.padding ?? 0),
       '--ovs-layout-body-margin': px(body.margin ?? 0),
 
@@ -628,6 +637,8 @@
       : (isSetLocal(resolve('bubblePadding')) ? resolve('bubblePadding') : null);
     if (padX != null) vars[`--ovs-slot-${prefix}-bubble-pad-x`] = pxLocal(padX);
     if (padY != null) vars[`--ovs-slot-${prefix}-bubble-pad-y`] = pxLocal(padY);
+
+    if (resolve('bubbleMinWidth') != null) vars[`--ovs-slot-${prefix}-bubble-min-width`] = pxLocal(resolve('bubbleMinWidth'));
 
     const clampPctLocal = (v) => {
       const n = Number(v);
@@ -820,10 +831,15 @@
       if (role.authorBg) {
         vars[`--ovs-role-${prefix}-author-bg`] = role.authorBg;
         rootFlags[`ovsRole${prefix.charAt(0).toUpperCase()}${prefix.slice(1)}AuthorBg`] = 'true';
+      } else {
+        rootFlags[`ovsRole${prefix.charAt(0).toUpperCase()}${prefix.slice(1)}AuthorBg`] = 'false';
       }
+      if (role.authorBorderColor) vars[`--ovs-role-${prefix}-author-border-color`] = role.authorBorderColor;
       if (messageBg) vars[`--ovs-role-${prefix}-message-bg`] = messageBg;
+      if (role.messageBorderColor) vars[`--ovs-role-${prefix}-message-border-color`] = role.messageBorderColor;
       if (role.messageTextColor) vars[`--ovs-role-${prefix}-message-text-color`] = role.messageTextColor;
       if (rowBg) vars[`--ovs-role-${prefix}-row-bg`] = rowBg;
+      if (role.rowBorderColor) vars[`--ovs-role-${prefix}-row-border-color`] = role.rowBorderColor;
       vars[`--ovs-role-${prefix}-badge-before-content`] = role.badgeBefore
         ? `"${String(role.badgeBefore).replace(/"/g, '\\"')}"`
         : 'none';

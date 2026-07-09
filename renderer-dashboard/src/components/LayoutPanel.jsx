@@ -12,6 +12,98 @@ function Field({ label, children }) {
   );
 }
 
+/** Segmented icon-button group — replaces plain <select> for a few choices where a
+ *  visual cue (alignment, position) communicates faster than reading text. */
+function SegmentedField({ label, value, options, onChange }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs text-inkMuted">{label}</span>
+      <div className="grid grid-cols-3 gap-1.5">
+        {options.map((opt) => {
+          const active = value === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              title={opt.hint || opt.label}
+              onClick={() => onChange(opt.value)}
+              className={`flex flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-[11px] transition-colors ${
+                active
+                  ? 'bg-focusAccent border-focusAccent text-white'
+                  : 'bg-panelAlt border-line text-inkMuted hover:bg-line hover:text-ink'
+              }`}
+            >
+              {opt.icon}
+              <span>{opt.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* Icon set for the segmented fields above — plain 20x20 stroke icons using currentColor
+   so they inherit the active/inactive text color automatically. */
+const ICONS = {
+  alignLeft: (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <line x1="3" y1="5" x2="17" y2="5" />
+      <line x1="3" y1="10" x2="12" y2="10" />
+      <line x1="3" y1="15" x2="14" y2="15" />
+    </svg>
+  ),
+  alignCenter: (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <line x1="3" y1="5" x2="17" y2="5" />
+      <line x1="5" y1="10" x2="15" y2="10" />
+      <line x1="4" y1="15" x2="16" y2="15" />
+    </svg>
+  ),
+  alignRight: (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <line x1="3" y1="5" x2="17" y2="5" />
+      <line x1="8" y1="10" x2="17" y2="10" />
+      <line x1="6" y1="15" x2="17" y2="15" />
+    </svg>
+  ),
+  arrowRight: (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" y1="10" x2="16" y2="10" />
+      <polyline points="11,5 16,10 11,15" />
+    </svg>
+  ),
+  arrowLeft: (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="4" y1="10" x2="17" y2="10" />
+      <polyline points="9,5 4,10 9,15" />
+    </svg>
+  ),
+  avatarLeft: (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <circle cx="5" cy="10" r="2.6" />
+      <line x1="10" y1="7" x2="17" y2="7" />
+      <line x1="10" y1="10" x2="15" y2="10" />
+      <line x1="10" y1="13" x2="16" y2="13" />
+    </svg>
+  ),
+  avatarTop: (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <circle cx="10" cy="5" r="2.6" />
+      <line x1="4" y1="12" x2="16" y2="12" />
+      <line x1="4" y1="15" x2="13" y2="15" />
+    </svg>
+  ),
+  avatarRight: (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <circle cx="15" cy="10" r="2.6" />
+      <line x1="3" y1="7" x2="10" y2="7" />
+      <line x1="5" y1="10" x2="10" y2="10" />
+      <line x1="4" y1="13" x2="10" y2="13" />
+    </svg>
+  ),
+};
+
 /** Mirrors shared/layout-config.js#contractSimpleLayout for the browser. */
 function contractSimpleLayout(layout) {
   if (!layout) {
@@ -171,17 +263,16 @@ export default function LayoutPanel({ api, layoutConfig }) {
     <section className="rounded-xl bg-panel border border-line shadow-panel p-4 flex flex-col gap-4">
       <h2 className="font-display text-sm uppercase tracking-wide text-inkMuted">Bố cục</h2>
 
-      <Field label="Căn khung chat trên màn hình">
-        <select
-          className={inputClass}
-          value={local.chatAlign}
-          onChange={(e) => pushUpdate({ chatAlign: e.target.value })}
-        >
-          <option value="left">Trái</option>
-          <option value="center">Giữa</option>
-          <option value="right">Phải</option>
-        </select>
-      </Field>
+      <SegmentedField
+        label="Căn khung chat trên màn hình"
+        value={local.chatAlign}
+        onChange={(v) => pushUpdate({ chatAlign: v })}
+        options={[
+          { value: 'left', label: 'Trái', hint: 'Neo khung chat vào mép trái màn hình', icon: ICONS.alignLeft },
+          { value: 'center', label: 'Giữa', hint: 'Căn khung chat vào giữa màn hình', icon: ICONS.alignCenter },
+          { value: 'right', label: 'Phải', hint: 'Neo khung chat vào mép phải màn hình', icon: ICONS.alignRight },
+        ]}
+      />
 
       <Field label={`Khoảng cách giữa các tin nhắn — ${local.chatGap ?? 10}px`}>
         <input
@@ -193,28 +284,26 @@ export default function LayoutPanel({ api, layoutConfig }) {
         />
       </Field>
 
-      <Field label="Chiều ngang nội dung">
-        <select
-          className={inputClass}
-          value={local.contentDirection}
-          onChange={(e) => pushUpdate({ contentDirection: e.target.value })}
-        >
-          <option value="ltr">Trái → Phải</option>
-          <option value="rtl">Phải → Trái</option>
-        </select>
-      </Field>
+      <SegmentedField
+        label="Hướng bố cục (avatar/tên ở phía nào)"
+        value={local.contentDirection}
+        onChange={(v) => pushUpdate({ contentDirection: v })}
+        options={[
+          { value: 'ltr', label: 'Trái → Phải', hint: 'Avatar bên trái, nội dung đọc sang phải (mặc định)', icon: ICONS.arrowRight },
+          { value: 'rtl', label: 'Phải → Trái', hint: 'Lật bố cục: avatar bên phải, nội dung đọc sang trái', icon: ICONS.arrowLeft },
+        ]}
+      />
 
-      <Field label="Vị trí avatar">
-        <select
-          className={inputClass}
-          value={local.avatarPosition}
-          onChange={(e) => pushUpdate({ avatarPosition: e.target.value })}
-        >
-          <option value="left">Bên trái nội dung</option>
-          <option value="top">Phía trên nội dung</option>
-          <option value="right">Bên phải nội dung</option>
-        </select>
-      </Field>
+      <SegmentedField
+        label="Vị trí avatar"
+        value={local.avatarPosition}
+        onChange={(v) => pushUpdate({ avatarPosition: v })}
+        options={[
+          { value: 'left', label: 'Bên trái', hint: 'Avatar bên trái nội dung', icon: ICONS.avatarLeft },
+          { value: 'top', label: 'Phía trên', hint: 'Avatar phía trên nội dung', icon: ICONS.avatarTop },
+          { value: 'right', label: 'Bên phải', hint: 'Avatar bên phải nội dung', icon: ICONS.avatarRight },
+        ]}
+      />
 
       <Field label="Tên & badge">
         <select
