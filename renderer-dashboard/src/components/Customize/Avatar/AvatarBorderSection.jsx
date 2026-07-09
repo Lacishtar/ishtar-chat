@@ -20,11 +20,13 @@ export default function AvatarBorderSection({ local, slotLocal, pushSlotUpdate }
         style={slotVal(slotLocal, 'avatar', 'borderStyle', 'solid')}
         color={slotVal(slotLocal, 'avatar', 'borderColor', local.authorColor)}
         defaultColor={local.authorColor}
+        offset={slotVal(slotLocal, 'avatar', 'borderOffset', 0)}
         onChange={(patch) =>
           pushSlotUpdate('avatar', {
             ...(patch.width !== undefined ? { borderWidth: patch.width } : {}),
             ...(patch.style !== undefined ? { borderStyle: patch.style } : {}),
             ...(patch.color !== undefined ? { borderColor: patch.color } : {}),
+            ...(patch.offset !== undefined ? { borderOffset: patch.offset } : {}),
           })
         }
       />

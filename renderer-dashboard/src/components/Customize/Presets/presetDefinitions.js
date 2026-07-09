@@ -105,6 +105,7 @@ export const QUICK_STYLE_PRESETS = [
       bubbleBorderStyle: 'solid',
       bubbleBorderColor: '#35E6B0',
       bubbleBoxShadow: '0 0 18px rgba(53, 230, 176, 0.55)',
+      bubbleGlow: 'drop-shadow(0 0 6px rgba(53, 230, 176, 0.85)) drop-shadow(0 0 18px rgba(53, 230, 176, 0.55))',
       bubbleBunnyEars: false,
     },
   },

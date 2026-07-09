@@ -45,6 +45,7 @@ body {
     0 0 10px color-mix(in srgb, var(--ovs-author-color, #00e5ff) 55%, transparent),
       0 0 2px color-mix(in srgb, var(--ovs-author-color, #00e5ff) 80%, transparent) inset
   );
+  filter: var(--ovs-bubble-glow, none);
 }
 
 .ovs-avatar {

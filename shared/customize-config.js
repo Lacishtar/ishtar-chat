@@ -17,7 +17,9 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   bubbleBorderWidth: null, // px; null = theme default
   bubbleBorderStyle: null, // solid | dashed | dotted | none
   bubbleBorderColor: null,
+  bubbleBorderOffset: null, // px; positive = outside bubble, negative = inside bubble
   bubbleBoxShadow: null, // CSS shadow string
+  bubbleGlow: null, // CSS filter: drop-shadow(...) string — neon/glow halo, independent of bubbleBoxShadow
   bubblePadding: null, // uniform px for bubble shell
   bubblePaddingX: null,
   bubblePaddingY: null,
@@ -64,7 +66,9 @@ function compileBubbleDecorationToCssVariables(config) {
   if (isSet(c.bubbleBorderWidth)) vars['--ovs-bubble-border-width'] = px(c.bubbleBorderWidth);
   if (isSet(c.bubbleBorderStyle)) vars['--ovs-bubble-border-style'] = c.bubbleBorderStyle;
   if (isSet(c.bubbleBorderColor)) vars['--ovs-bubble-border-color'] = c.bubbleBorderColor;
+  if (isSet(c.bubbleBorderOffset)) vars['--ovs-bubble-border-offset'] = px(c.bubbleBorderOffset);
   if (isSet(c.bubbleBoxShadow)) vars['--ovs-bubble-box-shadow'] = c.bubbleBoxShadow;
+  if (isSet(c.bubbleGlow)) vars['--ovs-bubble-glow'] = c.bubbleGlow;
 
   const padX = isSet(c.bubblePaddingX) ? c.bubblePaddingX : (isSet(c.bubblePadding) ? c.bubblePadding : null);
   const padY = isSet(c.bubblePaddingY) ? c.bubblePaddingY : (isSet(c.bubblePadding) ? c.bubblePadding : null);

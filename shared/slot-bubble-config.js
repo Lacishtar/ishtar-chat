@@ -12,7 +12,9 @@ const BUBBLE_KEYS = [
   'bubbleBorderWidth',
   'bubbleBorderStyle',
   'bubbleBorderColor',
+  'bubbleBorderOffset',
   'bubbleBoxShadow',
+  'bubbleGlow',
   'bubblePadding',
   'bubblePaddingX',
   'bubblePaddingY',
@@ -106,10 +108,22 @@ function compileSlotBubbleDecoration(prefix, slot, globalConfig) {
       globalConfig,
     );
   }
+  if (isSet(resolveSlotBubbleValue(slot, 'bubbleBorderOffset', globalConfig))) {
+    vars[`--ovs-slot-${prefix}-bubble-border-offset`] = px(
+      resolveSlotBubbleValue(slot, 'bubbleBorderOffset', globalConfig),
+    );
+  }
   if (isSet(resolveSlotBubbleValue(slot, 'bubbleBoxShadow', globalConfig))) {
     vars[`--ovs-slot-${prefix}-bubble-box-shadow`] = resolveSlotBubbleValue(
       slot,
       'bubbleBoxShadow',
+      globalConfig,
+    );
+  }
+  if (isSet(resolveSlotBubbleValue(slot, 'bubbleGlow', globalConfig))) {
+    vars[`--ovs-slot-${prefix}-bubble-glow`] = resolveSlotBubbleValue(
+      slot,
+      'bubbleGlow',
       globalConfig,
     );
   }

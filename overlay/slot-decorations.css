@@ -1,9 +1,20 @@
-/* Avatar border decorations — user slot vars → theme fallback → safe default. */
+/* Avatar border decorations — user slot vars → theme fallback → safe default.
+   The visual border ring is rendered via CSS `outline` + `outline-offset` so
+   that it can be positioned outside (positive offset) or inside (negative offset)
+   the element without affecting layout. `border` is kept at 0 here; box-sizing
+   is still border-box for theme compatibility. */
 
 .ovs-avatar,
 .ovs-avatar-frame {
-  border-width: var(--ovs-slot-avatar-border-width, var(--ovs-theme-avatar-border-width, 0));
-  border-style: var(--ovs-slot-avatar-border-style, var(--ovs-theme-avatar-border-style, solid));
-  border-color: var(--ovs-slot-avatar-border-color, var(--ovs-theme-avatar-border-color, transparent));
+  border-width: 0;
   box-sizing: border-box;
+
+  /* Outline ring — outline-offset controls inward/outward positioning:
+       0  = ring sits at the element edge (same visual as border)
+     > 0  = ring expands outside the element
+     < 0  = ring contracts inside the element              */
+  outline-width: var(--ovs-slot-avatar-border-width, var(--ovs-theme-avatar-border-width, 0));
+  outline-style: var(--ovs-slot-avatar-border-style, var(--ovs-theme-avatar-border-style, solid));
+  outline-color: var(--ovs-slot-avatar-border-color, var(--ovs-theme-avatar-border-color, transparent));
+  outline-offset: var(--ovs-slot-avatar-border-offset, 0px);
 }

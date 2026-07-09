@@ -40,6 +40,7 @@ const DEFAULT_SLOT_STYLE_CONFIG = {
       borderWidth: null,
       borderStyle: null,
       borderColor: null,
+      borderOffset: null,
       opacity: null,
       margin: 0,
       ...createTransformDefaults(),
@@ -97,6 +98,7 @@ function resolveEffectiveSlotStyle(slotStyle, customizeConfig, layoutConfig) {
       borderWidth: slots.avatar.borderWidth ?? null,
       borderStyle: slots.avatar.borderStyle ?? null,
       borderColor: slots.avatar.borderColor ?? null,
+      borderOffset: slots.avatar.borderOffset ?? null,
       opacity: slots.avatar.opacity ?? 1,
       margin: slots.avatar.margin ?? 0,
       ...resolveTransform(slots.avatar, false, isRtl),
@@ -184,6 +186,7 @@ function compileSlotStyleToCssVariables(slotStyle, customizeConfig, layoutConfig
   if (isSet(avatar.borderWidth)) vars['--ovs-slot-avatar-border-width'] = px(avatar.borderWidth);
   if (isSet(avatar.borderStyle)) vars['--ovs-slot-avatar-border-style'] = avatar.borderStyle;
   if (isSet(avatar.borderColor)) vars['--ovs-slot-avatar-border-color'] = avatar.borderColor;
+  if (isSet(avatar.borderOffset)) vars['--ovs-slot-avatar-border-offset'] = px(avatar.borderOffset);
   if (e.avatar.opacity != null) vars['--ovs-slot-avatar-opacity'] = String(e.avatar.opacity);
   if (e.avatar.margin != null) vars['--ovs-slot-avatar-margin'] = px(e.avatar.margin);
   Object.assign(vars, compileTransformVars('avatar', e.avatar, isRtl));
@@ -253,6 +256,7 @@ function componentOverridesToSlotStyle(componentOverrides) {
   if (co.Avatar?.borderWidth != null) slots.avatar.borderWidth = co.Avatar.borderWidth;
   if (co.Avatar?.borderStyle != null) slots.avatar.borderStyle = co.Avatar.borderStyle;
   if (co.Avatar?.borderColor != null) slots.avatar.borderColor = co.Avatar.borderColor;
+  if (co.Avatar?.borderOffset != null) slots.avatar.borderOffset = co.Avatar.borderOffset;
 
   return { slots };
 }

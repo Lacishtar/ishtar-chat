@@ -627,7 +627,9 @@
     if (isSetLocal(resolve('bubbleBorderWidth'))) vars[`--ovs-slot-${prefix}-bubble-border-width`] = pxLocal(resolve('bubbleBorderWidth'));
     if (isSetLocal(resolve('bubbleBorderStyle'))) vars[`--ovs-slot-${prefix}-bubble-border-style`] = resolve('bubbleBorderStyle');
     if (isSetLocal(resolve('bubbleBorderColor'))) vars[`--ovs-slot-${prefix}-bubble-border-color`] = resolve('bubbleBorderColor');
+    if (isSetLocal(resolve('bubbleBorderOffset'))) vars[`--ovs-slot-${prefix}-bubble-border-offset`] = pxLocal(resolve('bubbleBorderOffset'));
     if (isSetLocal(resolve('bubbleBoxShadow'))) vars[`--ovs-slot-${prefix}-bubble-box-shadow`] = resolve('bubbleBoxShadow');
+    if (isSetLocal(resolve('bubbleGlow'))) vars[`--ovs-slot-${prefix}-bubble-glow`] = resolve('bubbleGlow');
 
     const padX = isSetLocal(resolve('bubblePaddingX'))
       ? resolve('bubblePaddingX')
@@ -695,6 +697,7 @@
     if (pick('avatar', 'borderWidth') != null) vars['--ovs-slot-avatar-border-width'] = px(pick('avatar', 'borderWidth'));
     if (pick('avatar', 'borderStyle') != null) vars['--ovs-slot-avatar-border-style'] = pick('avatar', 'borderStyle');
     if (pick('avatar', 'borderColor') != null) vars['--ovs-slot-avatar-border-color'] = pick('avatar', 'borderColor');
+    if (pick('avatar', 'borderOffset') != null) vars['--ovs-slot-avatar-border-offset'] = px(pick('avatar', 'borderOffset'));
     if (pick('avatar', 'opacity') != null) vars['--ovs-slot-avatar-opacity'] = String(pick('avatar', 'opacity'));
     if (pick('avatar', 'margin') != null) vars['--ovs-slot-avatar-margin'] = px(pick('avatar', 'margin'));
     assignTransform('avatar', pickTransform('avatar'));
@@ -760,7 +763,9 @@
     if (isSetLocal(c.bubbleBorderWidth)) vars['--ovs-bubble-border-width'] = pxLocal(c.bubbleBorderWidth);
     if (isSetLocal(c.bubbleBorderStyle)) vars['--ovs-bubble-border-style'] = c.bubbleBorderStyle;
     if (isSetLocal(c.bubbleBorderColor)) vars['--ovs-bubble-border-color'] = c.bubbleBorderColor;
+    if (isSetLocal(c.bubbleBorderOffset)) vars['--ovs-bubble-border-offset'] = pxLocal(c.bubbleBorderOffset);
     if (isSetLocal(c.bubbleBoxShadow)) vars['--ovs-bubble-box-shadow'] = c.bubbleBoxShadow;
+    if (isSetLocal(c.bubbleGlow)) vars['--ovs-bubble-glow'] = c.bubbleGlow;
 
     const padX = isSetLocal(c.bubblePaddingX) ? c.bubblePaddingX : (isSetLocal(c.bubblePadding) ? c.bubblePadding : null);
     const padY = isSetLocal(c.bubblePaddingY) ? c.bubblePaddingY : (isSetLocal(c.bubblePadding) ? c.bubblePadding : null);

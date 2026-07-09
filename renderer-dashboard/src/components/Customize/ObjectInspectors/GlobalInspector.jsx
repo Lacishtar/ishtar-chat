@@ -4,6 +4,7 @@ import FontSection from '../Typography/FontSection.jsx';
 import BackgroundSection from '../Appearance/BackgroundSection.jsx';
 import BorderSection from '../Appearance/BorderSection.jsx';
 import ShadowSection from '../Appearance/ShadowSection.jsx';
+import GlowSection from '../Appearance/GlowSection.jsx';
 import BubbleShapeSection from '../Bubble/BubbleShapeSection.jsx';
 import BubbleTextureSection from '../Bubble/BubbleTextureSection.jsx';
 import BunnySection from '../Bubble/BunnySection.jsx';
@@ -89,11 +90,13 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
           style={configVal(local, 'bubbleBorderStyle', 'solid')}
           color={configVal(local, 'bubbleBorderColor', local.textColor)}
           defaultColor={local.textColor}
+          offset={configVal(local, 'bubbleBorderOffset', 0)}
           onChange={(patch) =>
             pushUpdate({
               ...(patch.width !== undefined ? { bubbleBorderWidth: patch.width } : {}),
               ...(patch.style !== undefined ? { bubbleBorderStyle: patch.style } : {}),
               ...(patch.color !== undefined ? { bubbleBorderColor: patch.color } : {}),
+              ...(patch.offset !== undefined ? { bubbleBorderOffset: patch.offset } : {}),
             })
           }
         />
@@ -101,6 +104,10 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
 
       <AccordionSection title="Shadow" {...sec('shadow')}>
         <ShadowSection value={local.bubbleBoxShadow} onChange={(v) => pushUpdate({ bubbleBoxShadow: v })} allowCustomCss />
+      </AccordionSection>
+
+      <AccordionSection title="Glow" {...sec('glow')}>
+        <GlowSection value={local.bubbleGlow} onChange={(v) => pushUpdate({ bubbleGlow: v })} allowCustomCss />
       </AccordionSection>
 
       <AccordionSection title="Texture" {...sec('texture')}>

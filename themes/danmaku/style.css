@@ -47,6 +47,7 @@ body {
   border-style: var(--ovs-bubble-border-style, solid);
   border-color: var(--ovs-bubble-border-color, transparent);
   box-shadow: var(--ovs-bubble-box-shadow, none);
+  filter: var(--ovs-bubble-glow, none);
   animation-name: ovs-danmaku-fly;
   animation-timing-function: linear;
   animation-fill-mode: forwards;

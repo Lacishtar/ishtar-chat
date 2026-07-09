@@ -1,11 +1,16 @@
 /* Bubble wrap targets — row (.ovs-message), author (.ovs-author), message (.ovs-text).
-   Slot bubbles use --ovs-slot-{author|message}-bubble-* with fallback to global --ovs-bubble-*. */
+   Slot bubbles use --ovs-slot-{author|message}-bubble-* with fallback to global --ovs-bubble-*.
+   Glow (--ovs-bubble-glow / --ovs-slot-{author|message}-bubble-glow) renders via the `filter`
+   property (CSS filter: drop-shadow(...)) rather than box-shadow, so it composites independently
+   of the regular drop shadow above without any string-concatenation gymnastics. */
 
 :root:not([data-ovs-bubble-wrap-row='true']) .ovs-message {
   background: transparent !important;
   border-width: 0 !important;
   border-color: transparent !important;
+  outline: none !important;
   box-shadow: none !important;
+  filter: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   padding: 0 !important;
@@ -17,13 +22,20 @@
   border-radius: var(--ovs-bubble-radius, 14px) !important;
   background: var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)) !important;
   opacity: var(--ovs-bubble-opacity, 1) !important;
-  border-width: var(--ovs-bubble-border-width, 0) !important;
-  border-style: var(--ovs-bubble-border-style, solid) !important;
-  border-color: var(--ovs-bubble-border-color, transparent) !important;
+  border-width: 0 !important;
   box-shadow: var(--ovs-bubble-box-shadow, none) !important;
+  filter: var(--ovs-bubble-glow, none) !important;
   backdrop-filter: var(--ovs-bubble-backdrop, none) !important;
   -webkit-backdrop-filter: var(--ovs-bubble-backdrop, none) !important;
   min-width: var(--ovs-bubble-min-width, 0px) !important;
+  /* Outline ring — offset controls inside/outside positioning without affecting layout.
+     outline-offset:  0   = ring sits at element edge (same visual as border)
+     outline-offset: >0   = ring expands outside the bubble
+     outline-offset: <0   = ring contracts inside the bubble */
+  outline-width: var(--ovs-bubble-border-width, 0) !important;
+  outline-style: var(--ovs-bubble-border-style, solid) !important;
+  outline-color: var(--ovs-bubble-border-color, transparent) !important;
+  outline-offset: var(--ovs-bubble-border-offset, 0px) !important;
 }
 
 :root[data-ovs-bubble-wrap-row='true'] .ovs-text {
@@ -31,6 +43,7 @@
   border-width: 0 !important;
   border-color: transparent !important;
   box-shadow: none !important;
+  filter: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-radius: 0 !important;
@@ -64,14 +77,18 @@
   background: var(--ovs-slot-author-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
   opacity: var(--ovs-slot-author-bubble-opacity, var(--ovs-bubble-opacity, 1));
   border-radius: var(--ovs-slot-author-bubble-radius, var(--ovs-bubble-radius, 14px));
-  border-width: var(--ovs-slot-author-bubble-border-width, var(--ovs-bubble-border-width, 0));
-  border-style: var(--ovs-slot-author-bubble-border-style, var(--ovs-bubble-border-style, solid));
-  border-color: var(--ovs-slot-author-bubble-border-color, var(--ovs-bubble-border-color, transparent));
+  border-width: 0;
   box-shadow: var(--ovs-slot-author-bubble-box-shadow, var(--ovs-bubble-box-shadow, none));
+  filter: var(--ovs-slot-author-bubble-glow, var(--ovs-bubble-glow, none));
   padding: var(--ovs-slot-author-bubble-pad-y, var(--ovs-bubble-pad-y, 8px))
     var(--ovs-slot-author-bubble-pad-x, var(--ovs-bubble-pad-x, 12px));
   backdrop-filter: var(--ovs-bubble-backdrop, none);
   -webkit-backdrop-filter: var(--ovs-bubble-backdrop, none);
+  /* Outline ring — offset controls inside/outside positioning without affecting layout */
+  outline-width: var(--ovs-slot-author-bubble-border-width, var(--ovs-bubble-border-width, 0));
+  outline-style: var(--ovs-slot-author-bubble-border-style, var(--ovs-bubble-border-style, solid));
+  outline-color: var(--ovs-slot-author-bubble-border-color, var(--ovs-bubble-border-color, transparent));
+  outline-offset: var(--ovs-slot-author-bubble-border-offset, var(--ovs-bubble-border-offset, 0px));
 }
 
 :root[data-ovs-bubble-wrap-message='true'] .ovs-text {
@@ -84,14 +101,18 @@
   background: var(--ovs-slot-message-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
   opacity: var(--ovs-slot-message-bubble-opacity, var(--ovs-bubble-opacity, 1));
   border-radius: var(--ovs-slot-message-bubble-radius, var(--ovs-bubble-radius, 14px));
-  border-width: var(--ovs-slot-message-bubble-border-width, var(--ovs-bubble-border-width, 0));
-  border-style: var(--ovs-slot-message-bubble-border-style, var(--ovs-bubble-border-style, solid));
-  border-color: var(--ovs-slot-message-bubble-border-color, var(--ovs-bubble-border-color, transparent));
+  border-width: 0;
   box-shadow: var(--ovs-slot-message-bubble-box-shadow, var(--ovs-bubble-box-shadow, none));
+  filter: var(--ovs-slot-message-bubble-glow, var(--ovs-bubble-glow, none));
   padding: var(--ovs-slot-message-bubble-pad-y, var(--ovs-bubble-pad-y, 8px))
     var(--ovs-slot-message-bubble-pad-x, var(--ovs-bubble-pad-x, 12px));
   backdrop-filter: var(--ovs-bubble-backdrop, none);
   -webkit-backdrop-filter: var(--ovs-bubble-backdrop, none);
+  /* Outline ring — offset controls inside/outside positioning without affecting layout */
+  outline-width: var(--ovs-slot-message-bubble-border-width, var(--ovs-bubble-border-width, 0));
+  outline-style: var(--ovs-slot-message-bubble-border-style, var(--ovs-bubble-border-style, solid));
+  outline-color: var(--ovs-slot-message-bubble-border-color, var(--ovs-bubble-border-color, transparent));
+  outline-offset: var(--ovs-slot-message-bubble-border-offset, var(--ovs-bubble-border-offset, 0px));
 }
 
 /* Bubble background textures and layer settings */
@@ -196,6 +217,7 @@
   border-style: var(--ovs-bubble-border-style, solid);
   border-color: var(--ovs-bubble-border-color, transparent);
   box-shadow: var(--ovs-bubble-box-shadow, none);
+  filter: var(--ovs-bubble-glow, none);
 }
 .ovs-message[data-bunny-ears="true"] > .ovs-bunny-ear--left {
   left: var(--ovs-bunny-ears-offset-x, 20px);
@@ -231,6 +253,7 @@
   border-style: var(--ovs-slot-author-bubble-border-style, var(--ovs-bubble-border-style, solid));
   border-color: var(--ovs-slot-author-bubble-border-color, var(--ovs-bubble-border-color, transparent));
   box-shadow: var(--ovs-slot-author-bubble-box-shadow, var(--ovs-bubble-box-shadow, none));
+  filter: var(--ovs-slot-author-bubble-glow, var(--ovs-bubble-glow, none));
 }
 .ovs-author[data-bunny-ears="true"] > .ovs-bunny-ear--left {
   left: var(--ovs-slot-author-bunny-ears-offset-x, var(--ovs-bunny-ears-offset-x, 20px));
@@ -266,6 +289,7 @@
   border-style: var(--ovs-slot-message-bubble-border-style, var(--ovs-bubble-border-style, solid));
   border-color: var(--ovs-slot-message-bubble-border-color, var(--ovs-bubble-border-color, transparent));
   box-shadow: var(--ovs-slot-message-bubble-box-shadow, var(--ovs-bubble-box-shadow, none));
+  filter: var(--ovs-slot-message-bubble-glow, var(--ovs-bubble-glow, none));
 }
 .ovs-text[data-bunny-ears="true"] > .ovs-bunny-ear--left {
   left: var(--ovs-slot-message-bunny-ears-offset-x, var(--ovs-bunny-ears-offset-x, 20px));

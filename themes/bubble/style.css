@@ -120,6 +120,7 @@ body {
   border-style: var(--ovs-bubble-border-style, solid);
   border-color: var(--ovs-bubble-border-color, transparent);
   box-shadow: var(--ovs-bubble-box-shadow, none);
+  filter: var(--ovs-bubble-glow, none);
 }
 
 /* Speech-bubble tail, drawn from the same background as the bubble so it

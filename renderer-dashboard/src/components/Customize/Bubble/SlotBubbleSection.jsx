@@ -3,6 +3,7 @@ import { slotBubbleVal, isSlotBubbleUserSet } from '../shared/configHelpers.js';
 import BackgroundSection from '../Appearance/BackgroundSection.jsx';
 import BorderSection from '../Appearance/BorderSection.jsx';
 import ShadowSection from '../Appearance/ShadowSection.jsx';
+import GlowSection from '../Appearance/GlowSection.jsx';
 import BubbleShapeSection from './BubbleShapeSection.jsx';
 import BubbleTextureSection from './BubbleTextureSection.jsx';
 import BunnySection from './BunnySection.jsx';
@@ -49,7 +50,9 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
       bubbleBorderWidth: null,
       bubbleBorderStyle: null,
       bubbleBorderColor: null,
+      bubbleBorderOffset: null,
       bubbleBoxShadow: null,
+      bubbleGlow: null,
       bubblePadding: null,
       bubblePaddingX: null,
       bubblePaddingY: null,
@@ -71,6 +74,7 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
     { id: 'shape', label: 'Hình dạng' },
     { id: 'border', label: 'Viền' },
     { id: 'shadow', label: 'Shadow' },
+    { id: 'glow', label: 'Glow' },
     { id: 'texture', label: 'Texture' },
     { id: 'bunny', label: 'Tai thỏ' },
   ];
@@ -136,11 +140,13 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
               style={slotBubbleVal(slotLocal, slot, 'bubbleBorderStyle', globalConfig, 'solid')}
               color={slotBubbleVal(slotLocal, slot, 'bubbleBorderColor', globalConfig, globalConfig.textColor)}
               defaultColor={globalConfig.textColor}
+              offset={slotBubbleVal(slotLocal, slot, 'bubbleBorderOffset', globalConfig, globalConfig.bubbleBorderOffset ?? 0)}
               onChange={(patch) =>
                 pushSlotUpdate(slot, {
                   ...(patch.width !== undefined ? { bubbleBorderWidth: patch.width } : {}),
                   ...(patch.style !== undefined ? { bubbleBorderStyle: patch.style } : {}),
                   ...(patch.color !== undefined ? { bubbleBorderColor: patch.color } : {}),
+                  ...(patch.offset !== undefined ? { bubbleBorderOffset: patch.offset } : {}),
                 })
               }
             />
@@ -151,6 +157,13 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
           <ShadowSection
             value={slotBubbleVal(slotLocal, slot, 'bubbleBoxShadow', globalConfig, 'none')}
             onChange={(v) => pushSlotUpdate(slot, { bubbleBoxShadow: v })}
+          />
+        )}
+
+        {tab === 'glow' && (
+          <GlowSection
+            value={slotBubbleVal(slotLocal, slot, 'bubbleGlow', globalConfig, 'none')}
+            onChange={(v) => pushSlotUpdate(slot, { bubbleGlow: v })}
           />
         )}
 
