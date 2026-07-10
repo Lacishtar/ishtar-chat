@@ -5,6 +5,39 @@
 // whole scraper/server stack.
 const hasElectronApi = typeof window !== 'undefined' && !!window.api;
 
+// Mirrors shared/animation-config.js#ANIMATION_STYLE_PRESETS + expandAnimationStyle —
+// kept small/duplicated here since the mock runs in a plain browser tab and
+// doesn't bundle the CJS shared/ modules used by the real Electron backend.
+const MOCK_BASE_TARGET_DIRECTIONS = {
+  avatar: { delayMs: 0, translateX: 0, translateY: 8 },
+  author: { delayMs: 40, translateX: -6, translateY: 0 },
+  badges: { delayMs: 60, translateX: -4, translateY: 0 },
+  message: { delayMs: 80, translateX: 0, translateY: 6 },
+};
+const MOCK_ANIMATION_STYLE_PRESETS = {
+  slide: { easing: 'ease-out', translateScale: 1, scale: 1, blur: 0 },
+  bounce: { easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', translateScale: 2, scale: 0.85, blur: 0 },
+  zoom: { easing: 'cubic-bezier(0.18, 0.89, 0.32, 1.28)', translateScale: 0, scale: 0.4, blur: 0 },
+  slideStrong: { easing: 'cubic-bezier(0.16, 1, 0.3, 1)', translateScale: 6, scale: 1, blur: 0 },
+  blurZoom: { easing: 'ease-out', translateScale: 0, scale: 1.08, blur: 10 },
+};
+function mockExpandAnimationStyle(style) {
+  const preset = MOCK_ANIMATION_STYLE_PRESETS[style] || MOCK_ANIMATION_STYLE_PRESETS.slide;
+  const targets = {};
+  Object.entries(MOCK_BASE_TARGET_DIRECTIONS).forEach(([slot, dir]) => {
+    targets[slot] = {
+      durationMs: null,
+      delayMs: dir.delayMs,
+      easing: preset.easing,
+      translateX: dir.translateX * preset.translateScale,
+      translateY: dir.translateY * preset.translateScale,
+      scale: preset.scale,
+      blur: preset.blur,
+    };
+  });
+  return targets;
+}
+
 function createMock() {
   console.warn('[ipc] window.api not found — using mock data (running outside Electron).');
 
@@ -45,6 +78,7 @@ function createMock() {
   };
   let animationConfig = {
     enabled: true,
+    style: 'slide',
     targets: {
       avatar: { durationMs: 220, delayMs: 0, translateY: 8 },
       author: { durationMs: 220, delayMs: 40, translateX: -6 },
@@ -57,6 +91,7 @@ function createMock() {
   const configListeners = new Set();
   const layoutListeners = new Set();
   const slotStyleListeners = new Set();
+  const animationListeners = new Set();
   const decorationListeners = new Set();
   const roleStyleListeners = new Set();
 
@@ -158,14 +193,18 @@ function createMock() {
       return { ok: true, slotStyleConfig };
     },
     updateAnimation: async (partial) => {
+      const stylePicked = partial.style && partial.style !== animationConfig.style && !partial.targets;
+      const effectivePartial = stylePicked
+        ? { ...partial, targets: mockExpandAnimationStyle(partial.style) }
+        : partial;
       animationConfig = {
         ...animationConfig,
-        ...partial,
+        ...effectivePartial,
         targets: {
           ...animationConfig.targets,
-          ...(partial.targets
+          ...(effectivePartial.targets
             ? Object.fromEntries(
-                Object.entries(partial.targets).map(([k, v]) => [
+                Object.entries(effectivePartial.targets).map(([k, v]) => [
                   k,
                   { ...(animationConfig.targets?.[k] || {}), ...v },
                 ])

@@ -17,6 +17,7 @@ function applyInitialState(state, setters) {
   setters.setSlotStyleConfig(state.slotStyleConfig);
   setters.setDecorationConfig(state.decorationConfig);
   setters.setRoleStyleConfig(state.roleStyleConfig);
+  setters.setAnimationConfig(state.animationConfig);
   setters.setOverlayUrl(state.overlayUrl);
   setters.setLastSessionUrl(state.lastSessionUrl || '');
   setters.setStatus(state.status);
@@ -32,6 +33,7 @@ export default function App() {
   const [slotStyleConfig, setSlotStyleConfig] = useState(null);
   const [decorationConfig, setDecorationConfig] = useState(null);
   const [roleStyleConfig, setRoleStyleConfig] = useState(null);
+  const [animationConfig, setAnimationConfig] = useState(null);
   const [overlayUrl, setOverlayUrl] = useState('');
   const [lastSessionUrl, setLastSessionUrl] = useState('');
   const [status, setStatus] = useState({ status: 'idle', error: null });
@@ -52,6 +54,7 @@ export default function App() {
           setSlotStyleConfig,
           setDecorationConfig,
           setRoleStyleConfig,
+          setAnimationConfig,
           setOverlayUrl,
           setLastSessionUrl,
           setStatus,
@@ -66,7 +69,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    let unsubStatus, unsubConfig, unsubLayout, unsubSlotStyle, unsubDecoration, unsubRoleStyle, unsubTheme;
+    let unsubStatus, unsubConfig, unsubLayout, unsubSlotStyle, unsubDecoration, unsubRoleStyle, unsubAnimation, unsubTheme;
 
     loadInitialState();
 
@@ -76,6 +79,7 @@ export default function App() {
     unsubSlotStyle = api.onSlotStyleUpdated((payload) => setSlotStyleConfig(payload));
     unsubDecoration = api.onDecorationUpdated?.((payload) => setDecorationConfig(payload));
     unsubRoleStyle = api.onRoleStyleUpdated?.((payload) => setRoleStyleConfig(payload));
+    unsubAnimation = api.onAnimationUpdated?.((payload) => setAnimationConfig(payload));
     unsubTheme = api.onThemeChanged((payload) => {
       setSelectedTheme(payload.themeId);
       setConfig(payload.config);
@@ -83,6 +87,7 @@ export default function App() {
       setSlotStyleConfig(payload.slotStyleConfig);
       setDecorationConfig(payload.decorationConfig);
       setRoleStyleConfig(payload.roleStyleConfig);
+      setAnimationConfig(payload.animationConfig);
       setPreviewKey((k) => k + 1);
     });
 
@@ -93,6 +98,7 @@ export default function App() {
       unsubSlotStyle && unsubSlotStyle();
       unsubDecoration && unsubDecoration();
       unsubRoleStyle && unsubRoleStyle();
+      unsubAnimation && unsubAnimation();
       unsubTheme && unsubTheme();
     };
   }, [loadInitialState]);
@@ -119,6 +125,7 @@ export default function App() {
       setSlotStyleConfig(result.slotStyleConfig);
       setDecorationConfig(result.decorationConfig);
       setRoleStyleConfig(result.roleStyleConfig);
+      setAnimationConfig(result.animationConfig);
       setPreviewKey((k) => k + 1);
     }
   }
@@ -167,7 +174,7 @@ export default function App() {
             onConnected={(url) => setLastSessionUrl(url)}
           />
           <ThemeGallery themes={themes} selectedTheme={selectedTheme} onSelect={handleSelectTheme} />
-          <CustomizePanel api={api} config={config} slotStyleConfig={slotStyleConfig} />
+          <CustomizePanel api={api} config={config} slotStyleConfig={slotStyleConfig} animationConfig={animationConfig} />
           <LayoutPanel api={api} layoutConfig={layoutConfig} />
           <DecorationsPanel api={api} decorationConfig={decorationConfig} />
           <RoleStylesPanel api={api} roleStyleConfig={roleStyleConfig} />

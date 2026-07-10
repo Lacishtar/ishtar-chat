@@ -4,6 +4,8 @@ import InspectorPanel from './Customize/Inspector/InspectorPanel.jsx';
 // every object in one giant scrolling form. It's now a thin mount point for
 // the Inspector (see components/Customize/), which shows only the settings
 // relevant to whatever object the user has selected.
-export default function CustomizePanel({ api, config, slotStyleConfig }) {
-  return <InspectorPanel api={api} config={config} slotStyleConfig={slotStyleConfig} />;
+export default function CustomizePanel({ api, config, slotStyleConfig, animationConfig }) {
+  return (
+    <InspectorPanel api={api} config={config} slotStyleConfig={slotStyleConfig} animationConfig={animationConfig} />
+  );
 }

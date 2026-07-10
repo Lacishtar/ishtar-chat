@@ -34,14 +34,18 @@ function saveJSON(key, value) {
  *    `favorites`. This never touches overlay data and is persisted (if
  *    possible) only to make the *tool* nicer to use across sessions.
  */
-export default function useCustomizeState({ api, config, slotStyleConfig }) {
+export default function useCustomizeState({ api, config, slotStyleConfig, animationConfig }) {
   const [local, setLocal] = useState(config);
   const [slotLocal, setSlotLocal] = useState(slotStyleConfig || { slots: {} });
+  const [animLocal, setAnimLocal] = useState(animationConfig || { style: 'slide', targets: {} });
   const debounceRef = useRef(null);
   const slotDebounceRef = useRef(null);
 
   useEffect(() => setLocal(config), [config]);
   useEffect(() => setSlotLocal(slotStyleConfig || { slots: {} }), [slotStyleConfig]);
+  useEffect(() => {
+    if (animationConfig) setAnimLocal(animationConfig);
+  }, [animationConfig]);
 
   function pushUpdate(partial) {
     setLocal((prev) => ({ ...prev, ...partial }));
@@ -55,6 +59,14 @@ export default function useCustomizeState({ api, config, slotStyleConfig }) {
     slotDebounceRef.current = setTimeout(() => {
       api.updateSlotStyle({ slots: { [slot]: patch } });
     }, 100);
+  }
+
+  // Style changes (e.g. picking "Nảy" from the dropdown) are applied
+  // immediately, no debounce — this is a discrete choice, not a drag/slider,
+  // and the overlay preview should react to it right away.
+  async function pushAnimationUpdate(partial) {
+    const result = await api.updateAnimation(partial);
+    if (result?.animationConfig) setAnimLocal(result.animationConfig);
   }
 
   async function resetPreset() {
@@ -114,8 +126,10 @@ export default function useCustomizeState({ api, config, slotStyleConfig }) {
   return {
     local,
     slotLocal,
+    animLocal,
     pushUpdate,
     pushSlotUpdate,
+    pushAnimationUpdate,
     resetPreset,
     selectedObject,
     setSelectedObject,

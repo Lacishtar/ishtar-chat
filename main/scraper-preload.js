@@ -21,7 +21,16 @@ function resolveAvatarUrl(root, selectors) {
   }
 
   for (const el of candidates) {
-    const src = el.src || el.getAttribute('src') || el.getAttribute('data-src') || '';
+    // YouTube's yt-img-shadow may set src asynchronously; check multiple
+    // lazy-load attribute patterns used across different YouTube DOM versions.
+    const src =
+      el.src ||
+      el.getAttribute('src') ||
+      el.getAttribute('data-src') ||
+      el.getAttribute('lazy-src') ||
+      // yt-img-shadow sometimes stores the URL on the parent custom element
+      (el.parentElement ? el.parentElement.getAttribute('src') : '') ||
+      '';
     if (src && !src.startsWith('data:') && src !== window.location.href) return src;
   }
 
@@ -94,7 +103,23 @@ function handleAddedNode(node) {
   }
 
   const extracted = extractMessage(node);
-  if (extracted) queueMessage(extracted);
+  if (!extracted) return;
+
+  if (extracted.avatarUrl) {
+    // Avatar URL already resolved — send immediately.
+    queueMessage(extracted);
+  } else {
+    // Avatar img.src may not be set yet (YouTube yt-img-shadow lazy-loads).
+    // Re-probe once after a short delay, then send regardless so the message
+    // is never dropped. 300 ms is enough for the custom element lifecycle but
+    // well within the window before YouTube removes old chat nodes.
+    setTimeout(() => {
+      if (document.body.contains(node)) {
+        extracted.avatarUrl = resolveAvatarUrl(node, selectors);
+      }
+      queueMessage(extracted);
+    }, 300);
+  }
 }
 
 function startObserving() {

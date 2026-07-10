@@ -150,7 +150,12 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
       </AccordionSection>
 
       <AccordionSection title="Advanced — Behavior & Animation" {...sec('behavior')}>
-        <AnimationSection local={local} onChange={pushUpdate} />
+        <AnimationSection
+          local={local}
+          onChange={pushUpdate}
+          animLocal={state.animLocal}
+          onAnimationChange={state.pushAnimationUpdate}
+        />
       </AccordionSection>
     </div>
   );

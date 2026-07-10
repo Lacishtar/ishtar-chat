@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { createThemeDocument } = require('../../shared/theme-document');
 const { DEFAULT_LAYOUT_CONFIG } = require('../../shared/layout-config');
-const { DEFAULT_BUBBLE_CONFIG, mergeBubbleConfig } = require('../../shared/bubble-config');
+const { DEFAULT_BUBBLE_CONFIG } = require('../../shared/bubble-config');
 
 const THEMES_DIR = path.join(__dirname, '..', '..', 'themes');
 const HIDDEN_THEME_IDS = new Set(['ticker', 'scrapbook']);
@@ -86,14 +86,7 @@ function buildLayout(themeId, slots) {
 // about what actually renders changes. It exists so the Style Engine
 // (refactor step 3) has a real style.json to start from for legacy themes
 // instead of nothing.
-function buildStyle(config, themeId) {
-  const bubbleFile = themeId
-    ? readJson(path.join(THEMES_DIR, themeId, 'bubble-config.json'), null)
-    : null;
-  const bubble = bubbleFile
-    ? mergeBubbleConfig(DEFAULT_BUBBLE_CONFIG, bubbleFile)
-    : { ...DEFAULT_BUBBLE_CONFIG };
-
+function buildStyle(config) {
   return {
     schemaVersion: '1.0',
     tokens: {
@@ -111,7 +104,7 @@ function buildStyle(config, themeId) {
       },
     },
     componentOverrides: {},
-    bubble,
+    bubble: { ...DEFAULT_BUBBLE_CONFIG },
     // Fields with no style.json token equivalent yet (showAvatar, showBadges,
     // avatarSize, bubbleOpacity, position, maxMessages) intentionally stay
     // only in the flat customize-config for now — mirroring them here too
@@ -175,7 +168,7 @@ function adaptLegacyTheme(themeId) {
       description: `Legacy theme (auto-adapted from themes/${themeId}).`,
     },
     layout: buildLayout(themeId, slots),
-    style: buildStyle(config, themeId),
+    style: buildStyle(config),
     animation: buildAnimation(config),
     // rules is left at its empty default — no legacy theme has any
     // conditional behavior, and none should suddenly gain any just from

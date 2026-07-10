@@ -23,72 +23,86 @@
 @keyframes ovs-slot-avatar-in {
   from {
     opacity: 0;
+    filter: blur(var(--ovs-anim-avatar-blur, 0px));
     transform: translate(
         calc(var(--ovs-anim-avatar-translate-x, 0px) + var(--ovs-slot-avatar-translate-x, 0px)),
         calc(var(--ovs-anim-avatar-translate-y, 8px) + var(--ovs-slot-avatar-translate-y, 0px))
       )
-      rotate(var(--ovs-slot-avatar-rotate, 0deg));
+      rotate(var(--ovs-slot-avatar-rotate, 0deg))
+      scale(var(--ovs-anim-avatar-scale, 1));
   }
   to {
     opacity: 1;
+    filter: blur(0px);
     transform: translate(var(--ovs-slot-avatar-translate-x, 0), var(--ovs-slot-avatar-translate-y, 0))
-      rotate(var(--ovs-slot-avatar-rotate, 0deg));
+      rotate(var(--ovs-slot-avatar-rotate, 0deg))
+      scale(1);
   }
 }
 
 @keyframes ovs-slot-author-in {
   from {
     opacity: 0;
+    filter: blur(var(--ovs-anim-author-blur, 0px));
     transform: translate(
         calc(var(--ovs-anim-author-translate-x, -6px) + var(--ovs-slot-author-translate-x, 0px)),
         calc(var(--ovs-anim-author-translate-y, 0px) + var(--ovs-slot-author-translate-y, 0px))
       )
-      rotate(var(--ovs-slot-author-rotate, 0deg));
+      rotate(var(--ovs-slot-author-rotate, 0deg))
+      scale(var(--ovs-anim-author-scale, 1));
   }
   to {
     opacity: 1;
+    filter: blur(0px);
     transform: translate(var(--ovs-slot-author-translate-x, 0), var(--ovs-slot-author-translate-y, 0))
-      rotate(var(--ovs-slot-author-rotate, 0deg));
+      rotate(var(--ovs-slot-author-rotate, 0deg))
+      scale(1);
   }
 }
 
 @keyframes ovs-slot-badges-in {
   from {
     opacity: 0;
+    filter: blur(var(--ovs-anim-badges-blur, 0px));
     transform: translate(
         calc(var(--ovs-anim-badges-translate-x, -4px) + var(--ovs-slot-badges-translate-x, 0px)),
         calc(var(--ovs-anim-badges-translate-y, 0px) + var(--ovs-slot-badges-translate-y, 0px))
       )
-      rotate(var(--ovs-slot-badges-rotate, 0deg));
+      rotate(var(--ovs-slot-badges-rotate, 0deg))
+      scale(var(--ovs-anim-badges-scale, 1));
   }
   to {
     opacity: 1;
+    filter: blur(0px);
     transform: translate(var(--ovs-slot-badges-translate-x, 0), var(--ovs-slot-badges-translate-y, 0))
-      rotate(var(--ovs-slot-badges-rotate, 0deg));
+      rotate(var(--ovs-slot-badges-rotate, 0deg))
+      scale(1);
   }
 }
 
 @keyframes ovs-slot-message-in {
   from {
     opacity: 0;
+    filter: blur(var(--ovs-anim-message-blur, 0px));
     transform: translate(
         calc(var(--ovs-anim-message-translate-x, 0px) + var(--ovs-slot-message-translate-x, 0px)),
         calc(var(--ovs-anim-message-translate-y, 6px) + var(--ovs-slot-message-translate-y, 0px))
       )
-      rotate(var(--ovs-slot-message-rotate, 0deg));
+      rotate(var(--ovs-slot-message-rotate, 0deg))
+      scale(var(--ovs-anim-message-scale, 1));
   }
   to {
     opacity: 1;
+    filter: blur(0px);
     transform: translate(var(--ovs-slot-message-translate-x, 0), var(--ovs-slot-message-translate-y, 0))
-      rotate(var(--ovs-slot-message-rotate, 0deg));
+      rotate(var(--ovs-slot-message-rotate, 0deg))
+      scale(1);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ovs-avatar.ovs-slot-enter,
-  .ovs-author.ovs-slot-enter,
-  .ovs-badges.ovs-slot-enter,
-  .ovs-text.ovs-slot-enter {
-    animation: none;
-  }
-}
+/* Note: entrance animations are intentionally NOT gated by
+   `prefers-reduced-motion`. OBS's Browser Source (CEF) frequently reports
+   `reduce` regardless of the actual OS setting, which silently killed all
+   slot-enter animations. Animation on/off is controlled explicitly by the
+   app's own toggle instead (see --ovs-anim-enabled, checked in
+   overlay/modules/message-renderer.js). */
