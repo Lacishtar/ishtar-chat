@@ -27,6 +27,10 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
     globalConfig,
     slotBubbleVal(slotLocal, slot, 'bubblePadding', globalConfig, 10),
   );
+  const padTop = slotBubbleVal(slotLocal, slot, 'bubblePaddingTop', globalConfig, padY);
+  const padRight = slotBubbleVal(slotLocal, slot, 'bubblePaddingRight', globalConfig, padX);
+  const padBottom = slotBubbleVal(slotLocal, slot, 'bubblePaddingBottom', globalConfig, padY);
+  const padLeft = slotBubbleVal(slotLocal, slot, 'bubblePaddingLeft', globalConfig, padX);
 
   const textureVal = {
     bubbleTextureUrl: slotBubbleVal(slotLocal, slot, 'bubbleTextureUrl', globalConfig, null),
@@ -56,6 +60,10 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
       bubblePadding: null,
       bubblePaddingX: null,
       bubblePaddingY: null,
+      bubblePaddingTop: null,
+      bubblePaddingRight: null,
+      bubblePaddingBottom: null,
+      bubblePaddingLeft: null,
       bubbleTextureUrl: null,
       bubbleTextureSize: null,
       bubbleTextureRepeat: null,
@@ -112,15 +120,19 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
             <BubbleShapeSection
               radius={slotBubbleVal(slotLocal, slot, 'bubbleRadius', globalConfig, globalConfig.bubbleRadius ?? 14)}
               opacity={slotBubbleVal(slotLocal, slot, 'bubbleOpacity', globalConfig, globalConfig.bubbleOpacity ?? 1)}
-              padX={padX}
-              padY={padY}
+              padTop={padTop}
+              padRight={padRight}
+              padBottom={padBottom}
+              padLeft={padLeft}
               minWidth={slotBubbleVal(slotLocal, slot, 'bubbleMinWidth', globalConfig, globalConfig.bubbleMinWidth ?? 0)}
               onChange={(patch) =>
                 pushSlotUpdate(slot, {
                   ...(patch.radius !== undefined ? { bubbleRadius: patch.radius } : {}),
                   ...(patch.opacity !== undefined ? { bubbleOpacity: patch.opacity } : {}),
-                  ...(patch.padX !== undefined ? { bubblePaddingX: patch.padX } : {}),
-                  ...(patch.padY !== undefined ? { bubblePaddingY: patch.padY } : {}),
+                  ...(patch.padTop !== undefined ? { bubblePaddingTop: patch.padTop } : {}),
+                  ...(patch.padRight !== undefined ? { bubblePaddingRight: patch.padRight } : {}),
+                  ...(patch.padBottom !== undefined ? { bubblePaddingBottom: patch.padBottom } : {}),
+                  ...(patch.padLeft !== undefined ? { bubblePaddingLeft: patch.padLeft } : {}),
                   ...(patch.minWidth !== undefined ? { bubbleMinWidth: patch.minWidth } : {}),
                 })
               }
@@ -140,7 +152,7 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
               style={slotBubbleVal(slotLocal, slot, 'bubbleBorderStyle', globalConfig, 'solid')}
               color={slotBubbleVal(slotLocal, slot, 'bubbleBorderColor', globalConfig, globalConfig.textColor)}
               defaultColor={globalConfig.textColor}
-              offset={slotBubbleVal(slotLocal, slot, 'bubbleBorderOffset', globalConfig, globalConfig.bubbleBorderOffset ?? 0)}
+              offset={slotBubbleVal(slotLocal, slot, 'bubbleBorderOffset', globalConfig, 0)}
               onChange={(patch) =>
                 pushSlotUpdate(slot, {
                   ...(patch.width !== undefined ? { bubbleBorderWidth: patch.width } : {}),

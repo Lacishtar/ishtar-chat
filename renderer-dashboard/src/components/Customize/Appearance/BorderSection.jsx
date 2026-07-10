@@ -2,15 +2,16 @@ import { Field, inputClass, EnableToggle } from '../shared/fields.jsx';
 import { BORDER_STYLE_OPTIONS } from '../shared/constants.js';
 
 /**
- * Fully generic: the caller decides what "width/style/color/offset" mean (global
+ * Fully generic: the caller decides what "width/style/color" mean (global
  * config field, slot-style field, or slot-bubble field) by supplying
  * `values` + `onChange`. This is what lets the same component back the
  * global "Bubble cả tin nhắn" border, the Avatar border, and the per-slot
  * "Bubble riêng" border without duplicating logic three times.
  *
- * `offset` — CSS outline-offset equivalent (px). Positive = border ring grows
- * outward beyond the element; negative = ring shrinks inward inside the element.
- * When non-zero the border renders via `outline` so it doesn't affect layout.
+ * `offset` — CSS outline-offset equivalent (px). Only Avatar border currently
+ * needs this, so the offset slider only renders when the caller passes this
+ * prop; Bubble border call sites (global + per-slot) don't pass it and won't
+ * show the slider.
  */
 export default function BorderSection({
   width,
@@ -80,23 +81,27 @@ export default function BorderSection({
               onChange={(e) => onChange({ color: e.target.value })}
             />
           </Field>
-          <Field label={`Vị trí viền (offset) — ${effectiveOffset > 0 ? '+' : ''}${effectiveOffset}px`}>
-            <input
-              type="range"
-              min={-20}
-              max={20}
-              step={1}
-              value={effectiveOffset}
-              onChange={(e) => onChange({ offset: Number(e.target.value) })}
-            />
-          </Field>
-          <div className="col-span-2 text-[10px] text-inkMuted leading-snug">
-            {effectiveOffset > 0
-              ? `▲ Viền nằm ngoài bubble (+${effectiveOffset}px)`
-              : effectiveOffset < 0
-              ? `▼ Viền nằm trong bubble (${effectiveOffset}px)`
-              : '→ Viền nằm sát cạnh (0px — mặc định)'}
-          </div>
+          {offset !== undefined && (
+            <>
+              <Field label={`Vị trí viền (offset) — ${effectiveOffset > 0 ? '+' : ''}${effectiveOffset}px`}>
+                <input
+                  type="range"
+                  min={-20}
+                  max={20}
+                  step={1}
+                  value={effectiveOffset}
+                  onChange={(e) => onChange({ offset: Number(e.target.value) })}
+                />
+              </Field>
+              <div className="col-span-2 text-[10px] text-inkMuted leading-snug">
+                {effectiveOffset > 0
+                  ? `▲ Viền nằm ngoài avatar (+${effectiveOffset}px)`
+                  : effectiveOffset < 0
+                  ? `▼ Viền nằm trong avatar (${effectiveOffset}px)`
+                  : '→ Viền nằm sát cạnh (0px — mặc định)'}
+              </div>
+            </>
+          )}
         </>
       )}
     </>

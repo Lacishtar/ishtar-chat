@@ -22,6 +22,26 @@ const PLACEMENT_OPTIONS = [
   { value: 'custom', label: 'Tùy chỉnh tự do (Custom X/Y)' },
 ];
 
+// Keep in sync with shared/decoration-config.js#MASK_TARGETS. 'avatar',
+// 'bubble', 'username', and 'chatContainer' are wired to real shape
+// sources; the rest are reserved so the UI already reads naturally once
+// those targets are implemented.
+const MASK_TARGET_OPTIONS = [
+  { value: 'avatar', label: 'Avatar' },
+  { value: 'bubble', label: 'Bubble (khung chat)' },
+  { value: 'username', label: 'Username (bubble tên)' },
+  { value: 'chatContainer', label: 'Chat Message (bubble nội dung)' },
+  { value: 'bottomAccentBar', label: 'Bottom Accent Bar (sắp có)' },
+  { value: 'glowLayer', label: 'Glow Layer (sắp có)' },
+  { value: 'customShape', label: 'Custom Shape (sắp có)' },
+];
+
+const MASK_MODE_OPTIONS = [
+  { value: 'clipInside', label: 'Clip Inside — chỉ giữ phần trong shape' },
+  { value: 'clipOutside', label: 'Clip Outside — shape khoét một lỗ' },
+  { value: 'none', label: 'None — hiển thị bình thường' },
+];
+
 const inputClass =
   'w-full rounded-lg bg-panelAlt border border-line px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-focusAccent';
 
@@ -53,6 +73,13 @@ function createDefaultLayer() {
     width: 48,
     height: 48,
     opacity: 1,
+    // Mask defaults — kept in sync with shared/decoration-config.js#DEFAULT_MASK.
+    maskEnabled: false,
+    maskTarget: 'avatar',
+    maskMode: 'clipInside',
+    maskPadding: 0,
+    maskFeather: 0,
+    maskInvert: false,
   };
 }
 
@@ -222,6 +249,98 @@ function LayerCard({ layer, index, onChange, onRemove }) {
           className="w-full accent-focusAccent"
         />
       </Field>
+
+      <MaskSection layer={layer} set={set} />
+    </div>
+  );
+}
+
+/**
+ * Mask controls for a single decoration layer. All child controls are
+ * disabled while "Enable Mask" is off, per spec — they still render (so
+ * the last-used values are visible/preserved) but can't be edited.
+ */
+function MaskSection({ layer, set }) {
+  const maskEnabled = layer.maskEnabled === true;
+
+  return (
+    <div className="rounded-lg border border-line bg-panel/60 p-3 flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-inkMuted">Mask</span>
+        <label className="flex items-center gap-1.5 text-xs text-inkMuted cursor-pointer">
+          <input
+            type="checkbox"
+            checked={maskEnabled}
+            onChange={(e) => set({ maskEnabled: e.target.checked })}
+            className="rounded"
+          />
+          Enable Mask
+        </label>
+      </div>
+
+      <fieldset disabled={!maskEnabled} className="flex flex-col gap-3 disabled:opacity-40">
+        <Field label="Mask Target">
+          <select
+            className={inputClass}
+            value={layer.maskTarget || 'avatar'}
+            onChange={(e) => set({ maskTarget: e.target.value })}
+          >
+            {MASK_TARGET_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Mask Mode">
+          <select
+            className={inputClass}
+            value={layer.maskMode || 'clipInside'}
+            onChange={(e) => set({ maskMode: e.target.value })}
+          >
+            {MASK_MODE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label={`Mask Padding — ${layer.maskPadding ?? 0}px`}>
+          <input
+            type="range"
+            min={-100}
+            max={100}
+            step={1}
+            value={layer.maskPadding ?? 0}
+            onChange={(e) => set({ maskPadding: Number(e.target.value) })}
+            className="w-full accent-focusAccent"
+          />
+        </Field>
+
+        <Field label={`Mask Feather — ${layer.maskFeather ?? 0}px`}>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={layer.maskFeather ?? 0}
+            onChange={(e) => set({ maskFeather: Number(e.target.value) })}
+            className="w-full accent-focusAccent"
+          />
+        </Field>
+
+        <label className="flex items-center gap-1.5 text-xs text-inkMuted cursor-pointer">
+          <input
+            type="checkbox"
+            checked={layer.maskInvert === true}
+            onChange={(e) => set({ maskInvert: e.target.checked })}
+            className="rounded"
+          />
+          Invert Mask
+        </label>
+      </fieldset>
     </div>
   );
 }

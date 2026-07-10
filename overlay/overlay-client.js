@@ -218,6 +218,34 @@
     return messageNode;
   }
 
+  /**
+   * Resolves which element is the actual visible "bubble" shape for
+   * masking purposes. Unlike resolveBubbleAnchor() (used for decoration
+   * *placement*, which only special-cases the message-wrap mode), this
+   * checks all three bubble-wrap flags so the mask always follows whichever
+   * element is really rendering the rounded bubble:
+   *   - row wrap    -> the whole message row (.ovs-message)
+   *   - message wrap-> the message/text bubble (.ovs-text)
+   *   - author wrap -> the username bubble (.ovs-author)
+   * If none are active, .ovs-message is used as a harmless fallback (it
+   * simply won't have any border-radius to clip to).
+   * Priority row > message > author matches the existing default when
+   * both message and author are wrapped at once (message was already the
+   * implicit choice via resolveBubbleAnchor).
+   */
+  function resolveBubbleMaskElement(messageNode) {
+    if (!messageNode) return null;
+    const root = document.documentElement;
+    if (root.dataset.ovsBubbleWrapRow === 'true') return messageNode;
+    if (root.dataset.ovsBubbleWrapMessage === 'true') {
+      return messageNode.querySelector('[data-slot="message"]') || messageNode;
+    }
+    if (root.dataset.ovsBubbleWrapAuthor === 'true') {
+      return messageNode.querySelector('[data-slot="author"]') || messageNode;
+    }
+    return messageNode;
+  }
+
   function applyInlineStyle(el, styleMap) {
     Object.entries(styleMap).forEach(([key, value]) => {
       el.style[key] = value;
@@ -275,6 +303,198 @@
     messageNode.querySelectorAll('.ovs-decoration-layer').forEach((el) => el.remove());
   }
 
+  // ---------------------------------------------------------------------
+  // Decoration clipping-mask system
+  //
+  // Render order stays: Avatar -> Sticker Decoration -> Apply Mask -> Glow
+  // -> Border -> Foreground Decorations. The mask is realized as a CSS
+  // mask-image on the decoration <img> itself (applied right after the
+  // decoration is created, before it's appended), so it never touches the
+  // theme's own glow/border layers or their stacking order. When a layer's
+  // mask is disabled (the default), none of this code path runs and the
+  // decoration renders exactly as it did before this feature existed.
+  // ---------------------------------------------------------------------
+
+  // Cache of generated SVG mask data-URLs, keyed by a signature of every
+  // input that can change the mask's pixels. Avoids rebuilding/re-parsing
+  // an SVG string (and forcing a style recalc) on every render pass when
+  // nothing about the shape actually changed.
+  const maskDataUrlCache = new Map();
+  const MASK_CACHE_LIMIT = 200;
+
+  /**
+   * Maps a maskTarget name to the DOM element that currently renders that
+   * target's visible shape. Only targets with a real, always-present
+   * element are wired here; the rest (bottomAccentBar, glowLayer,
+   * customShape) stay reserved for future work — resolveMaskShapeRect()
+   * returns null for those with a console warning explaining why.
+   *
+   * - 'avatar'        -> [data-slot="avatar"] (existing avatar image)
+   * - 'bubble'        -> whatever element currently renders the visible
+   *                      chat bubble (see resolveBubbleMaskElement): the
+   *                      row, the message/text bubble, or the username
+   *                      bubble — whichever bubble-wrap mode is active.
+   * - 'username'      -> [data-slot="author"] (the username's own bubble,
+   *                      see SlotBubbleSection / bubble-wrap.css .ovs-author)
+   * - 'chatContainer' -> [data-slot="message"] (the chat message's own
+   *                      bubble/text box, .ovs-text in bubble-wrap.css)
+   */
+  function resolveMaskTargetElement(messageNode, target) {
+    if (!messageNode) return null;
+    if (target === 'avatar') return messageNode.querySelector('[data-slot="avatar"]');
+    if (target === 'bubble') return resolveBubbleMaskElement(messageNode);
+    if (target === 'username') return messageNode.querySelector('[data-slot="author"]');
+    if (target === 'chatContainer') return messageNode.querySelector('[data-slot="message"]');
+    return null;
+  }
+
+  /**
+   * Resolves a maskTarget's current visible shape for a message: its box
+   * size/position and effective border-radius. Reads the real computed
+   * style rather than assuming a circle, so circle / rounded-rect /
+   * squircle / fully-custom radii are all honored, for any wired target.
+   */
+  function resolveMaskShapeRect(messageNode, target, debugLayerId) {
+    const targetEl = resolveMaskTargetElement(messageNode, target);
+    if (!targetEl) {
+      console.warn(`[OVS mask] layer "${debugLayerId}": maskTarget "${target}" isn't wired up yet, or its element wasn't found in this message node`);
+      return null;
+    }
+    // Only the avatar has an explicit hidden flag (e.g. "Hiện avatar" off,
+    // or image failed to load); other targets are just checked for size.
+    if (target === 'avatar' && targetEl.getAttribute('data-hidden') === 'true') {
+      console.warn(`[OVS mask] layer "${debugLayerId}": avatar is hidden (data-hidden="true") — either "Hiện avatar" is off, or the avatar image failed to load`);
+      return null;
+    }
+    const rect = targetEl.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      console.warn(`[OVS mask] layer "${debugLayerId}": maskTarget "${target}" element has zero size (${rect.width}x${rect.height})`);
+      return null;
+    }
+    const cs = getComputedStyle(targetEl);
+    return {
+      rect,
+      // border-radius can be "50%", "12px", or a 4-corner shorthand like
+      // "8px 8px 4px 4px" (squircle-ish custom shapes) — the raw computed
+      // string is reused as-is inside the generated SVG <rect rx/ry>.
+      borderRadius: cs.borderRadius || (target === 'avatar' ? '50%' : '0px'),
+    };
+  }
+
+  /** Builds a cache signature so identical shapes/settings reuse one data-URL. */
+  function maskSignature(imgRect, targetShape, mask) {
+    const r = imgRect;
+    const a = targetShape.rect;
+    // Round to whole pixels: sub-pixel layout jitter shouldn't bust the cache.
+    return [
+      mask.maskTarget,
+      Math.round(r.width), Math.round(r.height),
+      Math.round(a.left - r.left), Math.round(a.top - r.top),
+      Math.round(a.width), Math.round(a.height),
+      targetShape.borderRadius,
+      mask.maskMode, mask.maskPadding, mask.maskFeather, mask.maskInvert,
+    ].join('|');
+  }
+
+  /**
+   * Builds (or reuses from cache) an SVG mask-image data-URL that clips a
+   * decoration image to a mask target's visible shape (avatar, bubble,
+   * username, or chat message — see resolveMaskTargetElement).
+   *
+   * The mask is expressed in the decoration image's own local box: the
+   * target rectangle is translated into that coordinate space so the two
+   * can be different sizes/positions and still line up correctly on screen.
+   */
+  function buildTargetMaskDataUrl(imgRect, targetShape, mask) {
+    const sig = maskSignature(imgRect, targetShape, mask);
+    const cached = maskDataUrlCache.get(sig);
+    if (cached) return cached;
+
+    const a = targetShape.rect;
+    const localX = a.left - imgRect.left;
+    const localY = a.top - imgRect.top;
+    const padding = Number(mask.maskPadding) || 0;
+    const feather = Math.max(0, Number(mask.maskFeather) || 0);
+
+    // Padding expands/shrinks the shape symmetrically from its own center.
+    const shapeX = localX - padding;
+    const shapeY = localY - padding;
+    const shapeW = Math.max(0, a.width + padding * 2);
+    const shapeH = Math.max(0, a.height + padding * 2);
+
+    // White = visible, black = hidden, per the SVG mask spec.
+    // maskMode picks the base behavior: 'clipInside' keeps the decoration
+    // visible only where it overlaps the avatar shape (avatar = window);
+    // 'clipOutside' does the opposite (avatar = a hole punched through the
+    // decoration). maskInvert then flips whichever of those was chosen —
+    // it's a modifier on top of the mode, not a replacement for it.
+    const outside = mask.maskMode === 'clipOutside';
+    let shapeFill = outside ? '#000' : '#fff';
+    let bgFill = outside ? '#fff' : '#000';
+    if (mask.maskInvert) {
+      [shapeFill, bgFill] = [bgFill, shapeFill];
+    }
+
+    const filterId = 'f';
+    const blurAttr = feather > 0
+      ? ` filter="url(#${filterId})"`
+      : '';
+    const filterDef = feather > 0
+      ? `<filter id="${filterId}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${feather / 2}"/></filter>`
+      : '';
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${imgRect.width}" height="${imgRect.height}">` +
+      `<defs>${filterDef}</defs>` +
+      `<rect x="0" y="0" width="${imgRect.width}" height="${imgRect.height}" fill="${bgFill}"/>` +
+      `<rect x="${shapeX}" y="${shapeY}" width="${shapeW}" height="${shapeH}" rx="${targetShape.borderRadius}" ` +
+      `fill="${shapeFill}"${blurAttr}/>` +
+      `</svg>`;
+
+    const dataUrl = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
+
+    if (maskDataUrlCache.size >= MASK_CACHE_LIMIT) {
+      maskDataUrlCache.clear();
+    }
+    maskDataUrlCache.set(sig, dataUrl);
+    return dataUrl;
+  }
+
+  /**
+   * Applies (or clears) a layer's clipping mask on its rendered <img>.
+   * No-op — and leaves the element with no mask styles at all — when the
+   * layer has masking disabled, its target isn't wired up yet, or the
+   * target shape can't currently be resolved (e.g. avatar hidden).
+   */
+  function applyDecorationMask(img, messageNode, layer) {
+    if (!layer.maskEnabled || layer.maskMode === 'none') return;
+
+    // 'avatar', 'bubble', 'username', and 'chatContainer' are real,
+    // wired-up mask sources. The rest (bottomAccentBar, glowLayer,
+    // customShape) are reserved schema values for future work (see
+    // MASK_TARGETS in shared/decoration-config.js) and are safely ignored
+    // until then — resolveMaskShapeRect() warns and returns null for those.
+    const targetShape = resolveMaskShapeRect(messageNode, layer.maskTarget, layer.id);
+    if (!targetShape) return; // resolveMaskShapeRect already logged why
+
+    // getBoundingClientRect on the not-yet-inserted img would be empty;
+    // the img is appended to the DOM by the caller before this runs.
+    const imgRect = img.getBoundingClientRect();
+    if (!imgRect.width || !imgRect.height) {
+      console.warn(`[OVS mask] layer "${layer.id}": decoration <img> has zero size (${imgRect.width}x${imgRect.height})`);
+      return;
+    }
+
+    const maskUrl = buildTargetMaskDataUrl(imgRect, targetShape, layer);
+    img.style.maskImage = maskUrl;
+    img.style.webkitMaskImage = maskUrl;
+    img.style.maskRepeat = 'no-repeat';
+    img.style.webkitMaskRepeat = 'no-repeat';
+    img.style.maskSize = '100% 100%';
+    img.style.webkitMaskSize = '100% 100%';
+    img.setAttribute('data-mask-applied', 'true');
+    console.info(`[OVS mask] layer "${layer.id}": mask applied ✔ (mode=${layer.maskMode}, invert=${layer.maskInvert})`);
+  }
+
   function applyDecorationLayers(messageNode, decorationConfig) {
     if (!messageNode) return;
     const layers = Array.isArray(decorationConfig?.layers) ? decorationConfig.layers : [];
@@ -299,6 +519,14 @@
       img.src = proxied || layer.imageUrl;
 
       host.appendChild(img);
+
+      // Mask is applied after the image is in the DOM (layout/position
+      // reads require it) and after src is set, but load timing doesn't
+      // matter here since mask-image is independent of the <img>'s own
+      // decode state.
+      if (layer.maskEnabled) {
+        applyDecorationMask(img, messageNode, layer);
+      }
     });
   }
 
@@ -640,6 +868,15 @@
     if (padX != null) vars[`--ovs-slot-${prefix}-bubble-pad-x`] = pxLocal(padX);
     if (padY != null) vars[`--ovs-slot-${prefix}-bubble-pad-y`] = pxLocal(padY);
 
+    const padTop = isSetLocal(resolve('bubblePaddingTop')) ? resolve('bubblePaddingTop') : padY;
+    const padRight = isSetLocal(resolve('bubblePaddingRight')) ? resolve('bubblePaddingRight') : padX;
+    const padBottom = isSetLocal(resolve('bubblePaddingBottom')) ? resolve('bubblePaddingBottom') : padY;
+    const padLeft = isSetLocal(resolve('bubblePaddingLeft')) ? resolve('bubblePaddingLeft') : padX;
+    if (padTop != null) vars[`--ovs-slot-${prefix}-bubble-pad-top`] = pxLocal(padTop);
+    if (padRight != null) vars[`--ovs-slot-${prefix}-bubble-pad-right`] = pxLocal(padRight);
+    if (padBottom != null) vars[`--ovs-slot-${prefix}-bubble-pad-bottom`] = pxLocal(padBottom);
+    if (padLeft != null) vars[`--ovs-slot-${prefix}-bubble-pad-left`] = pxLocal(padLeft);
+
     if (resolve('bubbleMinWidth') != null) vars[`--ovs-slot-${prefix}-bubble-min-width`] = pxLocal(resolve('bubbleMinWidth'));
 
     const clampPctLocal = (v) => {
@@ -763,7 +1000,6 @@
     if (isSetLocal(c.bubbleBorderWidth)) vars['--ovs-bubble-border-width'] = pxLocal(c.bubbleBorderWidth);
     if (isSetLocal(c.bubbleBorderStyle)) vars['--ovs-bubble-border-style'] = c.bubbleBorderStyle;
     if (isSetLocal(c.bubbleBorderColor)) vars['--ovs-bubble-border-color'] = c.bubbleBorderColor;
-    if (isSetLocal(c.bubbleBorderOffset)) vars['--ovs-bubble-border-offset'] = pxLocal(c.bubbleBorderOffset);
     if (isSetLocal(c.bubbleBoxShadow)) vars['--ovs-bubble-box-shadow'] = c.bubbleBoxShadow;
     if (isSetLocal(c.bubbleGlow)) vars['--ovs-bubble-glow'] = c.bubbleGlow;
 
@@ -771,6 +1007,15 @@
     const padY = isSetLocal(c.bubblePaddingY) ? c.bubblePaddingY : (isSetLocal(c.bubblePadding) ? c.bubblePadding : null);
     if (padX != null) vars['--ovs-bubble-pad-x'] = pxLocal(padX);
     if (padY != null) vars['--ovs-bubble-pad-y'] = pxLocal(padY);
+
+    const padTop = isSetLocal(c.bubblePaddingTop) ? c.bubblePaddingTop : padY;
+    const padRight = isSetLocal(c.bubblePaddingRight) ? c.bubblePaddingRight : padX;
+    const padBottom = isSetLocal(c.bubblePaddingBottom) ? c.bubblePaddingBottom : padY;
+    const padLeft = isSetLocal(c.bubblePaddingLeft) ? c.bubblePaddingLeft : padX;
+    if (padTop != null) vars['--ovs-bubble-pad-top'] = pxLocal(padTop);
+    if (padRight != null) vars['--ovs-bubble-pad-right'] = pxLocal(padRight);
+    if (padBottom != null) vars['--ovs-bubble-pad-bottom'] = pxLocal(padBottom);
+    if (padLeft != null) vars['--ovs-bubble-pad-left'] = pxLocal(padLeft);
 
     const clampPctLocal = (v) => {
       const n = Number(v);
@@ -1261,9 +1506,6 @@
       authorEl.parentElement.insertBefore(amountEl, authorEl.nextSibling);
     }
 
-    if (!isFlythroughTheme()) {
-      applyDecorationLayers(node, currentDecoration);
-    }
     applySlotEnterAnimation(node);
     return node;
   }
@@ -1297,6 +1539,17 @@
     } else {
       listEl.appendChild(node);
     }
+
+    // Decoration masks are built from live layout (getBoundingClientRect on
+    // the mask target — avatar/bubble/username/chatContainer — and on the
+    // decoration <img>), so they can only be computed once `node` is
+    // actually attached to the document — every rect reads as 0x0 on a
+    // detached node, which silently no-ops the whole masking step. Must
+    // run after insertion, not inside createMessageNode().
+    if (!isFlythroughTheme()) {
+      applyDecorationLayers(node, currentDecoration);
+    }
+
     trimToMax();
   }
 
@@ -1330,7 +1583,12 @@
       } else if (payload.type === 'slot-style:updated') {
         currentSlotStyle = payload.data;
         applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation, currentRoleStyle);
-        if (!isFlythroughTheme()) refreshAllSlotBunnyEars();
+        if (!isFlythroughTheme()) {
+          refreshAllSlotBunnyEars();
+          // Avatar size/border-radius live here — any avatar-targeted
+          // decoration mask must be rebuilt against the new shape.
+          refreshAllDecorations();
+        }
       } else if (payload.type === 'animation:updated') {
         currentAnimation = payload.data;
         applyCssVariables(currentConfig, currentLayout, currentSlotStyle, currentAnimation, currentRoleStyle);

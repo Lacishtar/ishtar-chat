@@ -18,6 +18,35 @@ const PLACEMENTS = [
   'center',
 ];
 
+/**
+ * Mask targets — the shape a decoration layer's clipping mask is derived
+ * from. 'avatar', 'bubble', 'username', and 'chatContainer' are wired up to
+ * real shape sources (see resolveMaskTargetElement in overlay-client.js);
+ * 'bottomAccentBar', 'glowLayer', and 'customShape' remain reserved so
+ * future work can add them without touching the schema, normalization, or
+ * UI wiring again.
+ */
+const MASK_TARGETS = [
+  'avatar',
+  'bubble',
+  'username',
+  'chatContainer',
+  'bottomAccentBar',
+  'glowLayer',
+  'customShape',
+];
+
+const MASK_MODES = ['none', 'clipInside', 'clipOutside'];
+
+const DEFAULT_MASK = {
+  maskEnabled: false,
+  maskTarget: 'avatar',
+  maskMode: 'clipInside',
+  maskPadding: 0,
+  maskFeather: 0,
+  maskInvert: false,
+};
+
 const DEFAULT_LAYER = {
   enabled: true,
   imageUrl: '',
@@ -30,6 +59,7 @@ const DEFAULT_LAYER = {
   width: 48,
   height: 48,
   opacity: 1,
+  ...DEFAULT_MASK,
 };
 
 const DEFAULT_DECORATION_CONFIG = {
@@ -50,6 +80,27 @@ function normalizePlacement(placement) {
   return PLACEMENTS.includes(placement) ? placement : 'custom';
 }
 
+function normalizeMaskTarget(target) {
+  return MASK_TARGETS.includes(target) ? target : DEFAULT_MASK.maskTarget;
+}
+
+function normalizeMaskMode(mode) {
+  return MASK_MODES.includes(mode) ? mode : DEFAULT_MASK.maskMode;
+}
+
+/** Normalizes the mask sub-properties of a layer; missing values fall back to sensible defaults. */
+function normalizeMask(raw) {
+  const m = raw || {};
+  return {
+    maskEnabled: m.maskEnabled === true,
+    maskTarget: normalizeMaskTarget(m.maskTarget),
+    maskMode: normalizeMaskMode(m.maskMode),
+    maskPadding: clampNumber(m.maskPadding, DEFAULT_MASK.maskPadding, -100, 100),
+    maskFeather: clampNumber(m.maskFeather, DEFAULT_MASK.maskFeather, 0, 100),
+    maskInvert: m.maskInvert === true,
+  };
+}
+
 function normalizeLayer(raw, index = 0) {
   const layer = raw || {};
   const id = typeof layer.id === 'string' && layer.id.trim() ? layer.id.trim() : `deco-${index}`;
@@ -66,6 +117,9 @@ function normalizeLayer(raw, index = 0) {
     width: clampNumber(layer.width, 48, 8, 400),
     height: clampNumber(layer.height, 48, 8, 400),
     opacity: clampNumber(layer.opacity, 1, 0, 1),
+    // Flat-merged so existing saved layers (no mask keys at all) load with
+    // maskEnabled: false and render exactly as before this feature existed.
+    ...normalizeMask(layer),
   };
 }
 
@@ -143,10 +197,16 @@ function compileLayerInlineStyleString(layer) {
 module.exports = {
   ANCHORS,
   PLACEMENTS,
+  MASK_TARGETS,
+  MASK_MODES,
+  DEFAULT_MASK,
   DEFAULT_DECORATION_CONFIG,
   DEFAULT_LAYER,
   normalizeLayer,
   normalizePlacement,
+  normalizeMaskTarget,
+  normalizeMaskMode,
+  normalizeMask,
   normalizeDecorationConfig,
   mergeDecorationConfig,
   createLayer,

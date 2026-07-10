@@ -18,11 +18,11 @@ export const SEARCH_INDEX = [
 
   { objectId: 'author', sectionId: 'typography', label: 'Tên — Font & màu', keywords: ['tên', 'username', 'font', 'màu', 'color'] },
   { objectId: 'author', sectionId: 'transform', label: 'Tên — Transform', keywords: ['tên', 'xoay', 'rotate', 'offset', 'z-index'] },
-  { objectId: 'author', sectionId: 'bubble', label: 'Tên — Bubble riêng', keywords: ['tên', 'bubble', 'radius', 'viền', 'shadow', 'glow', 'texture', 'tai thỏ'] },
+  { objectId: 'author', sectionId: 'bubble', label: 'Tên — Bubble riêng', keywords: ['tên', 'bubble', 'radius', 'viền', 'border', 'offset', 'shadow', 'glow', 'texture', 'tai thỏ'] },
 
   { objectId: 'message', sectionId: 'typography', label: 'Nội dung — Font & màu', keywords: ['nội dung', 'message', 'font', 'màu', 'color'] },
   { objectId: 'message', sectionId: 'transform', label: 'Nội dung — Transform', keywords: ['nội dung', 'message', 'xoay', 'rotate', 'offset', 'z-index'] },
-  { objectId: 'message', sectionId: 'bubble', label: 'Nội dung — Bubble riêng', keywords: ['nội dung', 'message', 'bubble', 'radius', 'viền', 'shadow', 'glow', 'texture', 'tai thỏ'] },
+  { objectId: 'message', sectionId: 'bubble', label: 'Nội dung — Bubble riêng', keywords: ['nội dung', 'message', 'bubble', 'radius', 'viền', 'border', 'offset', 'shadow', 'glow', 'texture', 'tai thỏ'] },
 
   { objectId: 'badges', sectionId: 'appearance', label: 'Badge — Kích thước & độ mờ', keywords: ['badge', 'huy hiệu', 'size', 'opacity'] },
   { objectId: 'badges', sectionId: 'transform', label: 'Badge — Transform', keywords: ['badge', 'xoay', 'rotate', 'offset', 'z-index'] },

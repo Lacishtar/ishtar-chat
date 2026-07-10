@@ -18,6 +18,10 @@ const BUBBLE_KEYS = [
   'bubblePadding',
   'bubblePaddingX',
   'bubblePaddingY',
+  'bubblePaddingTop',
+  'bubblePaddingRight',
+  'bubblePaddingBottom',
+  'bubblePaddingLeft',
   'bubbleTextureUrl',
   'bubbleTextureSize',
   'bubbleTextureRepeat',
@@ -138,6 +142,19 @@ function compileSlotBubbleDecoration(prefix, slot, globalConfig) {
       : null);
   if (padX != null) vars[`--ovs-slot-${prefix}-bubble-pad-x`] = px(padX);
   if (padY != null) vars[`--ovs-slot-${prefix}-bubble-pad-y`] = px(padY);
+
+  const sidePad = (sideKey, axisFallback) => {
+    const v = resolveSlotBubbleValue(slot, sideKey, globalConfig);
+    return isSet(v) ? v : axisFallback;
+  };
+  const padTop = sidePad('bubblePaddingTop', padY);
+  const padRight = sidePad('bubblePaddingRight', padX);
+  const padBottom = sidePad('bubblePaddingBottom', padY);
+  const padLeft = sidePad('bubblePaddingLeft', padX);
+  if (padTop != null) vars[`--ovs-slot-${prefix}-bubble-pad-top`] = px(padTop);
+  if (padRight != null) vars[`--ovs-slot-${prefix}-bubble-pad-right`] = px(padRight);
+  if (padBottom != null) vars[`--ovs-slot-${prefix}-bubble-pad-bottom`] = px(padBottom);
+  if (padLeft != null) vars[`--ovs-slot-${prefix}-bubble-pad-left`] = px(padLeft);
 
   const minWidth = resolveSlotBubbleValue(slot, 'bubbleMinWidth', globalConfig);
   if (minWidth != null) vars[`--ovs-slot-${prefix}-bubble-min-width`] = px(minWidth);

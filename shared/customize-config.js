@@ -17,12 +17,15 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   bubbleBorderWidth: null, // px; null = theme default
   bubbleBorderStyle: null, // solid | dashed | dotted | none
   bubbleBorderColor: null,
-  bubbleBorderOffset: null, // px; positive = outside bubble, negative = inside bubble
   bubbleBoxShadow: null, // CSS shadow string
   bubbleGlow: null, // CSS filter: drop-shadow(...) string — neon/glow halo, independent of bubbleBoxShadow
   bubblePadding: null, // uniform px for bubble shell
-  bubblePaddingX: null,
-  bubblePaddingY: null,
+  bubblePaddingX: null, // horizontal (left+right) shorthand — kept for backward compatibility
+  bubblePaddingY: null, // vertical (top+bottom) shorthand — kept for backward compatibility
+  bubblePaddingTop: null, // per-side override, falls back to bubblePaddingY
+  bubblePaddingRight: null, // per-side override, falls back to bubblePaddingX
+  bubblePaddingBottom: null, // per-side override, falls back to bubblePaddingY
+  bubblePaddingLeft: null, // per-side override, falls back to bubblePaddingX
   bubbleTextureUrl: null,
   bubbleTextureSize: 'auto',
   bubbleTextureRepeat: 'repeat',
@@ -66,7 +69,6 @@ function compileBubbleDecorationToCssVariables(config) {
   if (isSet(c.bubbleBorderWidth)) vars['--ovs-bubble-border-width'] = px(c.bubbleBorderWidth);
   if (isSet(c.bubbleBorderStyle)) vars['--ovs-bubble-border-style'] = c.bubbleBorderStyle;
   if (isSet(c.bubbleBorderColor)) vars['--ovs-bubble-border-color'] = c.bubbleBorderColor;
-  if (isSet(c.bubbleBorderOffset)) vars['--ovs-bubble-border-offset'] = px(c.bubbleBorderOffset);
   if (isSet(c.bubbleBoxShadow)) vars['--ovs-bubble-box-shadow'] = c.bubbleBoxShadow;
   if (isSet(c.bubbleGlow)) vars['--ovs-bubble-glow'] = c.bubbleGlow;
 
@@ -74,6 +76,15 @@ function compileBubbleDecorationToCssVariables(config) {
   const padY = isSet(c.bubblePaddingY) ? c.bubblePaddingY : (isSet(c.bubblePadding) ? c.bubblePadding : null);
   if (padX != null) vars['--ovs-bubble-pad-x'] = px(padX);
   if (padY != null) vars['--ovs-bubble-pad-y'] = px(padY);
+
+  const padTop = isSet(c.bubblePaddingTop) ? c.bubblePaddingTop : padY;
+  const padRight = isSet(c.bubblePaddingRight) ? c.bubblePaddingRight : padX;
+  const padBottom = isSet(c.bubblePaddingBottom) ? c.bubblePaddingBottom : padY;
+  const padLeft = isSet(c.bubblePaddingLeft) ? c.bubblePaddingLeft : padX;
+  if (padTop != null) vars['--ovs-bubble-pad-top'] = px(padTop);
+  if (padRight != null) vars['--ovs-bubble-pad-right'] = px(padRight);
+  if (padBottom != null) vars['--ovs-bubble-pad-bottom'] = px(padBottom);
+  if (padLeft != null) vars['--ovs-bubble-pad-left'] = px(padLeft);
 
   if (isSet(c.bubbleBunnyEarsWidth)) vars['--ovs-bunny-ears-width'] = px(c.bubbleBunnyEarsWidth);
   if (isSet(c.bubbleBunnyEarsHeight)) vars['--ovs-bunny-ears-height'] = px(c.bubbleBunnyEarsHeight);

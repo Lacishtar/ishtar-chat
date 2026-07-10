@@ -60,15 +60,19 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
         <BubbleShapeSection
           radius={local.bubbleRadius}
           opacity={local.bubbleOpacity}
-          padX={configVal(local, 'bubblePaddingX', configVal(local, 'bubblePadding', 14))}
-          padY={configVal(local, 'bubblePaddingY', configVal(local, 'bubblePadding', 10))}
+          padTop={configVal(local, 'bubblePaddingTop', configVal(local, 'bubblePaddingY', configVal(local, 'bubblePadding', 10)))}
+          padRight={configVal(local, 'bubblePaddingRight', configVal(local, 'bubblePaddingX', configVal(local, 'bubblePadding', 14)))}
+          padBottom={configVal(local, 'bubblePaddingBottom', configVal(local, 'bubblePaddingY', configVal(local, 'bubblePadding', 10)))}
+          padLeft={configVal(local, 'bubblePaddingLeft', configVal(local, 'bubblePaddingX', configVal(local, 'bubblePadding', 14)))}
           minWidth={local.bubbleMinWidth ?? 0}
           onChange={(patch) =>
             pushUpdate({
               ...(patch.radius !== undefined ? { bubbleRadius: patch.radius } : {}),
               ...(patch.opacity !== undefined ? { bubbleOpacity: patch.opacity } : {}),
-              ...(patch.padX !== undefined ? { bubblePaddingX: patch.padX } : {}),
-              ...(patch.padY !== undefined ? { bubblePaddingY: patch.padY } : {}),
+              ...(patch.padTop !== undefined ? { bubblePaddingTop: patch.padTop } : {}),
+              ...(patch.padRight !== undefined ? { bubblePaddingRight: patch.padRight } : {}),
+              ...(patch.padBottom !== undefined ? { bubblePaddingBottom: patch.padBottom } : {}),
+              ...(patch.padLeft !== undefined ? { bubblePaddingLeft: patch.padLeft } : {}),
               ...(patch.minWidth !== undefined ? { bubbleMinWidth: patch.minWidth } : {}),
             })
           }
@@ -90,13 +94,11 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
           style={configVal(local, 'bubbleBorderStyle', 'solid')}
           color={configVal(local, 'bubbleBorderColor', local.textColor)}
           defaultColor={local.textColor}
-          offset={configVal(local, 'bubbleBorderOffset', 0)}
           onChange={(patch) =>
             pushUpdate({
               ...(patch.width !== undefined ? { bubbleBorderWidth: patch.width } : {}),
               ...(patch.style !== undefined ? { bubbleBorderStyle: patch.style } : {}),
               ...(patch.color !== undefined ? { bubbleBorderColor: patch.color } : {}),
-              ...(patch.offset !== undefined ? { bubbleBorderOffset: patch.offset } : {}),
             })
           }
         />

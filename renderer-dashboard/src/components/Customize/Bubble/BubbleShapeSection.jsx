@@ -1,6 +1,18 @@
 import { Field } from '../shared/fields.jsx';
 
-export default function BubbleShapeSection({ radius, opacity, padX, padY, minWidth, onChange }) {
+export default function BubbleShapeSection({
+  radius,
+  opacity,
+  padTop,
+  padRight,
+  padBottom,
+  padLeft,
+  minWidth,
+  onChange,
+}) {
+  const applyToAllSides = (value) =>
+    onChange({ padTop: value, padRight: value, padBottom: value, padLeft: value });
+
   return (
     <>
       <Field label={`Bo góc — ${radius}px`}>
@@ -16,12 +28,31 @@ export default function BubbleShapeSection({ radius, opacity, padX, padY, minWid
           onChange={(e) => onChange({ opacity: Number(e.target.value) })}
         />
       </Field>
-      <Field label={`Padding ngang — ${padX}px`}>
-        <input type="range" min={0} max={40} value={padX} onChange={(e) => onChange({ padX: Number(e.target.value) })} />
+
+      <div className="col-span-2 flex items-center justify-between">
+        <span className="text-xs text-inkMuted">Padding — khoảng đệm 4 cạnh trong bubble</span>
+        <button
+          type="button"
+          onClick={() => applyToAllSides(padTop)}
+          className="text-[10px] text-inkMuted hover:text-ink underline shrink-0"
+          title="Đặt padding trên/phải/dưới/trái bằng nhau (dùng giá trị Padding trên hiện tại)"
+        >
+          Áp dụng đều 4 cạnh
+        </button>
+      </div>
+      <Field label={`Padding trên — ${padTop}px`}>
+        <input type="range" min={0} max={40} value={padTop} onChange={(e) => onChange({ padTop: Number(e.target.value) })} />
       </Field>
-      <Field label={`Padding dọc — ${padY}px`}>
-        <input type="range" min={0} max={40} value={padY} onChange={(e) => onChange({ padY: Number(e.target.value) })} />
+      <Field label={`Padding phải — ${padRight}px`}>
+        <input type="range" min={0} max={40} value={padRight} onChange={(e) => onChange({ padRight: Number(e.target.value) })} />
       </Field>
+      <Field label={`Padding dưới — ${padBottom}px`}>
+        <input type="range" min={0} max={40} value={padBottom} onChange={(e) => onChange({ padBottom: Number(e.target.value) })} />
+      </Field>
+      <Field label={`Padding trái — ${padLeft}px`}>
+        <input type="range" min={0} max={40} value={padLeft} onChange={(e) => onChange({ padLeft: Number(e.target.value) })} />
+      </Field>
+
       {minWidth !== undefined && (
         <div className="col-span-2">
           <Field label={`Độ rộng tối thiểu — ${minWidth}px`}>

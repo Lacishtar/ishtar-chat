@@ -46,3 +46,14 @@
 .ovs-decoration-layer[data-load-error='true'] {
   display: none;
 }
+
+/* Clipping-mask system — mask-image/-webkit-mask-image itself is set
+   inline (per layer, computed from the avatar's live shape). The generated
+   SVG encodes visibility as luminance (solid white = shown, solid black =
+   hidden) with no alpha variation at all, so mask-mode must be luminance —
+   alpha mode would see a uniformly opaque mask everywhere and silently
+   render the whole layer unmasked. */
+.ovs-decoration-layer[data-mask-applied='true'] {
+  -webkit-mask-mode: luminance;
+  mask-mode: luminance;
+}

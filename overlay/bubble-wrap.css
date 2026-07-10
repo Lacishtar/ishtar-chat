@@ -8,7 +8,6 @@
   background: transparent !important;
   border-width: 0 !important;
   border-color: transparent !important;
-  outline: none !important;
   box-shadow: none !important;
   filter: none !important;
   backdrop-filter: none !important;
@@ -18,24 +17,21 @@
 }
 
 :root[data-ovs-bubble-wrap-row='true'] .ovs-message {
-  padding: var(--ovs-bubble-pad-y, 8px) var(--ovs-bubble-pad-x, 12px) !important;
+  padding: var(--ovs-bubble-pad-top, var(--ovs-bubble-pad-y, 8px))
+    var(--ovs-bubble-pad-right, var(--ovs-bubble-pad-x, 12px))
+    var(--ovs-bubble-pad-bottom, var(--ovs-bubble-pad-y, 8px))
+    var(--ovs-bubble-pad-left, var(--ovs-bubble-pad-x, 12px)) !important;
   border-radius: var(--ovs-bubble-radius, 14px) !important;
   background: var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)) !important;
   opacity: var(--ovs-bubble-opacity, 1) !important;
-  border-width: 0 !important;
+  border-width: var(--ovs-bubble-border-width, 0) !important;
+  border-style: var(--ovs-bubble-border-style, solid) !important;
+  border-color: var(--ovs-bubble-border-color, transparent) !important;
   box-shadow: var(--ovs-bubble-box-shadow, none) !important;
   filter: var(--ovs-bubble-glow, none) !important;
   backdrop-filter: var(--ovs-bubble-backdrop, none) !important;
   -webkit-backdrop-filter: var(--ovs-bubble-backdrop, none) !important;
   min-width: var(--ovs-bubble-min-width, 0px) !important;
-  /* Outline ring — offset controls inside/outside positioning without affecting layout.
-     outline-offset:  0   = ring sits at element edge (same visual as border)
-     outline-offset: >0   = ring expands outside the bubble
-     outline-offset: <0   = ring contracts inside the bubble */
-  outline-width: var(--ovs-bubble-border-width, 0) !important;
-  outline-style: var(--ovs-bubble-border-style, solid) !important;
-  outline-color: var(--ovs-bubble-border-color, transparent) !important;
-  outline-offset: var(--ovs-bubble-border-offset, 0px) !important;
 }
 
 :root[data-ovs-bubble-wrap-row='true'] .ovs-text {
@@ -60,35 +56,45 @@
 }
 
 :root[data-ovs-bubble-wrap-author='true'] .ovs-meta {
-  align-items: flex-start;
+  /* Follow the configured Layout Direction (avatarPosition/RTL mirror) instead
+     of hard-coding the start side — keeps split-wrap in sync with row-wrap,
+     which gets this for free by inheriting .ovs-body's align-items. */
+  align-items: var(--ovs-layout-meta-align, flex-start);
 }
 
 :root[data-ovs-bubble-wrap-message='true'] .ovs-body {
-  align-items: flex-start !important;
+  align-items: var(--ovs-layout-body-align, flex-start) !important;
 }
 
 :root[data-ovs-bubble-wrap-author='true'] .ovs-author {
   display: inline-block;
   width: fit-content;
   max-width: 100%;
-  align-self: flex-start;
+  /* Same fix as .ovs-meta above: mirror the row-wrap behavior (where
+     .ovs-author has no align-self override and simply inherits from
+     .ovs-meta's align-items) instead of always hugging the start side. */
+  align-self: var(--ovs-layout-meta-align, flex-start);
   min-width: var(--ovs-slot-author-bubble-min-width, var(--ovs-bubble-min-width, 0px)) !important;
   box-sizing: border-box;
   background: var(--ovs-slot-author-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
   opacity: var(--ovs-slot-author-bubble-opacity, var(--ovs-bubble-opacity, 1));
   border-radius: var(--ovs-slot-author-bubble-radius, var(--ovs-bubble-radius, 14px));
   border-width: 0;
-  box-shadow: var(--ovs-slot-author-bubble-box-shadow, var(--ovs-bubble-box-shadow, none));
-  filter: var(--ovs-slot-author-bubble-glow, var(--ovs-bubble-glow, none));
-  padding: var(--ovs-slot-author-bubble-pad-y, var(--ovs-bubble-pad-y, 8px))
-    var(--ovs-slot-author-bubble-pad-x, var(--ovs-bubble-pad-x, 12px));
-  backdrop-filter: var(--ovs-bubble-backdrop, none);
-  -webkit-backdrop-filter: var(--ovs-bubble-backdrop, none);
-  /* Outline ring — offset controls inside/outside positioning without affecting layout */
+  /* Border rendered via `outline` (not `border`) so outline-offset can push the
+     ring outside/inside the bubble without changing its box size — same
+     approach as the avatar's ring (see slot-decorations.css). */
   outline-width: var(--ovs-slot-author-bubble-border-width, var(--ovs-bubble-border-width, 0));
   outline-style: var(--ovs-slot-author-bubble-border-style, var(--ovs-bubble-border-style, solid));
   outline-color: var(--ovs-slot-author-bubble-border-color, var(--ovs-bubble-border-color, transparent));
-  outline-offset: var(--ovs-slot-author-bubble-border-offset, var(--ovs-bubble-border-offset, 0px));
+  outline-offset: var(--ovs-slot-author-bubble-border-offset, 0px);
+  box-shadow: var(--ovs-slot-author-bubble-box-shadow, var(--ovs-bubble-box-shadow, none));
+  filter: var(--ovs-slot-author-bubble-glow, var(--ovs-bubble-glow, none));
+  padding: var(--ovs-slot-author-bubble-pad-top, var(--ovs-bubble-pad-top, var(--ovs-slot-author-bubble-pad-y, var(--ovs-bubble-pad-y, 8px))))
+    var(--ovs-slot-author-bubble-pad-right, var(--ovs-bubble-pad-right, var(--ovs-slot-author-bubble-pad-x, var(--ovs-bubble-pad-x, 12px))))
+    var(--ovs-slot-author-bubble-pad-bottom, var(--ovs-bubble-pad-bottom, var(--ovs-slot-author-bubble-pad-y, var(--ovs-bubble-pad-y, 8px))))
+    var(--ovs-slot-author-bubble-pad-left, var(--ovs-bubble-pad-left, var(--ovs-slot-author-bubble-pad-x, var(--ovs-bubble-pad-x, 12px))));
+  backdrop-filter: var(--ovs-bubble-backdrop, none);
+  -webkit-backdrop-filter: var(--ovs-bubble-backdrop, none);
 }
 
 :root[data-ovs-bubble-wrap-message='true'] .ovs-text {
@@ -96,23 +102,30 @@
   width: fit-content;
   max-width: 100%;
   min-width: var(--ovs-slot-message-bubble-min-width, var(--ovs-bubble-min-width, 0px)) !important;
-  align-self: flex-start;
+  /* Same fix as .ovs-body above: mirror row-wrap's inherited alignment
+     instead of always hugging the start side, so the message bubble follows
+     the configured Layout Direction in split-wrap mode too. */
+  align-self: var(--ovs-layout-body-align, flex-start);
   box-sizing: border-box;
   background: var(--ovs-slot-message-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
   opacity: var(--ovs-slot-message-bubble-opacity, var(--ovs-bubble-opacity, 1));
   border-radius: var(--ovs-slot-message-bubble-radius, var(--ovs-bubble-radius, 14px));
   border-width: 0;
-  box-shadow: var(--ovs-slot-message-bubble-box-shadow, var(--ovs-bubble-box-shadow, none));
-  filter: var(--ovs-slot-message-bubble-glow, var(--ovs-bubble-glow, none));
-  padding: var(--ovs-slot-message-bubble-pad-y, var(--ovs-bubble-pad-y, 8px))
-    var(--ovs-slot-message-bubble-pad-x, var(--ovs-bubble-pad-x, 12px));
-  backdrop-filter: var(--ovs-bubble-backdrop, none);
-  -webkit-backdrop-filter: var(--ovs-bubble-backdrop, none);
-  /* Outline ring — offset controls inside/outside positioning without affecting layout */
+  /* Border rendered via `outline` (not `border`) so outline-offset can push the
+     ring outside/inside the bubble without changing its box size — same
+     approach as the avatar's ring (see slot-decorations.css). */
   outline-width: var(--ovs-slot-message-bubble-border-width, var(--ovs-bubble-border-width, 0));
   outline-style: var(--ovs-slot-message-bubble-border-style, var(--ovs-bubble-border-style, solid));
   outline-color: var(--ovs-slot-message-bubble-border-color, var(--ovs-bubble-border-color, transparent));
-  outline-offset: var(--ovs-slot-message-bubble-border-offset, var(--ovs-bubble-border-offset, 0px));
+  outline-offset: var(--ovs-slot-message-bubble-border-offset, 0px);
+  box-shadow: var(--ovs-slot-message-bubble-box-shadow, var(--ovs-bubble-box-shadow, none));
+  filter: var(--ovs-slot-message-bubble-glow, var(--ovs-bubble-glow, none));
+  padding: var(--ovs-slot-message-bubble-pad-top, var(--ovs-bubble-pad-top, var(--ovs-slot-message-bubble-pad-y, var(--ovs-bubble-pad-y, 8px))))
+    var(--ovs-slot-message-bubble-pad-right, var(--ovs-bubble-pad-right, var(--ovs-slot-message-bubble-pad-x, var(--ovs-bubble-pad-x, 12px))))
+    var(--ovs-slot-message-bubble-pad-bottom, var(--ovs-bubble-pad-bottom, var(--ovs-slot-message-bubble-pad-y, var(--ovs-bubble-pad-y, 8px))))
+    var(--ovs-slot-message-bubble-pad-left, var(--ovs-bubble-pad-left, var(--ovs-slot-message-bubble-pad-x, var(--ovs-bubble-pad-x, 12px))));
+  backdrop-filter: var(--ovs-bubble-backdrop, none);
+  -webkit-backdrop-filter: var(--ovs-bubble-backdrop, none);
 }
 
 /* Bubble background textures and layer settings */
