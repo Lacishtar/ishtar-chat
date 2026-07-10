@@ -7,6 +7,7 @@ import AvatarInspector from '../ObjectInspectors/AvatarInspector.jsx';
 import AuthorInspector from '../ObjectInspectors/AuthorInspector.jsx';
 import MessageInspector from '../ObjectInspectors/MessageInspector.jsx';
 import BadgesInspector from '../ObjectInspectors/BadgesInspector.jsx';
+import ThemePresetSection from '../Presets/ThemePresetSection.jsx';
 import { OBJECTS } from '../shared/constants.js';
 
 const INSPECTORS = {
@@ -26,6 +27,23 @@ export default function InspectorPanel({ api, config, slotStyleConfig, animation
   const ActiveInspector = INSPECTORS[selectedObject] || GlobalInspector;
   const objectLabel = OBJECTS.find((o) => o.id === selectedObject)?.label;
 
+  // When a preset is applied the main process broadcasts `theme:changed` which
+  // App.jsx handles — that already updates config / slotStyleConfig / etc.
+  // props flowing back into here. We additionally sync the local state directly
+  // so in-panel controls reflect the new values without waiting for the
+  // parent re-render cycle.
+  function handlePresetApplied(result) {
+    if (result?.customizeConfig) {
+      state.setLocal?.(result.customizeConfig);
+    }
+    if (result?.slotStyleConfig) {
+      state.setSlotLocal?.(result.slotStyleConfig);
+    }
+    if (result?.animationConfig) {
+      state.setAnimLocal?.(result.animationConfig);
+    }
+  }
+
   return (
     <section className="rounded-xl bg-panel border border-line shadow-panel p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
@@ -41,6 +59,12 @@ export default function InspectorPanel({ api, config, slotStyleConfig, animation
           Reset preset
         </button>
       </div>
+
+      <ThemePresetSection
+        api={api}
+        resetPreset={resetPreset}
+        onApplied={handlePresetApplied}
+      />
 
       <SearchBar keyword={state.searchKeyword} onKeywordChange={state.setSearchKeyword} onJumpTo={state.jumpTo} />
 

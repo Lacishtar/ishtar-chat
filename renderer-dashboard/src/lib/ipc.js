@@ -94,6 +94,7 @@ function createMock() {
   const animationListeners = new Set();
   const decorationListeners = new Set();
   const roleStyleListeners = new Set();
+  const themeChangedListeners = new Set();
 
   return {
     getInitialState: async () => ({
@@ -150,6 +151,32 @@ function createMock() {
       roleStyleConfig,
       animationConfig,
     }),
+    getPresetList: async () => [
+      { id: 'default',       name: 'Default',       description: 'Standard dark-panel look.' },
+      { id: 'minimal-white', name: 'Minimal White',  description: 'Clean white, no bubble.' },
+      { id: 'minimal-dark',  name: 'Minimal Dark',   description: 'Transparent bubble, dark text.' },
+      { id: 'discord',       name: 'Discord',        description: 'Discord dark with Blurple accents.' },
+      { id: 'cyber-neon',    name: 'Cyber Neon',     description: 'Electric-cyan cyberpunk.' },
+      { id: 'pastel-pink',   name: 'Pastel Pink',    description: 'Soft pink bubbles.' },
+      { id: 'glassmorphism', name: 'Glassmorphism',  description: 'Frosted-glass panel.' },
+      { id: 'cute-bubble',   name: 'Cute Bubble',    description: 'Round colourful bubbles.' },
+      { id: 'anime',         name: 'Anime',          description: 'Sakura-pink manga style.' },
+      { id: 'vtuber-cute',   name: 'VTuber Cute',    description: 'Idol-style with bunny ears.' },
+      { id: 'blue-archive',  name: 'Blue Archive',   description: 'Navy-and-sky Blue Archive.' },
+      { id: 'hololive-blue', name: 'Hololive Blue',  description: 'Sky-blue Hololive style.' },
+      { id: 'night-sky',     name: 'Night Sky',      description: 'Deep navy with aurora glow.' },
+    ],
+    applyPreset: async (presetId) => {
+      // In the mock we just echo the current config back — real apply
+      // happens in the Electron main process via ThemeManager.ApplyTheme.
+      const payload = { themeId: 'classic', config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig };
+      themeChangedListeners.forEach((cb) => cb(payload));
+      return { ok: true, customizeConfig: config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig };
+    },
+    resetCategory: async (category) => {
+      // Mock: no-op — category reset only applies in the real Electron process.
+      return { ok: true, category };
+    },
     updateConfig: async (partial) => {
       config = { ...config, ...partial };
       configListeners.forEach((cb) => cb(config));
@@ -261,7 +288,10 @@ function createMock() {
       roleStyleListeners.add(cb);
       return () => roleStyleListeners.delete(cb);
     },
-    onThemeChanged: () => () => {},
+    onThemeChanged: (cb) => {
+      themeChangedListeners.add(cb);
+      return () => themeChangedListeners.delete(cb);
+    },
   };
 }
 

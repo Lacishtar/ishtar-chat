@@ -15,6 +15,7 @@ const { mergeDecorationConfig } = require('../shared/decoration-config');
 const { mergeRoleStyleConfig } = require('../shared/role-style-config');
 const { resolveThemeState } = require('./store/theme-state');
 const { getDirtyFields } = require('./store/theme-baseline');
+const { GetPresetList, ApplyTheme, ResetCategory } = require('../shared/theme-manager');
 
 const sessionId = crypto.randomUUID();
 
@@ -272,6 +273,48 @@ function registerIpcHandlers() {
     wsBroadcast('role-style:updated', merged);
     safeSend(mainWindow, 'role-style:updated', merged);
     return { ok: true, roleStyleConfig: merged };
+  });
+
+  ipcMain.handle('theme-preset:list', () => {
+    return GetPresetList();
+  });
+
+  ipcMain.handle('theme-preset:apply', (_event, presetId) => {
+    const result = ApplyTheme(presetId, configStore);
+    if (!result.ok) return result;
+
+    const { customizeConfig: config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig } = result;
+    const themeId = configStore.get().selectedTheme;
+
+    wsBroadcast('theme:changed', { themeId, config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig, history: messageHistory });
+    safeSend(mainWindow, 'theme:changed', { themeId, config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig });
+
+    return result;
+  });
+
+  // Category → WebSocket broadcast channel mapping
+  const CATEGORY_BROADCAST = {
+    customizeConfig:  { channel: 'config:updated',     key: 'customizeConfig',  payloadKey: 'config' },
+    layoutConfig:     { channel: 'layout:updated',     key: 'layoutConfig',     payloadKey: 'layoutConfig' },
+    slotStyleConfig:  { channel: 'slot-style:updated', key: 'slotStyleConfig',  payloadKey: 'slotStyleConfig' },
+    animationConfig:  { channel: 'animation:updated',  key: 'animationConfig',  payloadKey: 'animationConfig' },
+    decorationConfig: { channel: 'decoration:updated', key: 'decorationConfig', payloadKey: 'decorationConfig' },
+    roleStyleConfig:  { channel: 'role-style:updated', key: 'roleStyleConfig',  payloadKey: 'roleStyleConfig' },
+  };
+
+  ipcMain.handle('theme-preset:reset-category', (_event, category) => {
+    const state = configStore.get();
+    const result = ResetCategory(category, null, configStore);
+    if (!result.ok) return result;
+
+    const broadcastInfo = CATEGORY_BROADCAST[category];
+    if (broadcastInfo) {
+      const value = configStore.get()[broadcastInfo.key];
+      wsBroadcast(broadcastInfo.channel, value);
+      safeSend(mainWindow, broadcastInfo.channel, value);
+    }
+
+    return result;
   });
 }
 
