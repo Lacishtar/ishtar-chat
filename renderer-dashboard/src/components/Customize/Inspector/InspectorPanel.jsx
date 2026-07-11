@@ -7,7 +7,7 @@ import AvatarInspector from '../ObjectInspectors/AvatarInspector.jsx';
 import AuthorInspector from '../ObjectInspectors/AuthorInspector.jsx';
 import MessageInspector from '../ObjectInspectors/MessageInspector.jsx';
 import BadgesInspector from '../ObjectInspectors/BadgesInspector.jsx';
-import ThemePresetSection from '../Presets/ThemePresetSection.jsx';
+import ThemeSection from '../Themes/ThemeSection.jsx';
 import { OBJECTS } from '../shared/constants.js';
 
 const INSPECTORS = {
@@ -32,7 +32,7 @@ export default function InspectorPanel({ api, config, slotStyleConfig, animation
   // props flowing back into here. We additionally sync the local state directly
   // so in-panel controls reflect the new values without waiting for the
   // parent re-render cycle.
-  function handlePresetApplied(result) {
+  function handleThemeApplied(result) {
     if (result?.customizeConfig) {
       state.setLocal?.(result.customizeConfig);
     }
@@ -51,19 +51,19 @@ export default function InspectorPanel({ api, config, slotStyleConfig, animation
         <button
           type="button"
           onClick={async () => {
-            if (!window.confirm('Reset toàn bộ tuỳ chỉnh về preset hiện tại?')) return;
+            if (!window.confirm('Reset toàn bộ tuỳ chỉnh về theme hiện tại?')) return;
             await resetPreset();
           }}
           className="shrink-0 px-2.5 py-1 rounded-md text-xs bg-panelAlt text-inkMuted hover:bg-line border border-line"
         >
-          Reset preset
+          Reset theme
         </button>
       </div>
 
-      <ThemePresetSection
+      <ThemeSection
         api={api}
         resetPreset={resetPreset}
-        onApplied={handlePresetApplied}
+        onApplied={handleThemeApplied}
       />
 
       <SearchBar keyword={state.searchKeyword} onKeywordChange={state.setSearchKeyword} onJumpTo={state.jumpTo} />

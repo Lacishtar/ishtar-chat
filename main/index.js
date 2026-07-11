@@ -15,7 +15,7 @@ const { mergeDecorationConfig } = require('../shared/decoration-config');
 const { mergeRoleStyleConfig } = require('../shared/role-style-config');
 const { resolveThemeState } = require('./store/theme-state');
 const { getDirtyFields } = require('./store/theme-baseline');
-const { GetPresetList, ApplyTheme, ResetCategory } = require('../shared/theme-manager');
+const { GetThemeList, ApplyTheme, ResetCategory } = require('../shared/theme-manager');
 
 const sessionId = crypto.randomUUID();
 
@@ -275,12 +275,12 @@ function registerIpcHandlers() {
     return { ok: true, roleStyleConfig: merged };
   });
 
-  ipcMain.handle('theme-preset:list', () => {
-    return GetPresetList();
+  ipcMain.handle('theme:list', () => {
+    return GetThemeList();
   });
 
-  ipcMain.handle('theme-preset:apply', (_event, presetId) => {
-    const result = ApplyTheme(presetId, configStore);
+  ipcMain.handle('theme:apply', (_event, themePresetId) => {
+    const result = ApplyTheme(themePresetId, configStore);
     if (!result.ok) return result;
 
     const { customizeConfig: config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig } = result;
@@ -302,8 +302,7 @@ function registerIpcHandlers() {
     roleStyleConfig:  { channel: 'role-style:updated', key: 'roleStyleConfig',  payloadKey: 'roleStyleConfig' },
   };
 
-  ipcMain.handle('theme-preset:reset-category', (_event, category) => {
-    const state = configStore.get();
+  ipcMain.handle('theme:reset-category', (_event, category) => {
     const result = ResetCategory(category, null, configStore);
     if (!result.ok) return result;
 

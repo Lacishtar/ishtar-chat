@@ -151,7 +151,7 @@ function createMock() {
       roleStyleConfig,
       animationConfig,
     }),
-    getPresetList: async () => [
+    getThemeList: async () => [
       { id: 'default',       name: 'Default',       description: 'Standard dark-panel look.' },
       { id: 'minimal-white', name: 'Minimal White',  description: 'Clean white, no bubble.' },
       { id: 'minimal-dark',  name: 'Minimal Dark',   description: 'Transparent bubble, dark text.' },
@@ -166,7 +166,7 @@ function createMock() {
       { id: 'hololive-blue', name: 'Hololive Blue',  description: 'Sky-blue Hololive style.' },
       { id: 'night-sky',     name: 'Night Sky',      description: 'Deep navy with aurora glow.' },
     ],
-    applyPreset: async (presetId) => {
+    applyTheme: async (themeId) => {
       // In the mock we just echo the current config back — real apply
       // happens in the Electron main process via ThemeManager.ApplyTheme.
       const payload = { themeId: 'classic', config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig };

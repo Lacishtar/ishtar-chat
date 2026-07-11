@@ -1,30 +1,30 @@
 /**
- * theme-manager.js — Pure data-layer facade for the Theme Preset System.
+ * theme-manager.js — Pure data-layer facade for the Theme System.
  *
  * Responsibilities:
- *   GetPresetList()     — return the full list of available presets (metadata only).
- *   LoadPreset(id)      — return a fully-normalised preset object by id.
- *   ValidateTheme(obj)  — verify that an object looks like a complete theme preset.
- *   NormalizeTheme(obj) — fill every missing/null field with canonical defaults.
- *   ApplyTheme(id, store) — apply a preset into the live config-store and return
- *                          the resulting state (same shape as theme:select).
+ *   GetThemeList()       — return the full list of available themes (metadata only).
+ *   LoadTheme(id)        — return a fully-normalised theme object by id.
+ *   ValidateTheme(obj)   — verify that an object looks like a complete theme.
+ *   NormalizeTheme(obj)  — fill every missing/null field with canonical defaults.
+ *   ApplyTheme(id, store) — apply a theme into the live config-store and return
+ *                           the resulting state (same shape as theme:select).
  *   ResetCurrentTheme(store) — re-apply the current theme's defaults (delegates to
  *                              the existing theme:reset-preset flow).
  *   ResetCategory(category, store) — reset only one config category to its
- *                                     preset baseline while leaving others intact.
+ *                                     theme baseline while leaving others intact.
  *
  * RULES (kept by design):
  *   - NO DOM manipulation.
  *   - NO rendering logic.
  *   - NO UI / IPC references.
  *   - Depends ONLY on shared/* config modules and shared/theme-presets.js.
- *   - The renderer must not know how presets are stored.
- *   - The UI must not know preset implementation details.
+ *   - The renderer must not know how themes are stored.
+ *   - The UI must not know theme implementation details.
  */
 
 'use strict';
 
-const { PRESET_LIST } = require('./theme-presets');
+const { THEME_LIST } = require('./theme-presets');
 
 const { DEFAULT_CUSTOMIZE_CONFIG } = require('./customize-config');
 const { DEFAULT_LAYOUT_CONFIG, mergeLayoutConfig } = require('./layout-config');
@@ -38,10 +38,10 @@ const { DEFAULT_ROLE_STYLE_CONFIG, mergeRoleStyleConfig } = require('./role-styl
 // ---------------------------------------------------------------------------
 
 /**
- * Build a lookup map from preset id → preset object (O(1) access).
+ * Build a lookup map from theme id → theme object (O(1) access).
  * Rebuilt once on module load — the built-in list is static.
  */
-const _presetMap = new Map(PRESET_LIST.map((p) => [p.id, p]));
+const _themeMap = new Map(THEME_LIST.map((p) => [p.id, p]));
 
 /** The six recognised config category keys. */
 const CONFIG_CATEGORIES = [
@@ -78,26 +78,33 @@ const CATEGORY_DEFAULTS = {
 // ---------------------------------------------------------------------------
 
 /**
- * Returns a lightweight list of available presets for display in picker UIs.
+ * Returns a lightweight list of available themes for display in picker UIs.
  * Only safe-to-expose metadata is included — no full config objects.
  *
- * @returns {{ id: string, name: string, description: string }[]}
+ * @returns {{ id: string, name: string, description: string, author: string,
+ *             version: string, category: string, tags: string[] }[]}
  */
-function GetPresetList() {
-  return PRESET_LIST.map(({ id, name, description }) => ({ id, name, description }));
+function GetThemeList() {
+  return THEME_LIST.map(({ id, name, description, author, version, category, tags }) => ({
+    id, name, description,
+    author: author || 'built-in',
+    version: version || '1.0.0',
+    category: category || 'dark',
+    tags: tags || [],
+  }));
 }
 
 /**
- * Loads a preset by id and returns it fully normalised.
- * Returns null if no preset with that id exists.
+ * Loads a theme by id and returns it fully normalised.
+ * Returns null if no theme with that id exists.
  *
  * @param {string} id
  * @returns {object|null}
  */
-function LoadPreset(id) {
-  const preset = _presetMap.get(id);
-  if (!preset) return null;
-  return NormalizeTheme(preset);
+function LoadTheme(id) {
+  const theme = _themeMap.get(id);
+  if (!theme) return null;
+  return NormalizeTheme(theme);
 }
 
 /**
@@ -148,7 +155,7 @@ function NormalizeTheme(raw) {
 }
 
 /**
- * Applies a named preset into the given config-store instance and broadcasts
+ * Applies a named theme into the given config-store instance and broadcasts
  * the change. Mirrors the logic of the `theme:select` IPC handler without
  * touching the overlay theme (the existing theme stays selected; only
  * appearance settings change).
@@ -156,15 +163,15 @@ function NormalizeTheme(raw) {
  * The `store` parameter is expected to expose `.get()` and `.set(partial)`,
  * matching the ConfigStore class in main/store/config-store.js.
  *
- * @param {string} presetId
+ * @param {string} themeId
  * @param {{ get: () => object, set: (partial: object) => object }} store
  * @returns {{ ok: boolean, error?: string, customizeConfig?, layoutConfig?,
  *             slotStyleConfig?, animationConfig?, decorationConfig?, roleStyleConfig? }}
  */
-function ApplyTheme(presetId, store) {
-  const preset = LoadPreset(presetId);
-  if (!preset) {
-    return { ok: false, error: `Unknown preset id: "${presetId}".` };
+function ApplyTheme(themeId, store) {
+  const theme = LoadTheme(themeId);
+  if (!theme) {
+    return { ok: false, error: `Unknown theme id: "${themeId}".` };
   }
 
   const {
@@ -174,7 +181,7 @@ function ApplyTheme(presetId, store) {
     animationConfig,
     decorationConfig,
     roleStyleConfig,
-  } = preset;
+  } = theme;
 
   store.set({
     customizeConfig,
@@ -244,20 +251,20 @@ function ResetCurrentTheme(store, resolveThemeState) {
 }
 
 /**
- * Resets a single config category to its preset baseline while leaving all
+ * Resets a single config category to its theme baseline while leaving all
  * other categories unchanged. The baseline comes from the currently active
- * preset (identified by `presetId`) or, when no matching preset exists, from
+ * theme (identified by `themeId`) or, when no matching theme exists, from
  * the category's hard-coded defaults.
  *
  * Valid category values: 'customizeConfig' | 'layoutConfig' | 'slotStyleConfig'
  *                        | 'animationConfig' | 'decorationConfig' | 'roleStyleConfig'
  *
  * @param {string} category — one of CONFIG_CATEGORIES
- * @param {string|null} presetId — the id of the currently active preset (may be null)
+ * @param {string|null} themeId — the id of the currently active theme (may be null)
  * @param {{ get: () => object, set: (partial: object) => object }} store
  * @returns {{ ok: boolean, error?: string, category?: string, [category]?: object }}
  */
-function ResetCategory(category, presetId, store) {
+function ResetCategory(category, themeId, store) {
   if (!CONFIG_CATEGORIES.includes(category)) {
     return {
       ok: false,
@@ -265,11 +272,11 @@ function ResetCategory(category, presetId, store) {
     };
   }
 
-  // Determine the reset target: named preset baseline or hard-coded default.
+  // Determine the reset target: named theme baseline or hard-coded default.
   let resetValue;
-  if (presetId) {
-    const preset = LoadPreset(presetId);
-    resetValue = preset ? preset[category] : CATEGORY_DEFAULTS[category];
+  if (themeId) {
+    const theme = LoadTheme(themeId);
+    resetValue = theme ? theme[category] : CATEGORY_DEFAULTS[category];
   } else {
     resetValue = CATEGORY_DEFAULTS[category];
   }
@@ -284,8 +291,9 @@ function ResetCategory(category, presetId, store) {
 // ---------------------------------------------------------------------------
 
 module.exports = {
-  GetPresetList,
-  LoadPreset,
+  // Canonical names
+  GetThemeList,
+  LoadTheme,
   ValidateTheme,
   NormalizeTheme,
   ApplyTheme,
@@ -293,4 +301,7 @@ module.exports = {
   ResetCategory,
   /** Exposed for tests / diagnostics — not part of the public contract. */
   CONFIG_CATEGORIES,
+  // Backward-compat aliases (deprecated — prefer the names above)
+  GetPresetList: GetThemeList,
+  LoadPreset: LoadTheme,
 };

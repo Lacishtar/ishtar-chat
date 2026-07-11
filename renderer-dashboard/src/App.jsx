@@ -112,7 +112,7 @@ export default function App() {
         ? dirtyCheck.dirtyFields.join(', ')
         : 'tuỳ chỉnh';
       const ok = window.confirm(
-        `Đổi preset sẽ reset toàn bộ tuỳ chỉnh hiện tại (${fields}). Tiếp tục?`
+        `Đổi theme sẽ reset toàn bộ tuỳ chỉnh hiện tại (${fields}). Tiếp tục?`
       );
       if (!ok) return;
     }

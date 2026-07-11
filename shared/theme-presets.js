@@ -1,22 +1,27 @@
 /**
- * theme-presets.js — Built-in appearance preset library.
+ * theme-presets.js — Built-in Theme Library.
  *
- * Every preset is a plain JavaScript object with the six configuration
- * categories the app recognises:
+ * Every theme is a plain JavaScript object containing metadata fields and
+ * the six configuration categories the app recognises:
  *
- *   customizeConfig   — shared/customize-config.js#DEFAULT_CUSTOMIZE_CONFIG
- *   layoutConfig      — shared/layout-config.js#DEFAULT_LAYOUT_CONFIG
- *   slotStyleConfig   — shared/slot-style-config.js#DEFAULT_SLOT_STYLE_CONFIG
- *   animationConfig   — shared/animation-config.js#DEFAULT_ANIMATION_CONFIG
- *   decorationConfig  — shared/decoration-config.js#DEFAULT_DECORATION_CONFIG
- *   roleStyleConfig   — shared/role-style-config.js#DEFAULT_ROLE_STYLE_CONFIG
+ *   Metadata fields:
+ *     id, name, author, version, description, category, tags, createdAt,
+ *     modifiedAt
+ *
+ *   Configuration categories:
+ *     customizeConfig   — shared/customize-config.js#DEFAULT_CUSTOMIZE_CONFIG
+ *     layoutConfig      — shared/layout-config.js#DEFAULT_LAYOUT_CONFIG
+ *     slotStyleConfig   — shared/slot-style-config.js#DEFAULT_SLOT_STYLE_CONFIG
+ *     animationConfig   — shared/animation-config.js#DEFAULT_ANIMATION_CONFIG
+ *     decorationConfig  — shared/decoration-config.js#DEFAULT_DECORATION_CONFIG
+ *     roleStyleConfig   — shared/role-style-config.js#DEFAULT_ROLE_STYLE_CONFIG
  *
  * Rules:
  *   - NO DOM, NO rendering logic, NO UI references here.
  *   - Keys must match the exact property names used by the shared configs.
- *   - All six categories must be fully specified on every preset (no partial
+ *   - All six categories must be fully specified on every theme (no partial
  *     overrides) so ThemeManager.NormalizeTheme() can rely on completeness.
- *   - Do NOT hardcode presets anywhere else in the codebase — import from here.
+ *   - Do NOT hardcode themes anywhere else in the codebase — import from here.
  */
 
 // ---------------------------------------------------------------------------
@@ -166,13 +171,19 @@ function emptyDecorations() {
 // Preset definitions
 // ---------------------------------------------------------------------------
 
-const PRESET_LIST = [
+const THEME_LIST = [
 
   // ── Default ────────────────────────────────────────────────────────────────
   {
     id: 'default',
     name: 'Default',
+    author: 'built-in',
+    version: '1.0.0',
     description: 'The standard dark-panel look shipped with YouTube Overlay Studio.',
+    category: 'dark',
+    tags: ['dark', 'clean', 'default'],
+    createdAt: '2024-01-01',
+    modifiedAt: '2024-01-01',
     customizeConfig: {
       fontFamily: 'Inter, system-ui, sans-serif',
       fontSize: 16,
@@ -224,7 +235,13 @@ const PRESET_LIST = [
   {
     id: 'minimal-white',
     name: 'Minimal White',
+    author: 'built-in',
+    version: '1.0.0',
     description: 'Clean white text with no bubble background — perfect for bright stream scenes.',
+    category: 'minimal',
+    tags: ['minimal', 'light', 'clean'],
+    createdAt: '2024-01-01',
+    modifiedAt: '2024-01-01',
     customizeConfig: {
       fontFamily: 'Inter, system-ui, sans-serif',
       fontSize: 15,
@@ -282,7 +299,13 @@ const PRESET_LIST = [
   {
     id: 'minimal-dark',
     name: 'Minimal Dark',
+    author: 'built-in',
+    version: '1.0.0',
     description: 'Transparent bubble, light-grey text — ideal for dark stream scenes.',
+    category: 'minimal',
+    tags: ['minimal', 'dark', 'clean'],
+    createdAt: '2024-01-01',
+    modifiedAt: '2024-01-01',
     customizeConfig: {
       fontFamily: 'Inter, system-ui, sans-serif',
       fontSize: 15,
@@ -334,7 +357,13 @@ const PRESET_LIST = [
   {
     id: 'discord',
     name: 'Discord',
+    author: 'built-in',
+    version: '1.0.0',
     description: 'Familiar Discord-style dark panel with Blurple accents.',
+    category: 'dark',
+    tags: ['dark', 'discord', 'blurple'],
+    createdAt: '2024-01-01',
+    modifiedAt: '2024-01-01',
     customizeConfig: {
       fontFamily: '"Whitney", "Helvetica Neue", Helvetica, Arial, sans-serif',
       fontSize: 15,
@@ -392,7 +421,13 @@ const PRESET_LIST = [
   {
     id: 'cyber-neon',
     name: 'Cyber Neon',
+    author: 'built-in',
+    version: '1.0.0',
     description: 'Dark cyberpunk theme with electric-cyan highlights and monospace font.',
+    category: 'gaming',
+    tags: ['dark', 'cyberpunk', 'neon', 'gaming'],
+    createdAt: '2024-01-01',
+    modifiedAt: '2024-01-01',
     customizeConfig: {
       fontFamily: 'ui-monospace, "JetBrains Mono", "Fira Code", monospace',
       fontSize: 14,
@@ -459,7 +494,13 @@ const PRESET_LIST = [
   {
     id: 'pastel-pink',
     name: 'Pastel Pink',
+    author: 'built-in',
+    version: '1.0.0',
     description: 'Soft pink bubbles with warm purple author names.',
+    category: 'cute',
+    tags: ['cute', 'pink', 'pastel', 'soft'],
+    createdAt: '2024-01-01',
+    modifiedAt: '2024-01-01',
     customizeConfig: {
       fontFamily: '"Nunito", "Varela Round", system-ui, sans-serif',
       fontSize: 15,
@@ -526,7 +567,13 @@ const PRESET_LIST = [
   {
     id: 'glassmorphism',
     name: 'Glassmorphism',
+    author: 'built-in',
+    version: '1.0.0',
     description: 'Frosted-glass effect with a translucent white panel and soft borders.',
+    category: 'colorful',
+    tags: ['glass', 'blur', 'frosted', 'translucent'],
+    createdAt: '2024-01-01',
+    modifiedAt: '2024-01-01',
     customizeConfig: {
       fontFamily: 'Inter, system-ui, sans-serif',
       fontSize: 15,
@@ -593,7 +640,13 @@ const PRESET_LIST = [
   {
     id: 'cute-bubble',
     name: 'Cute Bubble',
+    author: 'built-in',
+    version: '1.0.0',
     description: 'Round, colourful speech bubbles with a playful bounce entrance.',
+    category: 'cute',
+    tags: ['cute', 'bubble', 'round', 'colorful'],
+    createdAt: '2024-01-01',
+    modifiedAt: '2024-01-01',
     customizeConfig: {
       fontFamily: '"Nunito", "Quicksand", system-ui, sans-serif',
       fontSize: 15,
@@ -660,7 +713,13 @@ const PRESET_LIST = [
   {
     id: 'anime',
     name: 'Anime',
+    author: 'built-in',
+    version: '1.0.0',
     description: 'Warm sakura-pink bubbles with manga-style round corners and soft text.',
+    category: 'cute',
+    tags: ['anime', 'sakura', 'manga', 'pink'],
+    createdAt: '2024-01-01',
+    modifiedAt: '2024-01-01',
     customizeConfig: {
       fontFamily: '"Segoe UI", system-ui, sans-serif',
       fontSize: 15,
@@ -727,7 +786,13 @@ const PRESET_LIST = [
   {
     id: 'vtuber-cute',
     name: 'VTuber Cute',
+    author: 'built-in',
+    version: '1.0.0',
     description: 'Colourful idol-style bubbles with bright gradients and bunny-ear accents.',
+    category: 'cute',
+    tags: ['vtuber', 'idol', 'bunny', 'cute', 'colorful'],
+    createdAt: '2024-01-01',
+    modifiedAt: '2024-01-01',
     customizeConfig: {
       fontFamily: '"Nunito", "M PLUS Rounded 1c", system-ui, sans-serif',
       fontSize: 15,
@@ -794,7 +859,13 @@ const PRESET_LIST = [
   {
     id: 'blue-archive',
     name: 'Blue Archive',
+    author: 'built-in',
+    version: '1.0.0',
     description: 'Crisp navy-and-sky design inspired by the Blue Archive aesthetic.',
+    category: 'gaming',
+    tags: ['blue', 'navy', 'game', 'clean'],
+    createdAt: '2024-01-01',
+    modifiedAt: '2024-01-01',
     customizeConfig: {
       fontFamily: '"Rajdhani", "Segoe UI", system-ui, sans-serif',
       fontSize: 15,
@@ -861,7 +932,13 @@ const PRESET_LIST = [
   {
     id: 'hololive-blue',
     name: 'Hololive Blue',
+    author: 'built-in',
+    version: '1.0.0',
     description: 'Clean Hololive-inspired sky-blue and white with soft rounded bubbles.',
+    category: 'cute',
+    tags: ['hololive', 'vtuber', 'blue', 'light'],
+    createdAt: '2024-01-01',
+    modifiedAt: '2024-01-01',
     customizeConfig: {
       fontFamily: '"M PLUS Rounded 1c", "Noto Sans JP", system-ui, sans-serif',
       fontSize: 15,
@@ -928,7 +1005,13 @@ const PRESET_LIST = [
   {
     id: 'night-sky',
     name: 'Night Sky',
+    author: 'built-in',
+    version: '1.0.0',
     description: 'Deep navy background with star-white text and a soft aurora glow.',
+    category: 'dark',
+    tags: ['dark', 'night', 'navy', 'aurora', 'purple'],
+    createdAt: '2024-01-01',
+    modifiedAt: '2024-01-01',
     customizeConfig: {
       fontFamily: '"Raleway", "Segoe UI", system-ui, sans-serif',
       fontSize: 15,
@@ -997,4 +1080,8 @@ const PRESET_LIST = [
 // Exports
 // ---------------------------------------------------------------------------
 
-module.exports = { PRESET_LIST };
+/**
+ * THEME_LIST — canonical built-in theme collection.
+ * PRESET_LIST — backward-compat alias (kept so existing importers don't break).
+ */
+module.exports = { THEME_LIST, PRESET_LIST: THEME_LIST };

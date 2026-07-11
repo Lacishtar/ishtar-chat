@@ -1,5 +1,5 @@
 import AccordionSection from '../Inspector/AccordionSection.jsx';
-import QuickStylePresets from '../Presets/QuickStylePresets.jsx';
+import QuickStyleThemes from '../Themes/QuickStyleThemes.jsx';
 import FontSection from '../Typography/FontSection.jsx';
 import BackgroundSection from '../Appearance/BackgroundSection.jsx';
 import BorderSection from '../Appearance/BorderSection.jsx';
@@ -27,7 +27,7 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <QuickStylePresets onApply={pushUpdate} />
+      <QuickStyleThemes onApply={pushUpdate} />
 
       <AccordionSection title="Typography" {...sec('typography')}>
         <FontSection
