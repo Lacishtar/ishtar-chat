@@ -23,6 +23,15 @@ contextBridge.exposeInMainWorld('api', {
   updateDecorationConfig: (partialDecoration) => ipcRenderer.invoke('decoration:update', partialDecoration),
   updateRoleStyleConfig: (partialRoleStyle) => ipcRenderer.invoke('role-style:update', partialRoleStyle),
 
+  // Custom presets
+  listCustomPresets: () => ipcRenderer.invoke('custom-preset:list'),
+  saveCustomPreset: (name, snapshot) => ipcRenderer.invoke('custom-preset:save', { name, snapshot }),
+  deleteCustomPreset: (id) => ipcRenderer.invoke('custom-preset:delete', id),
+  renameCustomPreset: (id, newName) => ipcRenderer.invoke('custom-preset:rename', { id, newName }),
+  applyCustomPreset: (id) => ipcRenderer.invoke('custom-preset:apply', id),
+  exportCustomPresets: () => ipcRenderer.invoke('custom-preset:export'),
+  importCustomPresets: () => ipcRenderer.invoke('custom-preset:import'),
+
   onStatusChanged: (callback) => subscribe('status:changed', callback),
   onConfigUpdated: (callback) => subscribe('config:updated', callback),
   onLayoutUpdated: (callback) => subscribe('layout:updated', callback),

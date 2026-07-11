@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { mergeSlot } from '../shared/configHelpers.js';
+import { useEffect, useMemo, useState } from 'react';
+import { useEditorState } from '../../../state/EditorStateContext.jsx';
 
 const FAVORITES_KEY = 'ovs.inspector.favorites';
 const EXPANDED_KEY = 'ovs.inspector.expanded';
@@ -25,58 +25,28 @@ function saveJSON(key, value) {
 /**
  * Everything the Inspector needs, split into two clearly separate buckets:
  *
- *  - overlay data: `local` / `slotLocal` mirror `config` / `slotStyleConfig`
- *    and are pushed to the main process (via `api`) debounced, exactly like
- *    the previous CustomizePanel did. This is the data that gets saved to
- *    disk and must stay backward compatible.
+ *  - overlay data: `local` / `slotLocal` / `animLocal` come straight from
+ *    EditorStateContext — the single authoritative editing buffer shared
+ *    with LayoutPanel, DecorationsPanel, RoleStylesPanel, and
+ *    CustomPresetsPanel. This hook does not keep its own copy of this data
+ *    and does not debounce anything itself; pushUpdate/pushSlotUpdate/
+ *    pushAnimationUpdate delegate straight to the context, which updates
+ *    the shared buffer synchronously and only debounces the IPC call.
  *
  *  - Inspector UI state: `selectedObject`, `expanded`, `searchKeyword`,
  *    `favorites`. This never touches overlay data and is persisted (if
  *    possible) only to make the *tool* nicer to use across sessions.
  */
-export default function useCustomizeState({ api, config, slotStyleConfig, animationConfig }) {
-  const [local, setLocal] = useState(config);
-  const [slotLocal, setSlotLocal] = useState(slotStyleConfig || { slots: {} });
-  const [animLocal, setAnimLocal] = useState(animationConfig || { style: 'slide', targets: {} });
-  const debounceRef = useRef(null);
-  const slotDebounceRef = useRef(null);
-
-  useEffect(() => setLocal(config), [config]);
-  useEffect(() => setSlotLocal(slotStyleConfig || { slots: {} }), [slotStyleConfig]);
-  useEffect(() => {
-    if (animationConfig) setAnimLocal(animationConfig);
-  }, [animationConfig]);
-
-  function pushUpdate(partial) {
-    setLocal((prev) => ({ ...prev, ...partial }));
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => api.updateConfig(partial), 100);
-  }
-
-  function pushSlotUpdate(slot, patch) {
-    setSlotLocal((prev) => mergeSlot(prev, slot, patch));
-    clearTimeout(slotDebounceRef.current);
-    slotDebounceRef.current = setTimeout(() => {
-      api.updateSlotStyle({ slots: { [slot]: patch } });
-    }, 100);
-  }
-
-  // Style changes (e.g. picking "Nảy" from the dropdown) are applied
-  // immediately, no debounce — this is a discrete choice, not a drag/slider,
-  // and the overlay preview should react to it right away.
-  async function pushAnimationUpdate(partial) {
-    const result = await api.updateAnimation(partial);
-    if (result?.animationConfig) setAnimLocal(result.animationConfig);
-  }
-
-  async function resetPreset() {
-    const result = await api.resetPreset?.();
-    if (result?.ok) {
-      setLocal(result.config);
-      setSlotLocal(result.slotStyleConfig || { slots: {} });
-    }
-    return result;
-  }
+export default function useCustomizeState() {
+  const {
+    local,
+    slotLocal,
+    animLocal,
+    pushConfigUpdate,
+    pushSlotUpdate,
+    pushAnimationUpdate,
+    resetPreset,
+  } = useEditorState();
 
   // --- Inspector-only UI state (kept out of overlay data on purpose) ---
   const [selectedObject, setSelectedObject] = useState('global');
@@ -127,10 +97,7 @@ export default function useCustomizeState({ api, config, slotStyleConfig, animat
     local,
     slotLocal,
     animLocal,
-    setLocal,
-    setSlotLocal,
-    setAnimLocal,
-    pushUpdate,
+    pushUpdate: pushConfigUpdate,
     pushSlotUpdate,
     pushAnimationUpdate,
     resetPreset,

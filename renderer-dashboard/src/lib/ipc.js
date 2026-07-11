@@ -38,6 +38,10 @@ function mockExpandAnimationStyle(style) {
   return targets;
 }
 
+function mockPresetId() {
+  return `mock-cp-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+}
+
 function createMock() {
   console.warn('[ipc] window.api not found — using mock data (running outside Electron).');
 
@@ -87,6 +91,10 @@ function createMock() {
     },
   };
   let status = { status: 'idle', error: null, videoId: null };
+
+  // In-memory custom presets store for the mock
+  let mockCustomPresets = [];
+
   const statusListeners = new Set();
   const configListeners = new Set();
   const layoutListeners = new Set();
@@ -95,6 +103,10 @@ function createMock() {
   const decorationListeners = new Set();
   const roleStyleListeners = new Set();
   const themeChangedListeners = new Set();
+
+  function customPresetMetaList() {
+    return mockCustomPresets.map(({ id, name, createdAt, updatedAt }) => ({ id, name, createdAt, updatedAt }));
+  }
 
   return {
     getInitialState: async () => ({
@@ -260,6 +272,61 @@ function createMock() {
       roleStyleListeners.forEach((cb) => cb(roleStyleConfig));
       return { ok: true, roleStyleConfig };
     },
+
+    // ── Custom Presets (mock — in-memory only) ─────────────────────────────
+
+    listCustomPresets: async () => customPresetMetaList(),
+
+    saveCustomPreset: async (name, snapshot) => {
+      const now = new Date().toISOString();
+      const existing = mockCustomPresets.find((p) => p.name === name);
+      if (existing) {
+        Object.assign(existing, snapshot, { updatedAt: now });
+      } else {
+        mockCustomPresets.push({ id: mockPresetId(), name, createdAt: now, updatedAt: now, ...snapshot });
+      }
+      return { ok: true, list: customPresetMetaList() };
+    },
+
+    deleteCustomPreset: async (id) => {
+      const idx = mockCustomPresets.findIndex((p) => p.id === id);
+      if (idx === -1) return { ok: false, error: 'preset_not_found' };
+      mockCustomPresets.splice(idx, 1);
+      return { ok: true };
+    },
+
+    renameCustomPreset: async (id, newName) => {
+      const preset = mockCustomPresets.find((p) => p.id === id);
+      if (!preset) return { ok: false, error: 'preset_not_found' };
+      preset.name = newName;
+      preset.updatedAt = new Date().toISOString();
+      return { ok: true };
+    },
+
+    applyCustomPreset: async (id) => {
+      const preset = mockCustomPresets.find((p) => p.id === id);
+      if (!preset) return { ok: false, error: 'preset_not_found' };
+      config = preset.customizeConfig || config;
+      layoutConfig = preset.layoutConfig || layoutConfig;
+      slotStyleConfig = preset.slotStyleConfig || slotStyleConfig;
+      animationConfig = preset.animationConfig || animationConfig;
+      decorationConfig = preset.decorationConfig || decorationConfig;
+      roleStyleConfig = preset.roleStyleConfig || roleStyleConfig;
+      const payload = { themeId: 'classic', config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig };
+      themeChangedListeners.forEach((cb) => cb(payload));
+      return { ok: true, customizeConfig: config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig };
+    },
+
+    // Export/import are no-ops in the mock (no file system access in a browser tab)
+    exportCustomPresets: async () => {
+      console.warn('[ipc mock] exportCustomPresets: no-op outside Electron');
+      return { ok: false, canceled: true };
+    },
+    importCustomPresets: async () => {
+      console.warn('[ipc mock] importCustomPresets: no-op outside Electron');
+      return { ok: false, canceled: true };
+    },
+
     onStatusChanged: (cb) => {
       statusListeners.add(cb);
       return () => statusListeners.delete(cb);
@@ -298,4 +365,3 @@ function createMock() {
 const api = hasElectronApi ? window.api : createMock();
 
 export default api;
-

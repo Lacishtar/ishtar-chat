@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useMemo } from 'react';
+import { useEditorState } from '../state/EditorStateContext.jsx';
 
 const inputClass =
   'w-full rounded-lg bg-panelAlt border border-line px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-focusAccent';
@@ -242,26 +243,20 @@ function expandSimpleLayout(simple) {
   };
 }
 
-export default function LayoutPanel({ api, layoutConfig }) {
-  const [local, setLocal] = useState(() => contractSimpleLayout(layoutConfig));
-  const debounceRef = useRef(null);
-
-  useEffect(() => {
-    setLocal(contractSimpleLayout(layoutConfig));
-  }, [layoutConfig]);
+export default function LayoutPanel() {
+  // `layoutLocal` (full expanded shape) is the single authoritative editing
+  // buffer, shared with CustomPresetsPanel — there's no separate "local"
+  // copy here anymore. We only contract it into the simple shape this UI
+  // is built around, purely for rendering.
+  const { layoutLocal, pushLayoutUpdate } = useEditorState();
+  const local = useMemo(() => contractSimpleLayout(layoutLocal), [layoutLocal]);
 
   function pushUpdate(partial) {
-    setLocal((prev) => {
-      const next = { ...prev, ...partial };
-      clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        api.updateLayout(expandSimpleLayout(next));
-      }, 100);
-      return next;
-    });
+    const next = { ...local, ...partial };
+    pushLayoutUpdate(expandSimpleLayout(next));
   }
 
-  if (!layoutConfig) return null;
+  if (!layoutLocal) return null;
 
   return (
     <section className="rounded-xl bg-panel border border-line shadow-panel p-4 flex flex-col gap-4">

@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import api from './lib/ipc.js';
+import { EditorStateProvider, useEditorState } from './state/EditorStateContext.jsx';
 import ConnectPanel from './components/ConnectPanel.jsx';
 import CustomizePanel from './components/CustomizePanel.jsx';
 import LayoutPanel from './components/LayoutPanel.jsx';
 import DecorationsPanel from './components/DecorationsPanel.jsx';
 import RoleStylesPanel from './components/RoleStylesPanel.jsx';
 import ThemeLibraryPanel from './components/ThemeLibraryPanel.jsx';
+import CustomPresetsPanel from './components/CustomPresetsPanel.jsx';
 import ChatPreview from './components/ChatPreview.jsx';
 import StatusBadge from './components/StatusBadge.jsx';
 
@@ -49,98 +51,26 @@ function TabBar({ active, onChange }) {
   );
 }
 
-function applyInitialState(state, setters) {
-  setters.setConfig(state.customizeConfig);
-  setters.setLayoutConfig(state.layoutConfig);
-  setters.setSlotStyleConfig(state.slotStyleConfig);
-  setters.setDecorationConfig(state.decorationConfig);
-  setters.setRoleStyleConfig(state.roleStyleConfig);
-  setters.setAnimationConfig(state.animationConfig);
-  setters.setOverlayUrl(state.overlayUrl);
-  setters.setLastSessionUrl(state.lastSessionUrl || '');
-  setters.setStatus(state.status);
-}
-
-export default function App() {
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
-  const [config, setConfig] = useState(null);
-  const [layoutConfig, setLayoutConfig] = useState(null);
-  const [slotStyleConfig, setSlotStyleConfig] = useState(null);
-  const [decorationConfig, setDecorationConfig] = useState(null);
-  const [roleStyleConfig, setRoleStyleConfig] = useState(null);
-  const [animationConfig, setAnimationConfig] = useState(null);
-  const [overlayUrl, setOverlayUrl] = useState('');
-  const [lastSessionUrl, setLastSessionUrl] = useState('');
-  const [status, setStatus] = useState({ status: 'idle', error: null });
-  const [previewKey, setPreviewKey] = useState(0);
+// All customize/layout/slot-style/animation/decoration/role-style data now
+// lives in EditorStateContext (see state/EditorStateContext.jsx) — the one
+// authoritative buffer that the Inspector, LayoutPanel, DecorationsPanel,
+// RoleStylesPanel, and CustomPresetsPanel all read from and write to
+// directly. AppShell only owns things that aren't part of that editing
+// buffer: connection status, the preview iframe, and which tab is active.
+function AppShell() {
+  const {
+    loading,
+    loadError,
+    reload,
+    status,
+    overlayUrl,
+    lastSessionUrl,
+    setLastSessionUrl,
+    previewKey,
+    bumpPreviewKey,
+    resetPreset,
+  } = useEditorState();
   const [activeTab, setActiveTab] = useState('customize');
-
-  const loadInitialState = useCallback(() => {
-    setLoading(true);
-    setLoadError(null);
-
-    return api
-      .getInitialState()
-      .then((state) => {
-        applyInitialState(state, {
-          setConfig,
-          setLayoutConfig,
-          setSlotStyleConfig,
-          setDecorationConfig,
-          setRoleStyleConfig,
-          setAnimationConfig,
-          setOverlayUrl,
-          setLastSessionUrl,
-          setStatus,
-        });
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('[App] getInitialState failed:', err);
-        setLoadError('Không tải được trạng thái ứng dụng. Kiểm tra Electron đang chạy đúng cách.');
-        setLoading(false);
-      });
-  }, []);
-
-  useEffect(() => {
-    let unsubStatus, unsubConfig, unsubLayout, unsubSlotStyle, unsubDecoration, unsubRoleStyle, unsubAnimation, unsubTheme;
-
-    loadInitialState();
-
-    unsubStatus = api.onStatusChanged((payload) => setStatus(payload));
-    unsubConfig = api.onConfigUpdated((payload) => setConfig(payload));
-    unsubLayout = api.onLayoutUpdated((payload) => setLayoutConfig(payload));
-    unsubSlotStyle = api.onSlotStyleUpdated((payload) => setSlotStyleConfig(payload));
-    unsubDecoration = api.onDecorationUpdated?.((payload) => setDecorationConfig(payload));
-    unsubRoleStyle = api.onRoleStyleUpdated?.((payload) => setRoleStyleConfig(payload));
-    unsubAnimation = api.onAnimationUpdated?.((payload) => setAnimationConfig(payload));
-    unsubTheme = api.onThemeChanged((payload) => {
-      setConfig(payload.config);
-      setLayoutConfig(payload.layoutConfig);
-      setSlotStyleConfig(payload.slotStyleConfig);
-      setDecorationConfig(payload.decorationConfig);
-      setRoleStyleConfig(payload.roleStyleConfig);
-      setAnimationConfig(payload.animationConfig);
-      setPreviewKey((k) => k + 1);
-    });
-
-    return () => {
-      unsubStatus && unsubStatus();
-      unsubConfig && unsubConfig();
-      unsubLayout && unsubLayout();
-      unsubSlotStyle && unsubSlotStyle();
-      unsubDecoration && unsubDecoration();
-      unsubRoleStyle && unsubRoleStyle();
-      unsubAnimation && unsubAnimation();
-      unsubTheme && unsubTheme();
-    };
-  }, [loadInitialState]);
-
-  // Passed to ThemeLibraryPanel's "Reset toàn bộ theme" action. We don't need
-  // to manually setState here — theme:reset-preset broadcasts theme:changed,
-  // which the onThemeChanged listener above already handles for every panel.
-  const resetThemeLibraryPreset = useCallback(() => api.resetPreset?.(), []);
 
   if (loading) {
     return (
@@ -156,7 +86,7 @@ export default function App() {
         <p className="text-sm text-live max-w-md leading-relaxed">{loadError}</p>
         <button
           type="button"
-          onClick={loadInitialState}
+          onClick={reload}
           className="rounded-lg bg-focusAccent hover:bg-focusAccent/90 text-white text-sm font-semibold px-5 py-2"
         >
           Thử lại
@@ -183,27 +113,29 @@ export default function App() {
           <TabBar active={activeTab} onChange={setActiveTab} />
 
           <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-            {activeTab === 'customize' && (
-              <CustomizePanel api={api} config={config} slotStyleConfig={slotStyleConfig} animationConfig={animationConfig} />
-            )}
-            {activeTab === 'layout' && <LayoutPanel api={api} layoutConfig={layoutConfig} />}
-            {activeTab === 'decorations' && (
-              <DecorationsPanel api={api} decorationConfig={decorationConfig} />
-            )}
-            {activeTab === 'roles' && <RoleStylesPanel api={api} roleStyleConfig={roleStyleConfig} />}
+            {activeTab === 'customize' && <CustomizePanel />}
+            {activeTab === 'layout' && <LayoutPanel />}
+            {activeTab === 'decorations' && <DecorationsPanel />}
+            {activeTab === 'roles' && <RoleStylesPanel />}
           </div>
         </div>
 
-        <ChatPreview
-          overlayUrl={overlayUrl}
-          previewKey={previewKey}
-          onRefresh={() => setPreviewKey((k) => k + 1)}
-        />
+        <ChatPreview overlayUrl={overlayUrl} previewKey={previewKey} onRefresh={bumpPreviewKey} />
 
-        <div className="min-h-0 overflow-y-auto pr-1">
-          <ThemeLibraryPanel api={api} resetPreset={resetThemeLibraryPreset} />
+        {/* Right column: Theme Library above, Custom Presets below */}
+        <div className="min-h-0 overflow-y-auto pr-1 flex flex-col gap-4">
+          <ThemeLibraryPanel api={api} resetPreset={resetPreset} />
+          <CustomPresetsPanel />
         </div>
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <EditorStateProvider api={api}>
+      <AppShell />
+    </EditorStateProvider>
   );
 }

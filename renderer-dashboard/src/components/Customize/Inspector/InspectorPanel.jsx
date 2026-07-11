@@ -17,8 +17,8 @@ const INSPECTORS = {
   badges: BadgesInspector,
 };
 
-export default function InspectorPanel({ api, config, slotStyleConfig, animationConfig }) {
-  const state = useCustomizeState({ api, config, slotStyleConfig, animationConfig });
+export default function InspectorPanel() {
+  const state = useCustomizeState();
   if (!state) return null;
 
   const { local, slotLocal, pushUpdate, pushSlotUpdate, resetPreset, selectedObject, setSelectedObject } = state;

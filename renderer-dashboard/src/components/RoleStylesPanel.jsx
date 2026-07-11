@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import ColorPicker from './Customize/shared/ColorPicker.jsx';
+import { useEditorState } from '../state/EditorStateContext.jsx';
 
 const ROLE_TABS = [
   { id: 'moderator', label: 'Mod', hint: 'Tin nhắn từ người điều hành' },
@@ -152,27 +153,12 @@ function mergeLocalRole(roleStyleConfig, roleKey) {
   };
 }
 
-export default function RoleStylesPanel({ api, roleStyleConfig }) {
+export default function RoleStylesPanel() {
   const [tab, setTab] = useState('moderator');
-  const [local, setLocal] = useState(roleStyleConfig || { roles: {} });
-  const debounceRef = useRef(null);
-
-  useEffect(() => {
-    setLocal(roleStyleConfig || { roles: {} });
-  }, [roleStyleConfig]);
-
-  function pushRoleUpdate(roleKey, nextRole) {
-    const roles = {
-      ...(local.roles || {}),
-      [roleKey]: nextRole,
-    };
-    const next = { roles };
-    setLocal(next);
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      api.updateRoleStyleConfig({ roles: { [roleKey]: nextRole } });
-    }, 120);
-  }
+  // `roleLocal` is the single authoritative editing buffer, shared with
+  // CustomPresetsPanel — no separate local copy here anymore.
+  const { roleLocal, pushRoleUpdate } = useEditorState();
+  const local = roleLocal || { roles: {} };
 
   const activeTab = ROLE_TABS.find((t) => t.id === tab) || ROLE_TABS[0];
   const activeRole = mergeLocalRole(local, tab);

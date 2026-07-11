@@ -1,10 +1,12 @@
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { app, ipcMain } = require('electron');
+const { app, ipcMain, dialog } = require('electron');
 
 const { createMainWindow } = require('./window-manager');
 const { ScraperManager } = require('./scraper-manager');
 const { ConfigStore } = require('./store/config-store');
+const { CustomPresetsStore, validateImportedPresets } = require('./store/custom-presets-store');
 const { startServer } = require('./server/http-server');
 const { attachWebSocketServer } = require('./server/ws-server');
 const { listThemes, themeExists } = require('./theme-registry');
@@ -24,6 +26,7 @@ const MAX_HISTORY = 200;
 let mainWindow;
 let scraperManager;
 let configStore;
+let customPresetsStore;
 let httpPort;
 let wsBroadcast;
 let latestStatus = { status: 'idle', error: null, videoId: null };
@@ -56,6 +59,7 @@ function safeSend(win, channel, payload) {
 
 async function bootstrap() {
   configStore = new ConfigStore();
+  customPresetsStore = new CustomPresetsStore();
 
   mainWindow = createMainWindow({
     preloadPath: path.join(__dirname, '..', 'preload', 'dashboard-preload.js'),
@@ -318,6 +322,100 @@ function registerIpcHandlers() {
     }
 
     return result;
+  });
+
+  // ── Custom Presets ──────────────────────────────────────────────────────────
+
+  ipcMain.handle('custom-preset:list', () => {
+    return customPresetsStore.list();
+  });
+
+  ipcMain.handle('custom-preset:save', (_event, { name, snapshot }) => {
+    const list = customPresetsStore.save(name, snapshot);
+    return { ok: true, list };
+  });
+
+  ipcMain.handle('custom-preset:delete', (_event, id) => {
+    return customPresetsStore.delete(id);
+  });
+
+  ipcMain.handle('custom-preset:rename', (_event, { id, newName }) => {
+    return customPresetsStore.rename(id, newName);
+  });
+
+  ipcMain.handle('custom-preset:apply', (_event, id) => {
+    const preset = customPresetsStore.get(id);
+    if (!preset) return { ok: false, error: 'preset_not_found' };
+
+    const { customizeConfig, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig } = preset;
+    configStore.set({ customizeConfig, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig });
+
+    const themeId = configStore.get().selectedTheme;
+    const themePayload = {
+      themeId,
+      config: customizeConfig,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+      decorationConfig,
+      roleStyleConfig,
+      history: messageHistory,
+    };
+    wsBroadcast('theme:changed', themePayload);
+    safeSend(mainWindow, 'theme:changed', {
+      themeId,
+      config: customizeConfig,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+      decorationConfig,
+      roleStyleConfig,
+    });
+
+    return { ok: true, customizeConfig, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig };
+  });
+
+  ipcMain.handle('custom-preset:export', async () => {
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: 'Xuất Custom Presets',
+      defaultPath: 'custom-presets.json',
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    });
+
+    if (result.canceled || !result.filePath) return { ok: false, canceled: true };
+
+    try {
+      const data = { version: 1, presets: customPresetsStore.exportAll() };
+      fs.writeFileSync(result.filePath, JSON.stringify(data, null, 2), 'utf-8');
+      return { ok: true };
+    } catch (err) {
+      console.error('[main] custom-preset:export failed:', err);
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('custom-preset:import', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Nhập Custom Presets',
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+      properties: ['openFile'],
+    });
+
+    if (result.canceled || !result.filePaths.length) return { ok: false, canceled: true };
+
+    try {
+      const raw = fs.readFileSync(result.filePaths[0], 'utf-8');
+      const parsed = JSON.parse(raw);
+      const { valid, errors, presets } = validateImportedPresets(parsed);
+
+      if (!valid) return { ok: false, errors };
+
+      const stats = customPresetsStore.importPresets(presets);
+      return { ok: true, ...stats, list: customPresetsStore.list() };
+    } catch (err) {
+      console.error('[main] custom-preset:import failed:', err);
+      return { ok: false, error: err.message };
+    }
   });
 }
 

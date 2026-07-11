@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEditorState } from '../state/EditorStateContext.jsx';
 
 const ANCHOR_OPTIONS = [
   { value: 'bubble', label: 'Khung chat (bubble)' },
@@ -349,20 +349,14 @@ function MaskSection({ layer, set }) {
   );
 }
 
-export default function DecorationsPanel({ api, decorationConfig }) {
-  const [local, setLocal] = useState(decorationConfig || { layers: [] });
-  const debounceRef = useRef(null);
-
-  useEffect(() => {
-    setLocal(decorationConfig || { layers: [] });
-  }, [decorationConfig]);
+export default function DecorationsPanel() {
+  // `decorationLocal` is the single authoritative editing buffer, shared
+  // with CustomPresetsPanel — no separate local copy here anymore.
+  const { decorationLocal, pushDecorationUpdate } = useEditorState();
+  const local = decorationLocal || { layers: [] };
 
   function pushUpdate(nextLayers) {
-    setLocal({ layers: nextLayers });
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      api.updateDecorationConfig({ layers: nextLayers });
-    }, 100);
+    pushDecorationUpdate(nextLayers);
   }
 
   function handleLayerChange(index, nextLayer) {
