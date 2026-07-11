@@ -22,6 +22,7 @@ function createRoleDefaults(overrides = {}) {
     messageTextColor: null,
     rowBg: null,
     rowBorderColor: null,
+    earColor: null,
     badgeBefore: null,
     badgeAfter: null,
     showAmount: null,
@@ -79,6 +80,7 @@ function normalizeRole(raw, fallback) {
         ? role.rowBg
         : (typeof role.rowBgColor === 'string' ? role.rowBgColor : base.rowBg),
     rowBorderColor: typeof role.rowBorderColor === 'string' ? role.rowBorderColor : base.rowBorderColor,
+    earColor: typeof role.earColor === 'string' ? role.earColor : base.earColor,
     badgeBefore:
       role.badgeBefore !== undefined && role.badgeBefore !== null
         ? role.badgeBefore
@@ -148,6 +150,7 @@ function compileRoleStyleToCssVariables(roleStyle) {
     if (role.messageTextColor) vars[`--ovs-role-${prefix}-message-text-color`] = role.messageTextColor;
     if (role.rowBg) vars[`--ovs-role-${prefix}-row-bg`] = role.rowBg;
     if (role.rowBorderColor) vars[`--ovs-role-${prefix}-row-border-color`] = role.rowBorderColor;
+    if (role.earColor) vars[`--ovs-role-${prefix}-ear-color`] = role.earColor;
     vars[`--ovs-role-${prefix}-badge-before-content`] = quoteCssContent(role.badgeBefore);
     vars[`--ovs-role-${prefix}-badge-after-content`] = quoteCssContent(role.badgeAfter);
 

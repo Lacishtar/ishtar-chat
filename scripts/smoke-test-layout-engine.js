@@ -6,7 +6,7 @@ const { loadThemeDocument, listThemeIds, compileLayoutToCssVariables } = require
 const { THEMES_DIR } = require('../main/theme-registry');
 const { DEFAULT_LAYOUT_CONFIG, compileLayoutToCssVariables: compileFromConfig, contractSimpleLayout, expandSimpleLayout } = require('../shared/layout-config');
 
-const EXPECTED_THEME_IDS = ['classic', 'bubble', 'glass', 'minimal', 'anime', 'cyber', 'danmaku', 'ticker', 'scrapbook'];
+const EXPECTED_THEME_IDS = ['classic', 'bubble', 'glass', 'minimal', 'kawaii', 'cyber', 'danmaku', 'ticker', 'scrapbook'];
 const EXPECTED_VARS = [
   '--ovs-layout-message-direction',
   '--ovs-layout-message-gap',
@@ -175,3 +175,4 @@ try {
   console.error(err.message || err);
   process.exit(1);
 }
+

@@ -1,5 +1,6 @@
 import { Field, inputClass } from '../shared/fields.jsx';
 import { FONT_OPTIONS } from '../shared/constants.js';
+import ColorPicker from '../shared/ColorPicker.jsx';
 
 export default function FontSection({
   fontFamily,
@@ -40,12 +41,7 @@ export default function FontSection({
       </Field>
       {showColor && (
         <Field label="Màu chữ">
-          <input
-            type="color"
-            className="h-8 w-full rounded-lg border border-line bg-panelAlt"
-            value={color}
-            onChange={(e) => onChange({ color: e.target.value })}
-          />
+          <ColorPicker value={color} onChange={(v) => onChange({ color: v })} allowGradient={false} />
         </Field>
       )}
       {showOpacity && (

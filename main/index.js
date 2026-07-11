@@ -267,7 +267,11 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('role-style:update', (_event, partialRoleStyle) => {
-    const merged = mergeRoleStyleConfig(configStore.get().roleStyleConfig, partialRoleStyle);
+    console.log('[main] role-style:update received partial ->', JSON.stringify(partialRoleStyle));
+    const before = configStore.get().roleStyleConfig;
+    const merged = mergeRoleStyleConfig(before, partialRoleStyle);
+    console.log('[main] role-style:update before ->', JSON.stringify(before));
+    console.log('[main] role-style:update merged  ->', JSON.stringify(merged));
     configStore.set({ roleStyleConfig: merged });
 
     wsBroadcast('role-style:updated', merged);

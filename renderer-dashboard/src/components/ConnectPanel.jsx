@@ -18,7 +18,15 @@ function formatStatusError(status, localError) {
   return msg;
 }
 
-export default function ConnectPanel({ api, status, lastSessionUrl, onConnected }) {
+/**
+ * ConnectPanel — connect/disconnect controls for the livestream chat source.
+ *
+ * `compact` renders a single horizontal row meant to sit inline in the
+ * app header (next to StatusBadge) instead of as its own bordered section
+ * in the sidebar. All connect/disconnect/reconnect logic is identical
+ * between the two layouts — only the markup differs.
+ */
+export default function ConnectPanel({ api, status, lastSessionUrl, onConnected, compact = false }) {
   const [url, setUrl] = useState('');
   const [connectedUrl, setConnectedUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -91,6 +99,76 @@ export default function ConnectPanel({ api, status, lastSessionUrl, onConnected 
     status.status === 'stale'
       ? 'Livestream có thể đã kết thúc hoặc chat tạm dừng — thử Ngắt kết nối rồi Kết nối lại.'
       : null;
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2 flex-wrap min-w-0">
+        <span className="text-[10px] uppercase tracking-wide text-inkMuted shrink-0">Kết nối</span>
+
+        <form onSubmit={handleConnect} className="flex items-center gap-2 flex-wrap min-w-0">
+          {isConnected && connectedUrl ? (
+            <span
+              className="text-xs font-mono text-inkMuted truncate max-w-[220px]"
+              title={connectedUrl}
+            >
+              {connectedUrl}
+            </span>
+          ) : (
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Dán link youtube.com/watch?v=... hoặc /live/..."
+              disabled={isConnecting}
+              className="w-64 rounded-lg bg-panelAlt border border-line px-3 py-1.5 text-xs font-mono
+                         placeholder:text-inkMuted/60 focus:outline-none focus:ring-2 focus:ring-focusAccent
+                         disabled:opacity-50"
+            />
+          )}
+
+          {isConnected ? (
+            <button
+              type="button"
+              onClick={handleDisconnect}
+              disabled={submitting}
+              className="shrink-0 rounded-lg bg-panelAlt border border-line hover:border-live/60 hover:text-live
+                         text-xs font-medium px-3 py-1.5 transition-colors disabled:opacity-50"
+            >
+              Ngắt kết nối
+            </button>
+          ) : (
+            <>
+              <button
+                type="submit"
+                disabled={submitting || !url.trim() || isConnecting}
+                className="shrink-0 rounded-lg bg-focusAccent hover:bg-focusAccent/90 text-white text-xs font-semibold
+                           px-3 py-1.5 transition-colors disabled:opacity-50"
+              >
+                {isConnecting ? 'Đang kết nối…' : 'Kết nối'}
+              </button>
+              {canReconnect && (connectedUrl || url || lastSessionUrl) && (
+                <button
+                  type="button"
+                  onClick={handleReconnect}
+                  disabled={submitting || isConnecting}
+                  className="shrink-0 rounded-lg border border-line bg-panelAlt hover:border-focusAccent/50
+                             text-xs font-medium px-3 py-1.5 transition-colors disabled:opacity-50"
+                >
+                  Kết nối lại
+                </button>
+              )}
+            </>
+          )}
+        </form>
+
+        {(displayError || staleHint) && (
+          <span className={`text-[11px] leading-snug ${displayError ? 'text-live' : 'text-stale'}`}>
+            {displayError || staleHint}
+          </span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <section className="rounded-xl bg-panel border border-line shadow-panel p-4">

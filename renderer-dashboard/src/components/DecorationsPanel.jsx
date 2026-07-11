@@ -46,11 +46,15 @@ const inputClass =
   'w-full rounded-lg bg-panelAlt border border-line px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-focusAccent';
 
 function Field({ label, children }) {
+  // Plain wrapper, not <label> -- an unassociated <label> around
+  // multi-control content can cause the browser to auto-forward a
+  // phantom click to whichever labelable descendant is currently first
+  // in DOM order. See shared/fields.jsx for the full writeup.
   return (
-    <label className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5">
       <span className="text-xs text-inkMuted">{label}</span>
       {children}
-    </label>
+    </div>
   );
 }
 

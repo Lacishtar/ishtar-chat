@@ -7,6 +7,18 @@ body {
   background-color: #0e1013;
 }
 
+/* Native <input type="range"> has a fixed browser-default width (~130px)
+   when no width is set. The Customize panel's sidebar column is only ~300px
+   wide and its accordion sections use a 2-column grid, so every bare slider
+   (font size, opacity, padding, radius, bunny-ear offsets, etc.) was wider
+   than its ~110px grid column and spilled/overlapped past the panel edge.
+   Every slider in the app is meant to fill its container, so this one rule
+   fixes it everywhere instead of adding `w-full` to dozens of call sites. */
+input[type='range'] {
+  width: 100%;
+  min-width: 0;
+}
+
 /* Signals "this area is transparent in OBS" behind the live preview iframe */
 .ovs-checkerboard {
   background-image: linear-gradient(45deg, #20242c 25%, transparent 25%),

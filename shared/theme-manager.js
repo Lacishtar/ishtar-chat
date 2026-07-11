@@ -24,7 +24,7 @@
 
 'use strict';
 
-const { THEME_LIST } = require('./theme-presets');
+const { BUILTIN_THEMES } = require('./theme-presets');
 
 const { DEFAULT_CUSTOMIZE_CONFIG } = require('./customize-config');
 const { DEFAULT_LAYOUT_CONFIG, mergeLayoutConfig } = require('./layout-config');
@@ -41,7 +41,7 @@ const { DEFAULT_ROLE_STYLE_CONFIG, mergeRoleStyleConfig } = require('./role-styl
  * Build a lookup map from theme id → theme object (O(1) access).
  * Rebuilt once on module load — the built-in list is static.
  */
-const _themeMap = new Map(THEME_LIST.map((p) => [p.id, p]));
+const _themeMap = new Map(BUILTIN_THEMES.map((p) => [p.id, p]));
 
 /** The six recognised config category keys. */
 const CONFIG_CATEGORIES = [
@@ -85,7 +85,7 @@ const CATEGORY_DEFAULTS = {
  *             version: string, category: string, tags: string[] }[]}
  */
 function GetThemeList() {
-  return THEME_LIST.map(({ id, name, description, author, version, category, tags }) => ({
+  return BUILTIN_THEMES.map(({ id, name, description, author, version, category, tags }) => ({
     id, name, description,
     author: author || 'built-in',
     version: version || '1.0.0',
@@ -291,7 +291,6 @@ function ResetCategory(category, themeId, store) {
 // ---------------------------------------------------------------------------
 
 module.exports = {
-  // Canonical names
   GetThemeList,
   LoadTheme,
   ValidateTheme,
@@ -301,7 +300,4 @@ module.exports = {
   ResetCategory,
   /** Exposed for tests / diagnostics — not part of the public contract. */
   CONFIG_CATEGORIES,
-  // Backward-compat aliases (deprecated — prefer the names above)
-  GetPresetList: GetThemeList,
-  LoadPreset: LoadTheme,
 };

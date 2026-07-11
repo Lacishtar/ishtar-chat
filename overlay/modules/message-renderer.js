@@ -62,7 +62,8 @@ export function refreshAllSlotVisibility() {
   }
 }
 
-function applySlotEnterAnimation(node) {
+function applySlotEnterAnimation(node, skip) {
+  if (skip) return;
   if (TICKER_THEMES.has(state.currentTheme) || DANMAKU_THEMES.has(state.currentTheme)) return;
   const root = getComputedStyle(document.documentElement);
   if (root.getPropertyValue('--ovs-anim-enabled').trim() === '0') return;
@@ -87,7 +88,7 @@ function applySlotEnterAnimation(node) {
   });
 }
 
-export function createMessageNode(msg) {
+export function createMessageNode(msg, options = {}) {
   const node = state.messageTemplate.content.firstElementChild.cloneNode(true);
 
   const avatarEl = node.querySelector('[data-slot="avatar"]');
@@ -105,15 +106,17 @@ export function createMessageNode(msg) {
   applySlotVisibility(messageEl, 'message');
 
   // Set role class TRƯỚC khi gọi applyMessageBunnyEars
-  // để resolveEarBgForNode có thể đọc classList ngay lập tức
-  const primaryRole = msg.isSuperchat
-    ? 'superchat'
-    : msg.roles?.includes('moderator')
-      ? 'moderator'
-      : msg.roles?.includes('member')
-        ? 'member'
-        : null;
-  if (primaryRole) node.classList.add(`ovs-${primaryRole}`);
+  // để resolveEarBgForNode có thể đọc classList ngay lập tức.
+  // Gắn TẤT CẢ role class phù hợp (không chỉ 1) — vd một mod gửi Super Chat
+  // sẽ có cả ovs-moderator lẫn ovs-superchat. role-styles.css đã có sẵn các
+  // khối CSS riêng cho tổ hợp .ovs-moderator.ovs-superchat /
+  // .ovs-member.ovs-superchat để hiện gradient pha trộn, nhưng trước đây
+  // node chỉ nhận đúng 1 class (ưu tiên superchat > mod > member) nên các
+  // khối CSS đó không bao giờ khớp — badge/màu của mod hoặc member bị Super
+  // Chat "nuốt mất" hoàn toàn thay vì hoà trộn.
+  if (msg.roles?.includes('moderator')) node.classList.add('ovs-moderator');
+  if (msg.roles?.includes('member')) node.classList.add('ovs-member');
+  if (msg.isSuperchat) node.classList.add('ovs-superchat');
 
   ensureBubbleTexture(node);
   if (!isFlythroughTheme()) {
@@ -150,7 +153,7 @@ export function createMessageNode(msg) {
     authorEl.parentElement.insertBefore(amountEl, authorEl.nextSibling);
   }
 
-  applySlotEnterAnimation(node);
+  applySlotEnterAnimation(node, options.skipEnterAnimation);
   return node;
 }
 
@@ -187,7 +190,7 @@ export function renderMessage(msg, options = {}) {
     return;
   }
 
-  const node = createMessageNode(msg);
+  const node = createMessageNode(msg, { skipEnterAnimation: options.skipEnterAnimation });
 
   if (state.currentConfig.position === 'top-down') {
     listEl.prepend(node);

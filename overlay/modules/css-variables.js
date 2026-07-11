@@ -443,6 +443,7 @@ function compileRoleStyleToCssVariables(roleStyle) {
     if (role.messageTextColor) vars[`--ovs-role-${prefix}-message-text-color`] = role.messageTextColor;
     if (rowBg) vars[`--ovs-role-${prefix}-row-bg`] = rowBg;
     if (role.rowBorderColor) vars[`--ovs-role-${prefix}-row-border-color`] = role.rowBorderColor;
+    if (role.earColor) vars[`--ovs-role-${prefix}-ear-color`] = role.earColor;
     vars[`--ovs-role-${prefix}-badge-before-content`] = role.badgeBefore
       ? `"${String(role.badgeBefore).replace(/"/g, '\\"')}"`
       : 'none';

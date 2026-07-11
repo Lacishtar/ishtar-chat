@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import ColorPicker from './Customize/shared/ColorPicker.jsx';
 
 const ROLE_TABS = [
   { id: 'moderator', label: 'Mod', hint: 'Tin nhắn từ người điều hành' },
@@ -10,50 +11,31 @@ const inputClass =
   'w-full rounded-lg bg-panelAlt border border-line px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-focusAccent';
 
 function Field({ label, children, hint }) {
+  // Same fix as shared/fields.jsx: plain wrapper, not <label>. This Field
+  // wraps multi-control children (ColorPicker's tab buttons + inputs), and
+  // an unassociated <label> auto-forwards a phantom click to whichever
+  // labelable descendant is currently first in DOM order — which changes
+  // mid-click when ColorPicker switches between solid/gradient modes.
   return (
-    <label className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5">
       <span className="text-xs text-inkMuted">{label}</span>
       {children}
       {hint ? <span className="text-[10px] text-inkMuted/80 leading-snug">{hint}</span> : null}
-    </label>
+    </div>
   );
 }
 
-const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
-const RGBA_RE = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*[\d.]+)?\)/i;
-
-// Một số giá trị mặc định (vd. nền moderator/superchat) là CSS gradient/rgba,
-// không phải hex thuần. <input type="color"> chỉ hiểu hex, nên trước đây nó
-// luôn rơi về màu tối mặc định (#16191f) dù giá trị thật vẫn được áp dụng
-// đúng lên overlay — nhìn như "lỗi hiển thị" dù vẫn hoạt động.
-// Hàm này rút ra một màu hex gần đúng để ô color-picker hiển thị đúng tinh thần màu.
-function toPreviewHex(value) {
-  if (!value) return '#16191f';
-  if (HEX_RE.test(value)) return value;
-  const match = RGBA_RE.exec(value);
-  if (match) {
-    const [, r, g, b] = match;
-    return `#${[r, g, b].map((v) => Number(v).toString(16).padStart(2, '0')).join('')}`;
-  }
-  return '#16191f';
-}
-
-function ColorField({ label, value, onChange }) {
-  const isPlainHex = !!value && HEX_RE.test(value);
-  const previewHex = toPreviewHex(value);
+function ColorField({ label, value, onChange, hint, allowGradient = true }) {
   return (
-    <Field label={label}>
-      <div className="flex items-center gap-2">
-        <input
-          type="color"
-          className="h-8 w-full rounded-lg border border-line bg-panelAlt cursor-pointer"
-          value={previewHex}
-          onChange={(e) => onChange(e.target.value)}
-        />
-        <span className="text-xs text-inkMuted whitespace-nowrap">
-          {!value ? 'Mặc định' : isPlainHex ? value : 'Gradient (xem trước gần đúng)'}
-        </span>
-      </div>
+    <Field
+      label={label}
+      hint={value ? hint : [hint, 'Chưa đặt — đang dùng màu mặc định.'].filter(Boolean).join(' ')}
+    >
+      <ColorPicker
+        value={value ?? 'rgba(22, 25, 31, 0)'}
+        onChange={onChange}
+        allowGradient={allowGradient}
+      />
     </Field>
   );
 }
@@ -78,6 +60,7 @@ function RoleEditor({ roleKey, role, onChange }) {
         value={role.authorColor}
         placeholder="#fca5a5"
         onChange={(v) => set({ authorColor: v })}
+        allowGradient={false}
       />
       <ColorField
         label="Nền bubble tên"
@@ -89,11 +72,18 @@ function RoleEditor({ roleKey, role, onChange }) {
         value={role.messageBg}
         onChange={(v) => set({ messageBg: v })}
       />
+      <ColorField
+        label="Màu tai thỏ"
+        value={role.earColor}
+        onChange={(v) => set({ earColor: v })}
+        hint="Đặt riêng cho tai — nếu để Mặc định, tai sẽ theo Nền bubble chat (hoặc màu bubble gốc nếu Nền bubble chat cũng để Mặc định)."
+      />
 
       <ColorField
         label="Màu chữ chat"
         value={role.messageTextColor}
         onChange={(v) => set({ messageTextColor: v })}
+        allowGradient={false}
       />
 
       <Field label="Badge trước tên" hint="Để trống = không hiện badge trước tên">
@@ -133,42 +123,31 @@ function RoleEditor({ roleKey, role, onChange }) {
   );
 }
 
-const DEFAULT_ROLES = {
-  moderator: {
-    enabled: true,
-    authorColor: '#fca5a5',
-    authorBg: null,
-    messageBg: '#f87171',
-    messageTextColor: '#ffffff',
-    badgeBefore: 'MOD',
-    badgeAfter: null,
-    showAmount: null,
-  },
-  member: {
-    enabled: true,
-    authorColor: '#93c5fd',
-    authorBg: null,
-    messageBg: '#60a5fa',
-    messageTextColor: '#ffffff',
-    badgeBefore: '★',
-    badgeAfter: null,
-    showAmount: null,
-  },
-  superchat: {
-    enabled: true,
-    authorColor: '#fde047',
-    authorBg: null,
-    messageBg: '#facc15',
-    messageTextColor: '#1f2937',
-    badgeBefore: '✦',
-    badgeAfter: null,
-    showAmount: true,
-  },
+// NOTE: the *real* defaults (colors, gradients, badges) live in exactly one
+// place — shared/role-style-config.js (DEFAULT_ROLE_STYLE_CONFIG), which the
+// main process normalizes and pushes down via `roleStyleConfig` on mount.
+// This used to be duplicated here as a second, hand-maintained copy — which
+// had drifted out of sync (e.g. moderator/superchat `messageBg` were solid
+// colors here but gradients on the backend). That mismatch was harmless
+// once real data arrived, but meant the panel briefly rendered wrong values
+// (and made bugs like "gradient doesn't stick" harder to reason about).
+// This is now just a blank shape for the split-second before the backend's
+// config lands — never a stand-in with fake preset values.
+const EMPTY_ROLE = {
+  enabled: true,
+  authorColor: null,
+  authorBg: null,
+  messageBg: null,
+  earColor: null,
+  messageTextColor: null,
+  badgeBefore: null,
+  badgeAfter: null,
+  showAmount: null,
 };
 
 function mergeLocalRole(roleStyleConfig, roleKey) {
   return {
-    ...DEFAULT_ROLES[roleKey],
+    ...EMPTY_ROLE,
     ...(roleStyleConfig?.roles?.[roleKey] || {}),
   };
 }

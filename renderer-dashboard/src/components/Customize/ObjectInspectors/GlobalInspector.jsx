@@ -1,5 +1,4 @@
 import AccordionSection from '../Inspector/AccordionSection.jsx';
-import QuickStyleThemes from '../Themes/QuickStyleThemes.jsx';
 import FontSection from '../Typography/FontSection.jsx';
 import BackgroundSection from '../Appearance/BackgroundSection.jsx';
 import BorderSection from '../Appearance/BorderSection.jsx';
@@ -10,6 +9,7 @@ import BubbleTextureSection from '../Bubble/BubbleTextureSection.jsx';
 import BunnySection from '../Bubble/BunnySection.jsx';
 import AnimationSection from '../Animation/AnimationSection.jsx';
 import { Field, PresetButton, PresetBadge } from '../shared/fields.jsx';
+import ColorPicker from '../shared/ColorPicker.jsx';
 import { configVal, isUserSet } from '../shared/configHelpers.js';
 
 const OBJECT_ID = 'global';
@@ -27,8 +27,6 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <QuickStyleThemes onApply={pushUpdate} />
-
       <AccordionSection title="Typography" {...sec('typography')}>
         <FontSection
           fontFamily={local.fontFamily}
@@ -46,11 +44,10 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
           }
         />
         <Field label="Màu tên mặc định">
-          <input
-            type="color"
-            className="h-8 w-full rounded-lg border border-line bg-panelAlt"
+          <ColorPicker
             value={local.authorColor}
-            onChange={(e) => pushUpdate({ authorColor: e.target.value })}
+            onChange={(v) => pushUpdate({ authorColor: v })}
+            allowGradient={false}
           />
         </Field>
       </AccordionSection>

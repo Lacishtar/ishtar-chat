@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function ChatPreview({ overlayUrl, selectedTheme, previewKey, onRefresh }) {
+export default function ChatPreview({ overlayUrl, previewKey, onRefresh }) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(null);
 
@@ -40,7 +40,7 @@ export default function ChatPreview({ overlayUrl, selectedTheme, previewKey, onR
 
       <div className="ovs-checkerboard rounded-lg border border-line flex-1 overflow-hidden">
         <iframe
-          key={`${selectedTheme}-${previewKey}`}
+          key={previewKey}
           title="Overlay preview"
           src={overlayUrl}
           className="w-full h-full border-0"

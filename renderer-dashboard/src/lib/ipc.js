@@ -152,19 +152,19 @@ function createMock() {
       animationConfig,
     }),
     getThemeList: async () => [
-      { id: 'default',       name: 'Default',       description: 'Standard dark-panel look.' },
-      { id: 'minimal-white', name: 'Minimal White',  description: 'Clean white, no bubble.' },
-      { id: 'minimal-dark',  name: 'Minimal Dark',   description: 'Transparent bubble, dark text.' },
-      { id: 'discord',       name: 'Discord',        description: 'Discord dark with Blurple accents.' },
-      { id: 'cyber-neon',    name: 'Cyber Neon',     description: 'Electric-cyan cyberpunk.' },
-      { id: 'pastel-pink',   name: 'Pastel Pink',    description: 'Soft pink bubbles.' },
-      { id: 'glassmorphism', name: 'Glassmorphism',  description: 'Frosted-glass panel.' },
-      { id: 'cute-bubble',   name: 'Cute Bubble',    description: 'Round colourful bubbles.' },
-      { id: 'anime',         name: 'Anime',          description: 'Sakura-pink manga style.' },
-      { id: 'vtuber-cute',   name: 'VTuber Cute',    description: 'Idol-style with bunny ears.' },
-      { id: 'blue-archive',  name: 'Blue Archive',   description: 'Navy-and-sky Blue Archive.' },
-      { id: 'hololive-blue', name: 'Hololive Blue',  description: 'Sky-blue Hololive style.' },
-      { id: 'night-sky',     name: 'Night Sky',      description: 'Deep navy with aurora glow.' },
+      { id: 'default',       name: 'Default',       description: 'Standard dark-panel look.', preview: { bubbleBg: 'rgba(22, 25, 31, 0.72)', authorColor: '#6E56F0', textColor: '#EAECEF' } },
+      { id: 'minimal-white', name: 'Minimal White',  description: 'Clean white, no bubble.', preview: { bubbleBg: 'rgba(255, 255, 255, 0.9)', authorColor: '#111827', textColor: '#374151' } },
+      { id: 'minimal-dark',  name: 'Minimal Dark',   description: 'Transparent bubble, dark text.', preview: { bubbleBg: 'rgba(0, 0, 0, 0.35)', authorColor: '#F9FAFB', textColor: '#D1D5DB' } },
+      { id: 'discord',       name: 'Discord',        description: 'Discord dark with Blurple accents.', preview: { bubbleBg: 'rgba(49, 51, 56, 0.9)', authorColor: '#5865F2', textColor: '#DBDEE1' } },
+      { id: 'cyber-neon',    name: 'Cyber Neon',     description: 'Electric-cyan cyberpunk.', preview: { bubbleBg: 'rgba(6, 10, 20, 0.85)', authorColor: '#00F0FF', textColor: '#B9FBFF' } },
+      { id: 'pastel-pink',   name: 'Pastel Pink',    description: 'Soft pink bubbles.', preview: { bubbleBg: 'rgba(255, 228, 240, 0.9)', authorColor: '#E85D9E', textColor: '#6B3A52' } },
+      { id: 'glassmorphism', name: 'Glassmorphism',  description: 'Frosted-glass panel.', preview: { bubbleBg: 'rgba(255, 255, 255, 0.14)', authorColor: '#7DD3FC', textColor: '#F1F5F9' } },
+      { id: 'cute-bubble',   name: 'Cute Bubble',    description: 'Round colourful bubbles.', preview: { bubbleBg: 'rgba(255, 214, 165, 0.9)', authorColor: '#F97316', textColor: '#7C2D12' } },
+      { id: 'kawaii', name: 'Kawaii', description: 'Sakura-pink kawaii style.', preview: { bubbleBg: 'rgba(255, 240, 245, 0.92)', authorColor: '#FB7185', textColor: '#9D174D' } },
+      { id: 'vtuber-cute',   name: 'VTuber Cute',    description: 'Idol-style with bunny ears.', preview: { bubbleBg: 'rgba(255, 245, 250, 0.9)', authorColor: '#C026D3', textColor: '#701A75' } },
+      { id: 'blue-archive',  name: 'Blue Archive',   description: 'Navy-and-sky Blue Archive.', preview: { bubbleBg: 'rgba(15, 23, 42, 0.85)', authorColor: '#38BDF8', textColor: '#E0F2FE' } },
+      { id: 'hololive-blue', name: 'Hololive Blue',  description: 'Sky-blue Hololive style.', preview: { bubbleBg: 'rgba(224, 242, 254, 0.9)', authorColor: '#0284C7', textColor: '#0C4A6E' } },
+      { id: 'night-sky',     name: 'Night Sky',      description: 'Deep navy with aurora glow.', preview: { bubbleBg: 'rgba(8, 12, 28, 0.85)', authorColor: '#A78BFA', textColor: '#E0E7FF' } },
     ],
     applyTheme: async (themeId) => {
       // In the mock we just echo the current config back — real apply
@@ -298,3 +298,4 @@ function createMock() {
 const api = hasElectronApi ? window.api : createMock();
 
 export default api;
+

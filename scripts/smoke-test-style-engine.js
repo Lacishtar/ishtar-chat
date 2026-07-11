@@ -23,7 +23,7 @@ const { loadThemeDocument, listThemeIds, compileStyleToCssVariables } = require(
 const { THEMES_DIR, readThemeConfig } = require('../main/theme-registry');
 const { DEFAULT_CUSTOMIZE_CONFIG, toCssVariables, sanitizeThemeDefaults } = require('../shared/customize-config');
 
-const EXPECTED_THEME_IDS = ['classic', 'bubble', 'glass', 'minimal', 'anime', 'cyber', 'danmaku', 'ticker'];
+const EXPECTED_THEME_IDS = ['classic', 'bubble', 'glass', 'minimal', 'kawaii', 'cyber', 'danmaku', 'ticker'];
 
 function fail(message) {
   throw new Error(`[smoke:style-engine] ${message}`);
@@ -95,3 +95,4 @@ try {
   console.error(err.message || err);
   process.exit(1);
 }
+

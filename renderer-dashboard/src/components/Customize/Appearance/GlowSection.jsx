@@ -1,6 +1,7 @@
 import { Field, inputClass, EnableToggle } from '../shared/fields.jsx';
 import { GLOW_PRESETS } from '../shared/constants.js';
 import { rgbaToHexAlpha, hexAlphaToRgba } from '../shared/colorUtils.js';
+import ColorPicker from '../shared/ColorPicker.jsx';
 
 // Glow is stored as a CSS `filter: drop-shadow(...)` string (see constants.js /
 // overlay/bubble-wrap.css). The "custom" editor below never asks the user to type
@@ -65,22 +66,14 @@ export default function GlowSection({ value, onChange, allowCustomCss = false })
 
           {allowCustomCss && (
             <>
-              <Field label="Màu glow">
-                <input
-                  type="color"
-                  className="h-8 w-full rounded-lg border border-line bg-panelAlt cursor-pointer"
-                  value={hex}
-                  onChange={(e) => onChange(buildGlow(e.target.value, alpha, blur))}
-                />
-              </Field>
-              <Field label={`Cường độ glow — ${Math.round(alpha * 100)}%`}>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={alpha}
-                  onChange={(e) => onChange(buildGlow(hex, Number(e.target.value), blur))}
+              <Field label="Màu & độ trong suốt glow">
+                <ColorPicker
+                  value={hexAlphaToRgba(hex, alpha)}
+                  onChange={(v) => {
+                    const parsed = rgbaToHexAlpha(v);
+                    onChange(buildGlow(parsed.hex, parsed.alpha, blur));
+                  }}
+                  allowGradient={false}
                 />
               </Field>
               <Field label={`Độ lan toả — ${blur}px`}>

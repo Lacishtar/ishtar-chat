@@ -42,25 +42,62 @@ function removeBunnyEarSpans(el) {
   el.querySelectorAll(':scope > .ovs-bunny-ear').forEach((s) => s.remove());
 }
 
-// Resolve màu tai thỏ theo role từ currentRoleStyle config
-function resolveEarBgForNode(node) {
+// Resolve màu tai thỏ theo role từ currentRoleStyle config.
+// node có thể mang NHIỀU role class cùng lúc (vd: ovs-moderator + ovs-superchat),
+// nên ưu tiên theo thứ tự superchat > moderator > member — khớp với thứ tự
+// override trong role-styles.css (khối "combined roles + superchat" nằm sau
+// cùng nên thắng cascade so với khối single-role).
+const ROLE_PRIORITY = [
+  { cls: 'ovs-superchat', key: 'superchat' },
+  { cls: 'ovs-moderator', key: 'moderator' },
+  { cls: 'ovs-member', key: 'member' },
+];
+
+function resolveRoleForNode(node) {
   const roles = state.currentRoleStyle?.roles || {};
-  const ROLE_MAP = [
-    { cls: 'ovs-moderator', key: 'moderator', defaultBg: '#f87171' },
-    { cls: 'ovs-member', key: 'member', defaultBg: '#60a5fa' },
-    { cls: 'ovs-superchat', key: 'superchat', defaultBg: '#facc15' },
-  ];
-  for (const { cls, key, defaultBg } of ROLE_MAP) {
-    if (!node.classList.contains(cls)) continue;
-    const roleCfg = roles[key] || {};
+  for (const entry of ROLE_PRIORITY) {
+    if (!node.classList.contains(entry.cls)) continue;
+    const roleCfg = roles[entry.key] || {};
     if (roleCfg.enabled === false) continue;
-    // Ưu tiên: rowBg → messageBg → default
-    const bg = roleCfg.rowBg || roleCfg.rowBgColor
-      || roleCfg.messageBg || roleCfg.messageBgColor
-      || defaultBg;
-    return bg || null;
+    return { ...entry, roleCfg };
   }
-  return null; // không có role → dùng CSS var (--ovs-bubble-bg)
+  return null;
+}
+
+// earColor là field riêng, độc lập với authorColor/messageBg/rowBg — người
+// dùng chọn "Màu tai thỏ" trong panel Vai trò thì LUÔN thắng, không bị suy
+// ra (và trước đây từng bị nhầm) từ màu tên hay nền bubble.
+function resolveEarBgForNode(node) {
+  const match = resolveRoleForNode(node);
+  if (!match) return null; // không có role → dùng CSS var (--ovs-bubble-bg)
+  const { roleCfg } = match;
+  // Ưu tiên: earColor (set riêng) → rowBg → messageBg → mặc định theo bubble
+  // (không còn ép về 1 mã hex cứng — trước đây điều này khiến tai thỏ hiện
+  // màu không khớp bubble/author khi role chưa cấu hình earColor/messageBg).
+  const bg = roleCfg.earColor
+    || roleCfg.rowBg || roleCfg.rowBgColor
+    || roleCfg.messageBg || roleCfg.messageBgColor;
+  return bg || null;
+}
+
+// Slot mode (author/message tách bubble riêng): role-styles.css chỉ đổi màu
+// nền của .ovs-text theo messageBg (không có rowBg ở slot mode), và chỉ đổi
+// nền .ovs-author khi có authorBg (pill), nên tai thỏ phải theo đúng 2 quy tắc
+// đó — không phải copy nguyên priority chain của row mode.
+function resolveEarBgForSlot(node, slotName) {
+  const match = resolveRoleForNode(node);
+  if (!match) return null;
+  const { roleCfg } = match;
+  if (roleCfg.earColor) return roleCfg.earColor;
+  if (slotName === 'message') {
+    return roleCfg.messageBg || roleCfg.messageBgColor || null;
+  }
+  if (slotName === 'author') {
+    // Chỉ tô màu tai theo role khi author thực sự có pill nền riêng (authorBg);
+    // nếu không, bubble tác giả vẫn dùng nền mặc định nên tai cũng phải vậy.
+    return roleCfg.authorBg || null;
+  }
+  return null;
 }
 
 export function applyMessageBunnyEars(node) {
@@ -96,8 +133,18 @@ export function applySlotBunnyEars(el, slotName) {
     return;
   }
   el.setAttribute('data-bunny-ears', 'true');
-  ensureBunnyEarSpans(el);
-  // Slot ears dùng CSS vars từ parent slot bubble bg (không cần JS color)
+  const { left, right } = ensureBunnyEarSpans(el);
+  // Role class nằm trên .ovs-message cha (author/message slot không tự mang
+  // class role), nên phải tìm ngược lên để biết message này thuộc role nào.
+  const rowNode = el.closest('.ovs-message');
+  const bg = rowNode ? resolveEarBgForSlot(rowNode, slotName) : null;
+  if (bg) {
+    left.style.background = bg;
+    right.style.background = bg;
+  } else {
+    left.style.removeProperty('background');
+    right.style.removeProperty('background');
+  }
 }
 
 export function refreshAllSlotBunnyEars() {

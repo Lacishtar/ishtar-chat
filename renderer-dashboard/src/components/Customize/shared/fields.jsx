@@ -1,12 +1,24 @@
 export const inputClass =
   'w-full rounded-lg bg-panelAlt border border-line px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-focusAccent';
 
-export function Field({ label, children }) {
+export function Field({ label, children, full }) {
+  // NOTE: intentionally a <div>, not a <label>. `children` here is often a
+  // multi-control block (ColorPicker's tab buttons + inputs, a <select>,
+  // etc.), not a single form control this text is "for". A <label> with no
+  // `htmlFor` implicitly associates itself with the first labelable
+  // descendant in DOM order, and the browser auto-forwards a synthetic
+  // click to that element whenever a click bubbles through the label. If a
+  // click handler swaps which element is "first" mid-click (e.g. switching
+  // ColorPicker between solid/gradient tabs), that phantom forwarded click
+  // lands on a *different* control than the user actually clicked and can
+  // immediately undo the action. Use a plain wrapper here; pair real
+  // <label htmlFor> with a specific input id where single-control labeling
+  // is actually needed.
   return (
-    <label className="flex flex-col gap-1.5">
+    <div className={`flex flex-col gap-1.5 min-w-0 ${full ? 'col-span-2' : ''}`}>
       <span className="text-xs text-inkMuted">{label}</span>
       {children}
-    </label>
+    </div>
   );
 }
 

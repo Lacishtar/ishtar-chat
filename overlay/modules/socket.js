@@ -2,8 +2,8 @@ import { state, isFlythroughTheme } from './state.js';
 import { applyCssVariables } from './css-variables.js';
 import { refreshAllDecorations } from './decoration.js';
 import { refreshAllSlotBunnyEars } from './bubble.js';
-import { renderMessage } from './message-renderer.js';
 import { applyThemePayload } from './theme-loader.js';
+import { enqueueMessage } from './message-queue.js';
 
 export function connectSocket() {
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -18,7 +18,7 @@ export function connectSocket() {
     }
 
     if (payload.type === 'chat:new') {
-      renderMessage(payload.data);
+      enqueueMessage(payload.data);
     } else if (payload.type === 'theme:changed') {
       applyThemePayload(payload.data || {});
     } else if (payload.type === 'config:updated') {

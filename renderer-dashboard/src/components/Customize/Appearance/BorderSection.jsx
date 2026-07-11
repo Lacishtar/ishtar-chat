@@ -1,5 +1,6 @@
 import { Field, inputClass, EnableToggle } from '../shared/fields.jsx';
 import { BORDER_STYLE_OPTIONS } from '../shared/constants.js';
+import ColorPicker from '../shared/ColorPicker.jsx';
 
 /**
  * Fully generic: the caller decides what "width/style/color" mean (global
@@ -74,11 +75,10 @@ export default function BorderSection({
             </select>
           </Field>
           <Field label="Màu viền">
-            <input
-              type="color"
-              className="h-8 w-full rounded-lg border border-line bg-panelAlt"
+            <ColorPicker
               value={color || defaultColor}
-              onChange={(e) => onChange({ color: e.target.value })}
+              onChange={(v) => onChange({ color: v })}
+              allowGradient={false}
             />
           </Field>
           {offset !== undefined && (

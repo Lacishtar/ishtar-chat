@@ -1,17 +1,55 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from './lib/ipc.js';
 import ConnectPanel from './components/ConnectPanel.jsx';
-import ThemeGallery from './components/ThemeGallery.jsx';
 import CustomizePanel from './components/CustomizePanel.jsx';
 import LayoutPanel from './components/LayoutPanel.jsx';
 import DecorationsPanel from './components/DecorationsPanel.jsx';
 import RoleStylesPanel from './components/RoleStylesPanel.jsx';
+import ThemeLibraryPanel from './components/ThemeLibraryPanel.jsx';
 import ChatPreview from './components/ChatPreview.jsx';
 import StatusBadge from './components/StatusBadge.jsx';
 
+// Tabs for the four "settings" panels — ConnectPanel stays outside this list
+// and is always rendered above, since connection status matters regardless
+// of which settings tab the user is working in.
+const TABS = [
+  { id: 'customize', label: 'Tuỳ chỉnh' },
+  { id: 'layout', label: 'Bố cục' },
+  { id: 'decorations', label: 'Trang trí' },
+  { id: 'roles', label: 'Vai trò' },
+];
+
+function TabBar({ active, onChange }) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Nhóm tuỳ chỉnh"
+      className="flex gap-1 rounded-xl bg-panel border border-line shadow-panel p-1 shrink-0"
+    >
+      {TABS.map((tab) => {
+        const isActive = active === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onChange(tab.id)}
+            className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-focusAccent ${
+              isActive
+                ? 'bg-focusAccent text-white'
+                : 'text-inkMuted hover:bg-panelAlt hover:text-ink'
+            }`}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function applyInitialState(state, setters) {
-  setters.setThemes(state.themes);
-  setters.setSelectedTheme(state.selectedTheme);
   setters.setConfig(state.customizeConfig);
   setters.setLayoutConfig(state.layoutConfig);
   setters.setSlotStyleConfig(state.slotStyleConfig);
@@ -26,8 +64,6 @@ function applyInitialState(state, setters) {
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
-  const [themes, setThemes] = useState([]);
-  const [selectedTheme, setSelectedTheme] = useState('classic');
   const [config, setConfig] = useState(null);
   const [layoutConfig, setLayoutConfig] = useState(null);
   const [slotStyleConfig, setSlotStyleConfig] = useState(null);
@@ -38,6 +74,7 @@ export default function App() {
   const [lastSessionUrl, setLastSessionUrl] = useState('');
   const [status, setStatus] = useState({ status: 'idle', error: null });
   const [previewKey, setPreviewKey] = useState(0);
+  const [activeTab, setActiveTab] = useState('customize');
 
   const loadInitialState = useCallback(() => {
     setLoading(true);
@@ -47,8 +84,6 @@ export default function App() {
       .getInitialState()
       .then((state) => {
         applyInitialState(state, {
-          setThemes,
-          setSelectedTheme,
           setConfig,
           setLayoutConfig,
           setSlotStyleConfig,
@@ -81,7 +116,6 @@ export default function App() {
     unsubRoleStyle = api.onRoleStyleUpdated?.((payload) => setRoleStyleConfig(payload));
     unsubAnimation = api.onAnimationUpdated?.((payload) => setAnimationConfig(payload));
     unsubTheme = api.onThemeChanged((payload) => {
-      setSelectedTheme(payload.themeId);
       setConfig(payload.config);
       setLayoutConfig(payload.layoutConfig);
       setSlotStyleConfig(payload.slotStyleConfig);
@@ -103,32 +137,10 @@ export default function App() {
     };
   }, [loadInitialState]);
 
-  async function handleSelectTheme(themeId) {
-    if (themeId === selectedTheme) return;
-
-    const dirtyCheck = await api.isThemeDirty?.();
-    if (dirtyCheck?.dirty) {
-      const fields = dirtyCheck.dirtyFields?.length
-        ? dirtyCheck.dirtyFields.join(', ')
-        : 'tuỳ chỉnh';
-      const ok = window.confirm(
-        `Đổi theme sẽ reset toàn bộ tuỳ chỉnh hiện tại (${fields}). Tiếp tục?`
-      );
-      if (!ok) return;
-    }
-
-    const result = await api.selectTheme(themeId);
-    if (result.ok) {
-      setSelectedTheme(themeId);
-      setConfig(result.config);
-      setLayoutConfig(result.layoutConfig);
-      setSlotStyleConfig(result.slotStyleConfig);
-      setDecorationConfig(result.decorationConfig);
-      setRoleStyleConfig(result.roleStyleConfig);
-      setAnimationConfig(result.animationConfig);
-      setPreviewKey((k) => k + 1);
-    }
-  }
+  // Passed to ThemeLibraryPanel's "Reset toàn bộ theme" action. We don't need
+  // to manually setState here — theme:reset-preset broadcasts theme:changed,
+  // which the onThemeChanged listener above already handles for every panel.
+  const resetThemeLibraryPreset = useCallback(() => api.resetPreset?.(), []);
 
   if (loading) {
     return (
@@ -155,37 +167,42 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col">
-      <header className="flex items-center justify-between px-5 py-3 border-b border-line shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="ovs-signal-dot bg-focusAccent" />
-          <h1 className="font-display text-base font-semibold tracking-tight">
-            YouTube Overlay Studio
-          </h1>
-        </div>
+      <header className="flex items-center justify-between gap-4 px-5 py-3 border-b border-line shrink-0 flex-wrap">
+        <ConnectPanel
+          api={api}
+          status={status}
+          lastSessionUrl={lastSessionUrl}
+          onConnected={(url) => setLastSessionUrl(url)}
+          compact
+        />
         <StatusBadge status={status.status} />
       </header>
 
-      <main className="flex-1 min-h-0 grid grid-cols-[340px_1fr] gap-4 p-4">
-        <div className="flex flex-col gap-4 overflow-y-auto pr-1">
-          <ConnectPanel
-            api={api}
-            status={status}
-            lastSessionUrl={lastSessionUrl}
-            onConnected={(url) => setLastSessionUrl(url)}
-          />
-          <ThemeGallery themes={themes} selectedTheme={selectedTheme} onSelect={handleSelectTheme} />
-          <CustomizePanel api={api} config={config} slotStyleConfig={slotStyleConfig} animationConfig={animationConfig} />
-          <LayoutPanel api={api} layoutConfig={layoutConfig} />
-          <DecorationsPanel api={api} decorationConfig={decorationConfig} />
-          <RoleStylesPanel api={api} roleStyleConfig={roleStyleConfig} />
+      <main className="flex-1 min-h-0 grid grid-cols-[300px_1fr_300px] gap-4 p-4">
+        <div className="flex flex-col gap-4 min-h-0">
+          <TabBar active={activeTab} onChange={setActiveTab} />
+
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+            {activeTab === 'customize' && (
+              <CustomizePanel api={api} config={config} slotStyleConfig={slotStyleConfig} animationConfig={animationConfig} />
+            )}
+            {activeTab === 'layout' && <LayoutPanel api={api} layoutConfig={layoutConfig} />}
+            {activeTab === 'decorations' && (
+              <DecorationsPanel api={api} decorationConfig={decorationConfig} />
+            )}
+            {activeTab === 'roles' && <RoleStylesPanel api={api} roleStyleConfig={roleStyleConfig} />}
+          </div>
         </div>
 
         <ChatPreview
           overlayUrl={overlayUrl}
-          selectedTheme={selectedTheme}
           previewKey={previewKey}
           onRefresh={() => setPreviewKey((k) => k + 1)}
         />
+
+        <div className="min-h-0 overflow-y-auto pr-1">
+          <ThemeLibraryPanel api={api} resetPreset={resetThemeLibraryPreset} />
+        </div>
       </main>
     </div>
   );

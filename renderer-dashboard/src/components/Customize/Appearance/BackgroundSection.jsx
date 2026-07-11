@@ -1,29 +1,13 @@
 import { Field } from '../shared/fields.jsx';
-import { rgbaToHexAlpha, hexAlphaToRgba } from '../shared/colorUtils.js';
+import ColorPicker from '../shared/ColorPicker.jsx';
 
 export default function BackgroundSection({ rgba, onChange, label = 'Màu nền bubble' }) {
-  const { hex, alpha } = rgbaToHexAlpha(rgba);
-
   return (
-    <>
-      <Field label={label}>
-        <input
-          type="color"
-          className="h-8 w-full rounded-lg border border-line bg-panelAlt"
-          value={hex}
-          onChange={(e) => onChange(hexAlphaToRgba(e.target.value, alpha))}
-        />
-      </Field>
-      <Field label={`Độ trong nền — ${Math.round(alpha * 100)}%`}>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.05}
-          value={alpha}
-          onChange={(e) => onChange(hexAlphaToRgba(hex, Number(e.target.value)))}
-        />
-      </Field>
-    </>
+    // `full`: this ColorPicker allows gradients, whose editor (stops, angle,
+    // position sliders) needs the whole panel width — squeezed into one
+    // half of the 2-column accordion grid it overflowed/overlapped.
+    <Field label={label} full>
+      <ColorPicker value={rgba} onChange={onChange} allowGradient />
+    </Field>
   );
 }
