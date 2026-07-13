@@ -1,4 +1,5 @@
 const { adaptLegacyTheme, listLegacyThemeIds } = require('./legacy-adapter');
+const { compileLayoutToCssVariables } = require('./layout-engine');
 
 /**
  * Theme Engine facade (design doc §1.2/§8 step 2).
@@ -31,4 +32,5 @@ function listThemeIds() {
 module.exports = {
   loadThemeDocument,
   listThemeIds,
+  compileLayoutToCssVariables,
 };

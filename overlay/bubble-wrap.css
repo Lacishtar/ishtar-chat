@@ -223,6 +223,7 @@
     0
     max(0px, calc(var(--ovs-bunny-ears-height, 30px) + var(--ovs-bunny-ears-top, -28px)))
     0
+    round 50% / 100% 100% var(--ovs-bunny-ears-radius-v, 0%) var(--ovs-bunny-ears-radius-v, 0%)
   );
   background: var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72));
   opacity: var(--ovs-bubble-opacity, 1);
@@ -259,6 +260,9 @@
       var(--ovs-slot-author-bunny-ears-top, var(--ovs-bunny-ears-top, -28px))
     ))
     0
+    round 50% / 100% 100%
+      var(--ovs-slot-author-bunny-ears-radius-v, var(--ovs-bunny-ears-radius-v, 0%))
+      var(--ovs-slot-author-bunny-ears-radius-v, var(--ovs-bunny-ears-radius-v, 0%))
   );
   background: var(--ovs-slot-author-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
   opacity: var(--ovs-slot-author-bubble-opacity, var(--ovs-bubble-opacity, 1));
@@ -295,6 +299,9 @@
       var(--ovs-slot-message-bunny-ears-top, var(--ovs-bunny-ears-top, -28px))
     ))
     0
+    round 50% / 100% 100%
+      var(--ovs-slot-message-bunny-ears-radius-v, var(--ovs-bunny-ears-radius-v, 0%))
+      var(--ovs-slot-message-bunny-ears-radius-v, var(--ovs-bunny-ears-radius-v, 0%))
   );
   background: var(--ovs-slot-message-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
   opacity: var(--ovs-slot-message-bubble-opacity, var(--ovs-bubble-opacity, 1));
@@ -322,6 +329,79 @@
 :root[data-ovs-bubble-wrap-row='true'] .ovs-author > .ovs-bunny-ear,
 :root[data-ovs-bubble-wrap-row='true'] .ovs-text > .ovs-bunny-ear {
   display: none !important;
+}
+
+/* ============================================================
+   HEADER SPLIT — one unified bubble (row-wrap), divided horizontally
+   into a header row (avatar + username, Discord-card style: avatar
+   left, name beside), a thin configurable divider line, and a
+   full-width message row underneath.
+
+   Implemented with CSS Grid so template.html's 4 data-slot hooks never
+   need to move in the DOM: .ovs-body switches to `display: contents`,
+   which removes its own box and promotes its children (.ovs-meta,
+   .ovs-text) to be direct grid items of .ovs-message alongside
+   .ovs-avatar — each then gets an explicit grid-column/row. The
+   divider itself is `.ovs-message::after` occupying its own grid row
+   (a pseudo-element on a grid container is a real grid item), which is
+   what lets its length/thickness/style/color all be tuned independently
+   of the header row or the message box.
+
+   Only takes effect together with row-wrap (a single unified bubble);
+   in split-wrap mode each slot already renders as its own separate
+   bubble, so a header/body split doesn't apply.
+   ============================================================ */
+
+:root[data-ovs-header-split='true'][data-ovs-bubble-wrap-row='true'] .ovs-message {
+  display: grid !important;
+  grid-template-columns: var(--ovs-header-grid-columns, auto 1fr);
+  grid-template-rows: auto auto auto;
+  column-gap: var(--ovs-layout-message-gap, 10px);
+  row-gap: 8px;
+  align-items: center;
+  max-width: 88%;
+}
+
+:root[data-ovs-header-split='true'][data-ovs-bubble-wrap-row='true'] .ovs-body {
+  display: contents;
+}
+
+:root[data-ovs-header-split='true'][data-ovs-bubble-wrap-row='true'] .ovs-avatar {
+  grid-column: var(--ovs-header-avatar-col, 1);
+  grid-row: 1;
+  align-self: center;
+}
+
+:root[data-ovs-header-split='true'][data-ovs-bubble-wrap-row='true'] .ovs-meta {
+  grid-column: var(--ovs-header-meta-col, 2);
+  grid-row: 1;
+  margin: 0 !important;
+  align-self: center;
+}
+
+/* Divider — a real grid row of its own (::after on the grid container is a
+   valid grid item), so length/thickness/style/color are all independent of
+   .ovs-text's own box. Rendered as a zero-height element with only a
+   border-top, which is what lets "border style" (dashed/dotted/etc.) keep
+   working the same way as every other border control in this app. */
+:root[data-ovs-header-split='true'][data-ovs-bubble-wrap-row='true'] .ovs-message::after {
+  content: '';
+  display: block;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  justify-self: center;
+  width: var(--ovs-header-divider-length, 100%);
+  height: 0;
+  border-top: var(--ovs-header-divider-width, 1px) var(--ovs-header-divider-style, solid)
+    var(--ovs-header-divider-color, rgba(255, 255, 255, 0.14));
+  pointer-events: none;
+}
+
+:root[data-ovs-header-split='true'][data-ovs-bubble-wrap-row='true'] .ovs-text {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  width: auto !important;
+  align-self: stretch !important;
 }
 
 /* Chat spacing control override */

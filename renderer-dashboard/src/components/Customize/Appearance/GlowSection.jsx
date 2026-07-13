@@ -42,7 +42,7 @@ export default function GlowSection({ value, onChange, allowCustomCss = false })
 
       {enabled && (
         <>
-          <Field label="Preset">
+          <Field label="Mẫu dựng sẵn">
             <select
               className={inputClass}
               value={matchedPreset?.id || 'custom'}

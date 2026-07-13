@@ -155,6 +155,56 @@ function checkBubbleWrap() {
   console.log('[smoke] bubbleWrap compiles and roundtrips ✔');
 }
 
+function checkHeaderSplit() {
+  const off = compileFromConfig(DEFAULT_LAYOUT_CONFIG);
+  if (off['--ovs-header-split'] !== '0') fail('header split should default off');
+
+  const on = compileFromConfig({
+    ...DEFAULT_LAYOUT_CONFIG,
+    screen: {
+      headerSplit: true,
+      headerDividerColor: 'rgba(255, 0, 0, 0.35)',
+      headerDividerWidth: 3,
+      headerDividerStyle: 'dashed',
+      headerDividerLength: 60,
+    },
+  });
+  if (on['--ovs-header-split'] !== '1') fail('header split should compile to 1 when enabled');
+  if (on['--ovs-header-divider-color'] !== 'rgba(255, 0, 0, 0.35)') fail('header divider color (with alpha) should compile verbatim');
+  if (on['--ovs-header-divider-width'] !== '3px') fail('header divider width should compile with px unit');
+  if (on['--ovs-header-divider-style'] !== 'dashed') fail('header divider style should compile');
+  if (on['--ovs-header-divider-length'] !== '60%') fail('header divider length should compile as a percentage');
+  if (on['--ovs-header-grid-columns'] !== 'auto 1fr') fail('header grid columns should be avatar-first in LTR');
+
+  const clamped = compileFromConfig({
+    ...DEFAULT_LAYOUT_CONFIG,
+    screen: { headerSplit: true, headerDividerLength: 250 },
+  });
+  if (clamped['--ovs-header-divider-length'] !== '100%') fail('header divider length should clamp to 100%');
+
+  const rtl = compileFromConfig({
+    ...DEFAULT_LAYOUT_CONFIG,
+    screen: { headerSplit: true, contentDirection: 'rtl' },
+  });
+  if (rtl['--ovs-header-grid-columns'] !== '1fr auto') fail('header grid columns should mirror in RTL');
+  if (rtl['--ovs-header-avatar-col'] !== '2') fail('header avatar column should mirror in RTL');
+
+  const contracted = contractSimpleLayout({
+    ...DEFAULT_LAYOUT_CONFIG,
+    screen: { headerSplit: true, headerDividerWidth: 2, headerDividerLength: 40 },
+  });
+  if (!contracted.headerSplit) fail('contract headerSplit failed');
+  if (contracted.headerDividerWidth !== 2) fail('contract headerDividerWidth failed');
+  if (contracted.headerDividerLength !== 40) fail('contract headerDividerLength failed');
+
+  const expanded = expandSimpleLayout({ headerSplit: true, headerDividerColor: '#00ff00', headerDividerLength: 75 });
+  if (!expanded.screen.headerSplit) fail('expand headerSplit failed');
+  if (expanded.screen.headerDividerColor !== '#00ff00') fail('expand headerDividerColor failed');
+  if (expanded.screen.headerDividerLength !== 75) fail('expand headerDividerLength failed');
+
+  console.log('[smoke] headerSplit compiles and roundtrips ✔');
+}
+
 function main() {
   const ids = listThemeIds();
   EXPECTED_THEME_IDS.forEach((id) => {
@@ -165,6 +215,7 @@ function main() {
   checkSimpleRoundtrip();
   checkSlotPosition();
   checkBubbleWrap();
+  checkHeaderSplit();
   EXPECTED_THEME_IDS.forEach(checkTheme);
   console.log('[smoke] ALL CHECKS PASSED');
 }

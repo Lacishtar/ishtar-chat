@@ -1,13 +1,13 @@
 import { Field, inputClass } from '../shared/fields.jsx';
+import { ANIMATION_STYLE_PRESETS } from '../../../../../shared/animation-config.js';
 
-// Keep in sync with shared/animation-config.js#ANIMATION_STYLE_PRESETS.
-const ANIMATION_STYLE_OPTIONS = [
-  { value: 'slide', label: 'Trượt nhẹ (mặc định)' },
-  { value: 'bounce', label: 'Nảy' },
-  { value: 'zoom', label: 'Phóng to' },
-  { value: 'slideStrong', label: 'Trượt ngang mạnh' },
-  { value: 'blurZoom', label: 'Mờ dần + zoom' },
-];
+// Built straight from ANIMATION_STYLE_PRESETS (which already carries a
+// Vietnamese `label` per style), so the dropdown can never drift out of sync
+// with the set of styles the compiler actually understands.
+const ANIMATION_STYLE_OPTIONS = Object.entries(ANIMATION_STYLE_PRESETS).map(([value, preset]) => ({
+  value,
+  label: value === 'slide' ? `${preset.label} (mặc định)` : preset.label,
+}));
 
 export default function AnimationSection({ local, onChange, animLocal, onAnimationChange }) {
   return (

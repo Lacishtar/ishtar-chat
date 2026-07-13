@@ -16,6 +16,12 @@ export const SHADOW_PRESETS = [
   { id: 'none', label: 'Không', value: 'none' },
   { id: 'light', label: 'Nhẹ', value: '0 4px 14px rgba(255, 140, 200, 0.25)' },
   { id: 'strong', label: 'Mạnh', value: '0 8px 24px rgba(0, 0, 0, 0.45)' },
+  // Zero blur + visible offset + fully opaque color = a hard-edged duplicate
+  // of the bubble shape peeking out from behind it (same border-radius, since
+  // box-shadow always follows the element's own radius) — the classic
+  // "sticker" / neo-brutalism flat shadow look, as opposed to the two presets
+  // above which are soft, blurred, semi-transparent shadows.
+  { id: 'solid', label: 'Khối đặc màu', value: '6px 6px 0px 0px rgba(20, 20, 24, 1)' },
 ];
 
 // Glow uses CSS `filter: drop-shadow(...)` (kept as its own property, separate from

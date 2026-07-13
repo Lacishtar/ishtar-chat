@@ -114,9 +114,19 @@ class ScraperManager extends EventEmitter {
       this._setStatus('error', `Không tải được trang chat (${desc}).`);
     });
 
-    const chatUrl = `https://www.youtube.com/live_chat?v=${encodeURIComponent(videoId)}&embed_domain=localhost`;
+    // Force Vietnamese UI locale on this BrowserView only (not the whole
+    // Electron app) so YouTube's badge/member aria-labels ("Thành viên (6
+    // tháng)"...) come back in a known, parseable language regardless of
+    // the host machine's OS/Chromium locale. `hl=vi` covers YouTube's own
+    // ?hl= param; the Accept-Language header covers cases where YouTube
+    // falls back to browser-negotiated language instead. `persist_hl=1`
+    // keeps it from being overridden by the signed-in account's language
+    // preference once a session cookie exists.
+    const chatUrl = `https://www.youtube.com/live_chat?v=${encodeURIComponent(videoId)}&embed_domain=localhost&hl=vi&persist_hl=1`;
     try {
-      await this.view.webContents.loadURL(chatUrl);
+      await this.view.webContents.loadURL(chatUrl, {
+        extraHeaders: 'Accept-Language: vi-VN,vi;q=0.9\n',
+      });
     } catch (err) {
       this._setStatus('error', 'Không tải được trang chat.');
       return { ok: false, error: 'load_failed' };

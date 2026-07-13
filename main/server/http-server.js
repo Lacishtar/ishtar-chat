@@ -4,6 +4,7 @@ const http = require('http');
 const express = require('express');
 const { createAvatarProxyRouter } = require('./avatar-proxy');
 const { createImageProxyRouter } = require('./image-proxy');
+const { createSharedEsmRouter } = require('./shared-esm-bridge');
 
 const OVERLAY_DIR = path.join(__dirname, '..', '..', 'overlay');
 const THEMES_DIR = path.join(__dirname, '..', '..', 'themes');
@@ -54,6 +55,7 @@ function createApp(getState, options = {}) {
   // static files — this is what actually answers GET /overlay/overlay-client.js.
   app.use('/overlay', express.static(OVERLAY_DIR));
   app.use('/themes', express.static(THEMES_DIR));
+  app.use('/shared', createSharedEsmRouter());
   app.use('/avatar', createAvatarProxyRouter());
   app.use('/image', createImageProxyRouter());
 

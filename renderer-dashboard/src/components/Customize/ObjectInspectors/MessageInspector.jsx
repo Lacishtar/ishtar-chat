@@ -20,7 +20,7 @@ export default function MessageInspector({ local, slotLocal, pushSlotUpdate, sta
 
   return (
     <div className="flex flex-col gap-3">
-      <AccordionSection title="Appearance" {...sec('appearance', true)}>
+      <AccordionSection title="Hình thức" {...sec('appearance', true)}>
         <SlotToggle
           label="Hiện nội dung"
           checked={slotVal(slotLocal, 'message', 'visible', true)}
@@ -28,7 +28,7 @@ export default function MessageInspector({ local, slotLocal, pushSlotUpdate, sta
         />
       </AccordionSection>
 
-      <AccordionSection title="Typography" {...sec('typography', true)}>
+      <AccordionSection title="Kiểu chữ" {...sec('typography', true)}>
         <FontSection
           fontFamily={slotVal(slotLocal, 'message', 'fontFamily', local.fontFamily)}
           fontSize={slotVal(slotLocal, 'message', 'fontSize', local.fontSize)}
@@ -39,11 +39,11 @@ export default function MessageInspector({ local, slotLocal, pushSlotUpdate, sta
         />
       </AccordionSection>
 
-      <AccordionSection title="Transform" {...sec('transform')}>
+      <AccordionSection title="Biến đổi" {...sec('transform')}>
         <TransformSection slotLocal={slotLocal} slot="message" pushSlotUpdate={pushSlotUpdate} />
       </AccordionSection>
 
-      <AccordionSection title="Decoration — Bubble riêng" {...sec('bubble')}>
+      <AccordionSection title="Trang trí — Bubble riêng" {...sec('bubble')}>
         <SlotBubbleSection slot="message" slotLocal={slotLocal} globalConfig={local} pushSlotUpdate={pushSlotUpdate} />
       </AccordionSection>
     </div>

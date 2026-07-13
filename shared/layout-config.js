@@ -53,6 +53,15 @@ const DEFAULT_LAYOUT_CONFIG = {
     bubbleWrapRow: null, // null | true = bọc cả hàng; false = bọc riêng slot
     bubbleWrapAuthor: null, // null | boolean — bọc tên (khi bubbleWrapRow === false)
     bubbleWrapMessage: null, // null | boolean — bọc nội dung chat
+    // Header/body split — only meaningful when bubbleWrapRow is true (one
+    // unified bubble). Puts avatar + username (+ badges) on a header row
+    // (avatar left, name beside — Discord-card style) and the chat message
+    // on its own full-width row underneath, separated by a thin divider.
+    headerSplit: false,
+    headerDividerColor: 'rgba(255, 255, 255, 0.14)',
+    headerDividerWidth: 1, // px (thickness)
+    headerDividerStyle: 'solid', // any CSS border-style keyword
+    headerDividerLength: 100, // 0-100 (% of the bubble's inner width, centered)
   },
 };
 
@@ -243,6 +252,20 @@ function compileLayoutToCssVariables(layout) {
     '--ovs-bubble-wrap-row': isRowBubbleWrap(screen) ? '1' : '0',
     '--ovs-bubble-wrap-author': !isRowBubbleWrap(screen) && screen.bubbleWrapAuthor ? '1' : '0',
     '--ovs-bubble-wrap-message': !isRowBubbleWrap(screen) && screen.bubbleWrapMessage ? '1' : '0',
+
+    // Header/body split (see DEFAULT_LAYOUT_CONFIG.screen comment). Only
+    // takes visual effect while row-wrap is active — the '--ovs-header-split'
+    // flag itself still compiles either way so the data attribute stays a
+    // pure reflection of the setting; overlay/bubble-wrap.css gates the
+    // actual grid layout on both flags together.
+    '--ovs-header-split': screen.headerSplit ? '1' : '0',
+    '--ovs-header-divider-color': screen.headerDividerColor || 'rgba(255, 255, 255, 0.14)',
+    '--ovs-header-divider-width': px(screen.headerDividerWidth ?? 1),
+    '--ovs-header-divider-style': screen.headerDividerStyle || 'solid',
+    '--ovs-header-divider-length': `${Math.min(Math.max(Number(screen.headerDividerLength ?? 100) || 0, 0), 100)}%`,
+    '--ovs-header-grid-columns': mirrorHorizontal ? '1fr auto' : 'auto 1fr',
+    '--ovs-header-avatar-col': mirrorHorizontal ? '2' : '1',
+    '--ovs-header-meta-col': mirrorHorizontal ? '1' : '2',
   };
 }
 
@@ -285,6 +308,11 @@ function contractSimpleLayout(layout) {
     bubbleWrapMode: isRowBubbleWrap(screen) ? 'row' : 'split',
     bubbleWrapAuthor: Boolean(screen.bubbleWrapAuthor),
     bubbleWrapMessage: Boolean(screen.bubbleWrapMessage),
+    headerSplit: Boolean(screen.headerSplit),
+    headerDividerColor: screen.headerDividerColor ?? 'rgba(255, 255, 255, 0.14)',
+    headerDividerWidth: screen.headerDividerWidth ?? 1,
+    headerDividerStyle: screen.headerDividerStyle ?? 'solid',
+    headerDividerLength: screen.headerDividerLength ?? 100,
     avatarPadding: l.slots.avatar?.padding ?? 0,
     avatarMargin: l.slots.avatar?.margin ?? 0,
     authorPadding: l.slots.author?.padding ?? 0,
@@ -368,6 +396,13 @@ function expandSimpleLayout(simple) {
     bubbleWrapAuthor: wrapAuthor,
     bubbleWrapMessage: wrapMessage,
     bubbleScope: null,
+    // Only meaningful (and only ever exposed by the UI) while wrapRow is
+    // true — expandSimpleLayout still round-trips it faithfully either way.
+    headerSplit: Boolean(s.headerSplit),
+    headerDividerColor: s.headerDividerColor || 'rgba(255, 255, 255, 0.14)',
+    headerDividerWidth: s.headerDividerWidth ?? 1,
+    headerDividerStyle: s.headerDividerStyle || 'solid',
+    headerDividerLength: s.headerDividerLength ?? 100,
   } };
 }
 

@@ -18,15 +18,15 @@ export default function AvatarInspector({ local, slotLocal, pushSlotUpdate, stat
 
   return (
     <div className="flex flex-col gap-3">
-      <AccordionSection title="Appearance" {...sec('appearance', true)}>
+      <AccordionSection title="Hình thức" {...sec('appearance', true)}>
         <AvatarSizeSection local={local} slotLocal={slotLocal} pushSlotUpdate={pushSlotUpdate} />
       </AccordionSection>
 
-      <AccordionSection title="Border" {...sec('border')}>
+      <AccordionSection title="Viền" {...sec('border')}>
         <AvatarBorderSection local={local} slotLocal={slotLocal} pushSlotUpdate={pushSlotUpdate} />
       </AccordionSection>
 
-      <AccordionSection title="Transform" {...sec('transform')}>
+      <AccordionSection title="Biến đổi" {...sec('transform')}>
         <TransformSection slotLocal={slotLocal} slot="avatar" pushSlotUpdate={pushSlotUpdate} />
       </AccordionSection>
     </div>

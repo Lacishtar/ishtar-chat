@@ -26,6 +26,7 @@ function createRoleDefaults(overrides = {}) {
     badgeBefore: null,
     badgeAfter: null,
     showAmount: null,
+    fontSize: null,
     ...overrides,
   };
 }
@@ -33,6 +34,7 @@ function createRoleDefaults(overrides = {}) {
 const DEFAULT_ROLE_STYLE_CONFIG = {
   roles: {
     moderator: createRoleDefaults({
+      enabled: false,
       authorColor: '#fca5a5',
       authorBorderColor: 'rgba(248, 113, 113, 0.7)',
       messageBg: 'linear-gradient(135deg, rgba(248, 113, 113, 0.22), rgba(22, 25, 31, 0.72))',
@@ -40,12 +42,14 @@ const DEFAULT_ROLE_STYLE_CONFIG = {
       badgeBefore: 'MOD',
     }),
     member: createRoleDefaults({
+      enabled: false,
       authorColor: '#93c5fd',
       authorBorderColor: 'rgba(96, 165, 250, 0.55)',
       messageBorderColor: 'rgba(96, 165, 250, 0.45)',
       badgeBefore: '★',
     }),
     superchat: createRoleDefaults({
+      enabled: false,
       authorColor: '#fde047',
       authorBorderColor: 'rgba(255, 202, 40, 0.55)',
       messageBg: 'linear-gradient(135deg, rgba(255, 202, 40, 0.28), rgba(22, 25, 31, 0.72))',
@@ -62,7 +66,7 @@ function normalizeRole(raw, fallback) {
   const base = fallback || createRoleDefaults();
   const role = raw || {};
   return {
-    enabled: role.enabled !== false,
+    enabled: typeof role.enabled === 'boolean' ? role.enabled : base.enabled !== false,
     authorColor: typeof role.authorColor === 'string' ? role.authorColor : base.authorColor,
     authorBorderColor:
       typeof role.authorBorderColor === 'string' ? role.authorBorderColor : base.authorBorderColor,
@@ -90,6 +94,7 @@ function normalizeRole(raw, fallback) {
         ? role.badgeAfter
         : base.badgeAfter,
     showAmount: role.showAmount !== undefined && role.showAmount !== null ? Boolean(role.showAmount) : base.showAmount,
+    fontSize: typeof role.fontSize === 'number' && role.fontSize > 0 ? role.fontSize : base.fontSize,
   };
 }
 
@@ -153,6 +158,12 @@ function compileRoleStyleToCssVariables(roleStyle) {
     if (role.earColor) vars[`--ovs-role-${prefix}-ear-color`] = role.earColor;
     vars[`--ovs-role-${prefix}-badge-before-content`] = quoteCssContent(role.badgeBefore);
     vars[`--ovs-role-${prefix}-badge-after-content`] = quoteCssContent(role.badgeAfter);
+
+    if (typeof role.fontSize === 'number' && role.fontSize > 0) {
+      vars[`--ovs-role-${prefix}-message-font-size`] = `${role.fontSize}px`;
+      vars[`--ovs-role-${prefix}-author-font-size`] = `${Math.round(role.fontSize * 0.9)}px`;
+      vars[`--ovs-role-${prefix}-badges-font-size`] = `${Math.round(role.fontSize * 0.65)}px`;
+    }
 
     if (roleKey === 'superchat' && role.showAmount === false) {
       rootFlags['data-ovs-role-superchat-show-amount'] = 'false';

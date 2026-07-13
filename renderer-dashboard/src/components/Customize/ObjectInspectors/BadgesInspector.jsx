@@ -18,7 +18,7 @@ export default function BadgesInspector({ local, slotLocal, pushSlotUpdate, stat
 
   return (
     <div className="flex flex-col gap-3">
-      <AccordionSection title="Appearance" {...sec('appearance', true)}>
+      <AccordionSection title="Hình thức" {...sec('appearance', true)}>
         <SlotToggle
           label="Hiện badge"
           checked={slotVal(slotLocal, 'badges', 'visible', local.showBadges)}
@@ -45,7 +45,7 @@ export default function BadgesInspector({ local, slotLocal, pushSlotUpdate, stat
         </Field>
       </AccordionSection>
 
-      <AccordionSection title="Transform" {...sec('transform')}>
+      <AccordionSection title="Biến đổi" {...sec('transform')}>
         <TransformSection slotLocal={slotLocal} slot="badges" pushSlotUpdate={pushSlotUpdate} />
       </AccordionSection>
     </div>

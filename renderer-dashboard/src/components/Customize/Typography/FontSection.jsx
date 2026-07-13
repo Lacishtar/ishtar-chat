@@ -16,7 +16,7 @@ export default function FontSection({
   return (
     <>
       {showFontFamily && (
-        <Field label="Font">
+        <Field label="Phông chữ">
           <select
             className={inputClass}
             value={fontFamily}

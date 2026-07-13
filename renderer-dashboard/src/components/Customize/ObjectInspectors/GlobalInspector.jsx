@@ -27,7 +27,7 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <AccordionSection title="Typography" {...sec('typography')}>
+      <AccordionSection title="Kiểu chữ" {...sec('typography')}>
         <FontSection
           fontFamily={local.fontFamily}
           fontSize={local.fontSize}
@@ -76,7 +76,7 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
         />
       </AccordionSection>
 
-      <AccordionSection title="Border" {...sec('border')}>
+      <AccordionSection title="Viền" {...sec('border')}>
         {!isUserSet(local, 'bubbleBorderWidth') && (
           <div className="col-span-2">
             <PresetBadge />
@@ -101,15 +101,15 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
         />
       </AccordionSection>
 
-      <AccordionSection title="Shadow" {...sec('shadow')}>
+      <AccordionSection title="Đổ bóng" {...sec('shadow')}>
         <ShadowSection value={local.bubbleBoxShadow} onChange={(v) => pushUpdate({ bubbleBoxShadow: v })} allowCustomCss />
       </AccordionSection>
 
-      <AccordionSection title="Glow" {...sec('glow')}>
+      <AccordionSection title="Phát sáng" {...sec('glow')}>
         <GlowSection value={local.bubbleGlow} onChange={(v) => pushUpdate({ bubbleGlow: v })} allowCustomCss />
       </AccordionSection>
 
-      <AccordionSection title="Texture" {...sec('texture')}>
+      <AccordionSection title="Hoạ tiết" {...sec('texture')}>
         <BubbleTextureSection
           value={{
             bubbleTextureUrl: local.bubbleTextureUrl,
@@ -121,7 +121,7 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
         />
       </AccordionSection>
 
-      <AccordionSection title="Decoration — Tai thỏ" {...sec('bunny')}>
+      <AccordionSection title="Trang trí — Tai thỏ" {...sec('bunny')}>
         <BunnySection
           enabled={local.bubbleBunnyEars || false}
           onToggle={(e) => pushUpdate({ bubbleBunnyEars: e.target.checked })}
@@ -146,7 +146,7 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
         />
       </AccordionSection>
 
-      <AccordionSection title="Advanced — Behavior & Animation" {...sec('behavior')}>
+      <AccordionSection title="Nâng cao — Hành vi & Hoạt ảnh" {...sec('behavior')}>
         <AnimationSection
           local={local}
           onChange={pushUpdate}

@@ -25,7 +25,7 @@ export function Field({ label, children, full }) {
 export function PresetBadge() {
   return (
     <span className="text-[10px] uppercase tracking-wide text-inkMuted bg-panelAlt px-1.5 py-0.5 rounded">
-      Preset
+      Mặc định
     </span>
   );
 }

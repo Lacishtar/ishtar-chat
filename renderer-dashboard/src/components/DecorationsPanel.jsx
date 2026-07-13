@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useEditorState } from '../state/EditorStateContext.jsx';
 import { Field, inputClass, EnableToggle } from './Customize/shared/fields.jsx';
+import { MASK_TARGETS } from '../../../shared/decoration-config.js';
 
 const ANCHOR_OPTIONS = [
   { value: 'bubble', label: 'Khung chat (bubble)' },
@@ -24,19 +25,24 @@ const PLACEMENT_OPTIONS = [
   { value: 'custom', label: 'Tùy chỉnh tự do (Custom X/Y)' },
 ];
 
-// Keep in sync with shared/decoration-config.js#MASK_TARGETS. 'avatar',
-// 'bubble', 'username', and 'chatContainer' are wired to real shape
-// sources; the rest are reserved so the UI already reads naturally once
-// those targets are implemented.
-const MASK_TARGET_OPTIONS = [
-  { value: 'avatar', label: 'Avatar' },
-  { value: 'bubble', label: 'Bubble (khung chat)' },
-  { value: 'username', label: 'Username (bubble tên)' },
-  { value: 'chatContainer', label: 'Chat Message (bubble nội dung)' },
-  { value: 'bottomAccentBar', label: 'Bottom Accent Bar (sắp có)' },
-  { value: 'glowLayer', label: 'Glow Layer (sắp có)' },
-  { value: 'customShape', label: 'Custom Shape (sắp có)' },
-];
+// Vietnamese labels for shared/decoration-config.js#MASK_TARGETS. 'avatar',
+// 'bubble', 'username', and 'chatContainer' are wired to real shape sources;
+// the rest are reserved so the UI already reads naturally once those targets
+// are implemented. The *set* of values always comes from MASK_TARGETS itself
+// (imported above), so this can only add a missing label, never drift on values.
+const MASK_TARGET_LABELS = {
+  avatar: 'Avatar',
+  bubble: 'Bubble (khung chat)',
+  username: 'Username (bubble tên)',
+  chatContainer: 'Chat Message (bubble nội dung)',
+  bottomAccentBar: 'Thanh nhấn dưới (Bottom Accent Bar, sắp có)',
+  glowLayer: 'Lớp phát sáng (Glow Layer, sắp có)',
+  customShape: 'Hình tuỳ chỉnh (Custom Shape, sắp có)',
+};
+const MASK_TARGET_OPTIONS = MASK_TARGETS.map((value) => ({
+  value,
+  label: MASK_TARGET_LABELS[value] || value,
+}));
 
 const MASK_MODE_OPTIONS = [
   { value: 'clipInside', label: 'Clip Inside — chỉ giữ phần trong shape' },
@@ -361,7 +367,7 @@ function MaskSection({ layer, set }) {
           onClick={() => setOpen((o) => !o)}
           className="flex items-center gap-1.5 text-xs font-semibold text-inkMuted"
         >
-          Mask
+          Mask (khuôn cắt)
           <svg viewBox="0 0 20 20" fill="none" className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`}>
             <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
           </svg>
@@ -378,7 +384,7 @@ function MaskSection({ layer, set }) {
 
       {open && (
         <fieldset disabled={!maskEnabled} className="flex flex-col gap-3 px-3 pb-3 disabled:opacity-40">
-          <Field label="Mask Target">
+          <Field label="Đối tượng áp Mask">
             <select className={inputClass} value={layer.maskTarget || 'avatar'} onChange={(e) => set({ maskTarget: e.target.value })}>
               {MASK_TARGET_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -388,7 +394,7 @@ function MaskSection({ layer, set }) {
             </select>
           </Field>
 
-          <Field label="Mask Mode">
+          <Field label="Chế độ Mask">
             <select className={inputClass} value={layer.maskMode || 'clipInside'} onChange={(e) => set({ maskMode: e.target.value })}>
               {MASK_MODE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -399,11 +405,11 @@ function MaskSection({ layer, set }) {
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <RangeField label="Padding" unit="px" min={-100} max={100} value={layer.maskPadding ?? 0} onChange={(v) => set({ maskPadding: v })} />
-            <RangeField label="Feather" unit="px" min={0} max={100} value={layer.maskFeather ?? 0} onChange={(v) => set({ maskFeather: v })} />
+            <RangeField label="Khoảng đệm" unit="px" min={-100} max={100} value={layer.maskPadding ?? 0} onChange={(v) => set({ maskPadding: v })} />
+            <RangeField label="Làm mờ mép" unit="px" min={0} max={100} value={layer.maskFeather ?? 0} onChange={(v) => set({ maskFeather: v })} />
           </div>
 
-          <EnableToggle label="Invert Mask" checked={layer.maskInvert === true} onChange={(e) => set({ maskInvert: e.target.checked })} />
+          <EnableToggle label="Đảo ngược Mask" checked={layer.maskInvert === true} onChange={(e) => set({ maskInvert: e.target.checked })} />
         </fieldset>
       )}
     </div>

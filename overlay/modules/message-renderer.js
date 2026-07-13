@@ -10,7 +10,7 @@ import { applyDecorationLayers } from './decoration.js';
 
 export function applySlotVisibility(el, slotKey) {
   if (!el) return;
-  const effective = resolveEffectiveSlotStyle(state.currentSlotStyle, state.currentConfig);
+  const effective = resolveEffectiveSlotStyle(state.currentSlotStyle, state.currentConfig, state.currentLayout);
   if (!effective[slotKey]?.visible) {
     el.setAttribute('data-hidden', 'true');
   } else {

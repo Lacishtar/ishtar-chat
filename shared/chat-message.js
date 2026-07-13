@@ -34,7 +34,21 @@ const crypto = require('crypto');
 // matching. Ship fixes as an update to this map, same spirit as
 // selectors.config.json's "edit data, not code" philosophy.
 const ROLE_KEYWORDS = {
-  moderator: ['moderator', 'mod', 'điều hành', 'dieu hanh', 'quản trị', 'quan tri'],
+  // 'kiểm duyệt' / 'kiem duyet' added: YouTube's actual Vietnamese-locale
+  // badge label for this role is "Người kiểm duyệt", not "điều hành" or
+  // "quản trị" (neither of those is YouTube's own wording, so they never
+  // matched a real badge — moderator detection silently failed on any
+  // Vietnamese-language channel/viewer session).
+  moderator: [
+    'moderator',
+    'mod',
+    'kiểm duyệt',
+    'kiem duyet',
+    'điều hành',
+    'dieu hanh',
+    'quản trị',
+    'quan tri',
+  ],
   member: ['member', 'thành viên', 'thanh vien', 'hội viên', 'hoi vien'],
   verified: ['verified', 'xác minh', 'xac minh'],
 };
@@ -59,12 +73,23 @@ const SCRIPT_RANGES = [
  * into the canonical ChatMessage shape. Anything scraped from the page is
  * treated as untrusted text, so we defensively coerce types here.
  */
+// Normalizes to NFC (precomposed) form. Vietnamese text can arrive from the
+// DOM as either precomposed characters ("ế" as one code point) or decomposed
+// sequences (base letter + separate combining tone-mark code points) — both
+// render identically but decomposed text is fragile: slice()ing a raw string
+// at a fixed length can land between a base letter and its combining mark
+// (visually detaching the accent) and some fonts/consumers mis-render
+// decomposed sequences even when unsliced. Normalizing up front avoids both.
+function toNfc(str) {
+  return typeof str === 'string' && str.normalize ? str.normalize('NFC') : str;
+}
+
 function normalizeMessage(raw) {
-  const author = String(raw.author || '').slice(0, 120);
-  const messageHtml = String(raw.messageHtml || '').slice(0, 2000);
-  const messageText = String(raw.messageText || '').slice(0, 2000);
+  const author = toNfc(String(raw.author || '')).slice(0, 120);
+  const messageHtml = toNfc(String(raw.messageHtml || '')).slice(0, 2000);
+  const messageText = toNfc(String(raw.messageText || '')).slice(0, 2000);
   const id = raw.id ? String(raw.id) : hashFallbackId(author, messageHtml, raw.avatarUrl);
-  const badges = Array.isArray(raw.badges) ? raw.badges.slice(0, 5).map(String) : [];
+  const badges = Array.isArray(raw.badges) ? raw.badges.slice(0, 5).map((b) => toNfc(String(b))) : [];
   const isSuperchat = Boolean(raw.isSuperchat);
   const { language, direction } = detectLanguageDirection(messageText);
   const { superchatAmountUsd, superchatCurrencyRaw } = isSuperchat
@@ -100,14 +125,20 @@ function deriveRoles(badges) {
 
 // Looks for a "Member (N months|years)" style badge and returns total
 // months, or 0 if there's no member badge / it doesn't parse cleanly.
+// YouTube localizes this label — the hidden BrowserView may render it in
+// English ("Member (6 months)") or Vietnamese ("Thành viên (6 tháng)" /
+// "Hội viên (1 năm)", with or without diacritics), depending on the OS/
+// Chromium locale, so both forms are matched here.
+const MEMBER_BADGE_RE = /(member|th[aà]nh\s*vi[eê]n|h[ộo]i\s*vi[eê]n)[^(]*\(([^)]+)\)/i;
+
 function deriveMemberMonths(badges) {
   for (const badge of badges) {
-    const match = /member[^(]*\(([^)]+)\)/i.exec(badge);
+    const match = MEMBER_BADGE_RE.exec(badge);
     if (!match) continue;
-    const text = match[1].toLowerCase();
+    const text = match[2].toLowerCase();
     const num = parseInt(text, 10);
     if (Number.isNaN(num)) continue;
-    return /year/.test(text) ? num * 12 : num;
+    return /year|n[aă]m/.test(text) ? num * 12 : num;
   }
   return 0;
 }

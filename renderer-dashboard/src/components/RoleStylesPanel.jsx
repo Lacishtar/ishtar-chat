@@ -41,6 +41,43 @@ function ColorField({ label, value, onChange, hint, allowGradient = true }) {
   );
 }
 
+function FontSizeField({ value, onChange }) {
+  const isCustom = typeof value === 'number';
+  return (
+    <Field
+      label="Cỡ chữ chat riêng"
+      hint={
+        isCustom
+          ? 'Tên và badge sẽ tự co giãn theo tỉ lệ cùng cỡ chữ tin nhắn.'
+          : 'Chưa đặt — đang dùng cỡ chữ chung của theme.'
+      }
+    >
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={isCustom}
+          onChange={(e) => onChange(e.target.checked ? 16 : null)}
+          className="accent-focusAccent"
+        />
+        Dùng cỡ chữ riêng cho vai trò này
+      </label>
+      {isCustom ? (
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={10}
+            max={32}
+            value={value}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="flex-1"
+          />
+          <span className="text-xs text-inkMuted w-10 text-right">{value}px</span>
+        </div>
+      ) : null}
+    </Field>
+  );
+}
+
 function RoleEditor({ roleKey, role, onChange }) {
   const set = (patch) => onChange(roleKey, { ...role, ...patch });
 
@@ -86,6 +123,8 @@ function RoleEditor({ roleKey, role, onChange }) {
         onChange={(v) => set({ messageTextColor: v })}
         allowGradient={false}
       />
+
+      <FontSizeField value={role.fontSize} onChange={(v) => set({ fontSize: v })} />
 
       <Field label="Badge trước tên" hint="Để trống = không hiện badge trước tên">
         <input
@@ -135,7 +174,7 @@ function RoleEditor({ roleKey, role, onChange }) {
 // This is now just a blank shape for the split-second before the backend's
 // config lands — never a stand-in with fake preset values.
 const EMPTY_ROLE = {
-  enabled: true,
+  enabled: false,
   authorColor: null,
   authorBg: null,
   messageBg: null,
@@ -144,6 +183,7 @@ const EMPTY_ROLE = {
   badgeBefore: null,
   badgeAfter: null,
   showAmount: null,
+  fontSize: null,
 };
 
 function mergeLocalRole(roleStyleConfig, roleKey) {

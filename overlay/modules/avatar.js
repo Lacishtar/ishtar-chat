@@ -17,7 +17,7 @@ export function toAvatarProxyUrl(rawUrl) {
 
 export function applyAvatar(avatarEl, rawUrl) {
   if (!avatarEl) return;
-  const effective = resolveEffectiveSlotStyle(state.currentSlotStyle, state.currentConfig);
+  const effective = resolveEffectiveSlotStyle(state.currentSlotStyle, state.currentConfig, state.currentLayout);
   if (!effective.avatar.visible || state.currentConfig.showAvatar === false || !rawUrl) {
     avatarEl.setAttribute('data-hidden', 'true');
     avatarEl.removeAttribute('src');

@@ -109,7 +109,7 @@ export default function ColorPicker({ value, onChange, allowGradient = true }) {
               Màu đơn
             </button>
             <button type="button" className={tabBtn(true)}>
-              Gradient
+              Chuyển sắc
             </button>
           </div>
           <select
@@ -216,7 +216,7 @@ export default function ColorPicker({ value, onChange, allowGradient = true }) {
             Màu đơn
           </button>
           <button type="button" className={tabBtn(false)} onClick={switchToGradient}>
-            Gradient
+            Chuyển sắc
           </button>
         </div>
       )}

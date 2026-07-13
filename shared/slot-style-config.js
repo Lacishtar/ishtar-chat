@@ -75,8 +75,14 @@ function isSet(value) {
   return value !== undefined && value !== null;
 }
 
-function resolveSlotVisibility(slotVisible, globalVisible) {
+// Priority: per-slot style override (Inspector) > LayoutPanel's Ẩn/hiện
+// checkbox (layoutConfig.slots.*.visible) > global customize-config toggle
+// (avatar/badges only) > default visible. The layoutConfig tier used to be
+// missing entirely, so the Layout panel's Ẩn/hiện checkboxes wrote to a
+// field nothing ever read — toggling them had zero effect on the overlay.
+function resolveSlotVisibility(slotVisible, layoutVisible, globalVisible) {
   if (isSet(slotVisible)) return Boolean(slotVisible);
+  if (isSet(layoutVisible)) return Boolean(layoutVisible);
   if (isSet(globalVisible)) return Boolean(globalVisible);
   return true;
 }
@@ -88,11 +94,12 @@ function resolveEffectiveSlotStyle(slotStyle, customizeConfig, layoutConfig) {
   const cfg = { ...DEFAULT_CUSTOMIZE_CONFIG, ...customizeConfig };
   const s = mergeSlotStyleConfig(DEFAULT_SLOT_STYLE_CONFIG, slotStyle);
   const { slots } = s;
+  const layoutSlots = layoutConfig?.slots || {};
   const isRtl = layoutConfig?.screen?.contentDirection === 'rtl';
 
   return {
     avatar: {
-      visible: resolveSlotVisibility(slots.avatar.visible, cfg.showAvatar),
+      visible: resolveSlotVisibility(slots.avatar.visible, layoutSlots.avatar?.visible, cfg.showAvatar),
       size: slots.avatar.size ?? cfg.avatarSize,
       borderRadius: slots.avatar.borderRadius ?? null,
       borderWidth: slots.avatar.borderWidth ?? null,
@@ -104,7 +111,7 @@ function resolveEffectiveSlotStyle(slotStyle, customizeConfig, layoutConfig) {
       ...resolveTransform(slots.avatar, false, isRtl),
     },
     author: {
-      visible: resolveSlotVisibility(slots.author.visible, true),
+      visible: resolveSlotVisibility(slots.author.visible, layoutSlots.author?.visible, true),
       fontFamily: slots.author.fontFamily ?? cfg.fontFamily,
       fontSize: slots.author.fontSize ?? Math.round(cfg.fontSize * 0.9),
       color: slots.author.color ?? cfg.authorColor,
@@ -114,14 +121,14 @@ function resolveEffectiveSlotStyle(slotStyle, customizeConfig, layoutConfig) {
       ...resolveTransform(slots.author, false, isRtl),
     },
     badges: {
-      visible: resolveSlotVisibility(slots.badges.visible, cfg.showBadges),
+      visible: resolveSlotVisibility(slots.badges.visible, layoutSlots.badges?.visible, cfg.showBadges),
       fontSize: slots.badges.fontSize ?? Math.round(cfg.fontSize * 0.65),
       opacity: slots.badges.opacity ?? 1,
       margin: slots.badges.margin ?? 0,
       ...resolveTransform(slots.badges, false, isRtl),
     },
     message: {
-      visible: resolveSlotVisibility(slots.message.visible, true),
+      visible: resolveSlotVisibility(slots.message.visible, layoutSlots.message?.visible, true),
       fontFamily: slots.message.fontFamily ?? cfg.fontFamily,
       fontSize: slots.message.fontSize ?? cfg.fontSize,
       color: slots.message.color ?? cfg.textColor,

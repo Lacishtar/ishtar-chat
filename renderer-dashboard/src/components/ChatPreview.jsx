@@ -41,7 +41,7 @@ export default function ChatPreview({ overlayUrl, previewKey, onRefresh }) {
       <div className="ovs-checkerboard rounded-lg border border-line flex-1 overflow-hidden">
         <iframe
           key={previewKey}
-          title="Overlay preview"
+          title="Xem trước overlay"
           src={overlayUrl}
           className="w-full h-full border-0"
         />
