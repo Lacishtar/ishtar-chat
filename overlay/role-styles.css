@@ -98,6 +98,9 @@
       var(--ovs-role-mod-message-border-color, var(--ovs-role-fallback-row-border))
     ) !important;
 }
+:root[data-ovs-role-mod-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-moderator .ovs-text {
+  color: var(--ovs-role-mod-message-text-color, inherit) !important;
+}
 
 /* --- Member ---
    :not(.ovs-moderator) on the base rules below keeps the documented
@@ -147,6 +150,9 @@
       var(--ovs-role-member-message-border-color, var(--ovs-role-fallback-row-border))
     ) !important;
 }
+:root[data-ovs-role-member-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-member:not(.ovs-moderator) .ovs-text {
+  color: var(--ovs-role-member-message-text-color, inherit) !important;
+}
 
 /* --- Super Chat --- */
 :root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-author {
@@ -186,6 +192,9 @@
       --ovs-role-superchat-row-border-color,
       var(--ovs-role-superchat-message-border-color, var(--ovs-role-fallback-row-border))
     ) !important;
+}
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-superchat .ovs-text {
+  color: var(--ovs-role-superchat-message-text-color, inherit) !important;
 }
 
 /* Combined roles + superchat (per-slot bubble) */
