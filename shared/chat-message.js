@@ -5,14 +5,14 @@
  *   id: string,                    // dedupe key (derived from YouTube's DOM node id when possible)
  *   author: string,
  *   avatarUrl: string,
- *   badges: string[],              // raw badge labels as scraped, e.g. ["Moderator", "Member (6 months)"]
+ *   badges: string[],              // raw badge labels as captured, e.g. ["Moderator", "Member (6 months)"]
  *   roles: string[],                // derived from badges: subset of "moderator" | "member" | "verified"
  *   memberMonths: number,           // parsed from a "Member (N months|years)" badge, 0 if not a member / not parseable
  *   messageText: string,            // plain-text mirror of messageHtml (emoji alt text lost, tags stripped)
  *   messageHtml: string,            // message text, emoji already resolved to <img> tags
  *   language: string | null,        // best-effort script hint, e.g. "ja" | "zh" | "ko" | "ar" | "he" | null
  *   direction: 'ltr' | 'rtl',
- *   timestamp: number,               // ms epoch, set on the main-process side (scrape time)
+ *   timestamp: number,               // ms epoch, set on the main-process side (capture time)
  *   isSuperchat: boolean,
  *   superchatAmountUsd: number,       // 0 unless currency was unambiguously recognized as USD (see parseSuperchatAmount)
  *   superchatCurrencyRaw: string | null   // original display string, e.g. "€10.00", whenever isSuperchat is true
@@ -29,7 +29,7 @@ const crypto = require('crypto');
 // Keyword substrings (lowercased) used to derive coarse "roles" from
 // YouTube's own badge aria-labels. Intentionally a simple, easily-extended
 // keyword map rather than parsing badge icon classes — aria-label text is
-// the most stable signal we get from the scraped DOM, but it IS still
+// the most stable signal we get from the captured DOM, but it IS still
 // YouTube's own UI copy, so a reworded/relocalized label can silently stop
 // matching. Ship fixes as an update to this map, same spirit as
 // selectors.config.json's "edit data, not code" philosophy.
@@ -69,8 +69,8 @@ const SCRIPT_RANGES = [
 ];
 
 /**
- * Normalizes a raw message payload coming from the injected scraper script
- * into the canonical ChatMessage shape. Anything scraped from the page is
+ * Normalizes a raw message payload coming from the injected capture script
+ * into the canonical ChatMessage shape. Anything captured from the page is
  * treated as untrusted text, so we defensively coerce types here.
  */
 // Normalizes to NFC (precomposed) form. Vietnamese text can arrive from the

@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { app, ipcMain, dialog } = require('electron');
 
 const { createMainWindow } = require('./window-manager');
-const { ScraperManager } = require('./scraper-manager');
+const { CaptureManager } = require('./capture-manager');
 const { ConfigStore } = require('./store/config-store');
 const { CustomPresetsStore, validateImportedPresets } = require('./store/custom-presets-store');
 const { startServer } = require('./server/http-server');
@@ -23,7 +23,7 @@ const sessionId = crypto.randomUUID();
 const MAX_HISTORY = 200;
 
 let mainWindow;
-let scraperManager;
+let captureManager;
 let configStore;
 let customPresetsStore;
 let httpPort;
@@ -70,14 +70,14 @@ async function bootstrap() {
     configStore.set({ windowBounds: { width, height } });
   });
 
-  scraperManager = new ScraperManager(mainWindow);
+  captureManager = new CaptureManager(mainWindow);
 
-  scraperManager.on('status', (payload) => {
+  captureManager.on('status', (payload) => {
     latestStatus = payload;
     safeSend(mainWindow, 'status:changed', payload);
   });
 
-  scraperManager.on('message', (message) => {
+  captureManager.on('message', (message) => {
     messageHistory.push(message);
     if (messageHistory.length > MAX_HISTORY) {
       messageHistory = messageHistory.slice(-MAX_HISTORY);
@@ -116,12 +116,12 @@ function registerIpcHandlers() {
   ipcMain.handle('app:connect', async (_event, url) => {
     configStore.set({ lastSessionUrl: url });
     messageHistory = [];
-    const result = await scraperManager.connect(url);
+    const result = await captureManager.connect(url);
     return result;
   });
 
   ipcMain.handle('app:disconnect', async () => {
-    await scraperManager.disconnect();
+    await captureManager.disconnect();
     messageHistory = [];
     return { ok: true };
   });

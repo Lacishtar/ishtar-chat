@@ -287,11 +287,46 @@ function applyDecorationMask(img, messageNode, layer) {
   console.info(`[OVS mask] layer "${layer.id}": mask applied ✔ (mode=${layer.maskMode}, invert=${layer.maskInvert})`);
 }
 
+/**
+ * Returns true when a message node satisfies a layer's visibility condition.
+ *
+ * Logic:
+ *   - visibilityRoles empty (default) → hiện với tất cả, không lọc.
+ *   - Non-empty → OR across selected tokens:
+ *       'moderator' — node có class ovs-moderator
+ *       'member'    — node có class ovs-member VÀ memberMonths >= memberMonthsMin
+ *                     (memberMonthsMin = 0 → chấp nhận tất cả member bất kể tháng)
+ *       'chat'      — không có moderator lẫn member (người xem thường)
+ *
+ * memberMonths được đọc từ node.dataset.ovsMemberMonths, được gán trong
+ * message-renderer.js#createMessageNode() ngay sau khi thêm role classes.
+ */
+function messageMatchesLayer(messageNode, layer) {
+  const roles = layer.visibilityRoles;
+  if (!Array.isArray(roles) || roles.length === 0) return true; // no filter
+
+  const isMod = messageNode.classList.contains('ovs-moderator');
+  const isMember = messageNode.classList.contains('ovs-member');
+  const memberMonths = parseInt(messageNode.dataset.ovsMemberMonths || '0', 10);
+  const isChat = !isMod && !isMember;
+
+  for (const role of roles) {
+    if (role === 'moderator' && isMod) return true;
+    if (role === 'member' && isMember) {
+      const min = Number(layer.memberMonthsMin) || 0;
+      if (min === 0 || memberMonths >= min) return true;
+    }
+    if (role === 'chat' && isChat) return true;
+  }
+  return false;
+}
+
 export function applyDecorationLayers(messageNode, decorationConfig) {
   if (!messageNode) return;
   const layers = Array.isArray(decorationConfig?.layers) ? decorationConfig.layers : [];
   layers.forEach((layer) => {
     if (!layer || layer.enabled === false || !layer.imageUrl) return;
+    if (!messageMatchesLayer(messageNode, layer)) return;
     const anchorEl = resolveAnchorElement(messageNode, layer.anchor || 'message');
     const host = ensureDecorationHost(anchorEl, layer.anchor || 'message');
     if (!host) return;

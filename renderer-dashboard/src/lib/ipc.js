@@ -2,7 +2,7 @@
 // preload/dashboard-preload.js. The mock below only activates when the app
 // is opened in a plain browser tab (e.g. `npm run dev:dashboard` without
 // Electron), so the UI can be iterated on quickly without spinning up the
-// whole scraper/server stack.
+// whole capturer/server stack.
 const hasElectronApi = typeof window !== 'undefined' && !!window.api;
 
 // Mirrors shared/animation-config.js#ANIMATION_STYLE_PRESETS + expandAnimationStyle —

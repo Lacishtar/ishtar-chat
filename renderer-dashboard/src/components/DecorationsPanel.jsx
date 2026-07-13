@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useEditorState } from '../state/EditorStateContext.jsx';
 import { Field, inputClass, EnableToggle } from './Customize/shared/fields.jsx';
-import { MASK_TARGETS } from '../../../shared/decoration-config.js';
+import { MASK_TARGETS, VISIBILITY_ROLES } from '../../../shared/decoration-config.js';
 
 const ANCHOR_OPTIONS = [
   { value: 'bubble', label: 'Khung chat (bubble)' },
@@ -81,6 +81,9 @@ function createDefaultLayer() {
     maskPadding: 0,
     maskFeather: 0,
     maskInvert: false,
+    // Visibility condition defaults.
+    visibilityRoles: [],
+    memberMonthsMin: 0,
   };
 }
 
@@ -223,6 +226,88 @@ function DeleteLayerButton({ onConfirm }) {
   );
 }
 
+// Human-readable labels for each visibility role token.
+const VISIBILITY_ROLE_LABELS = {
+  moderator: 'Mod',
+  member: 'Member / Thành viên',
+  chat: 'Chat thường (không role)',
+};
+
+/**
+ * Visibility condition controls for a single decoration layer.
+ *
+ * Checkboxes → OR logic: lớp hiện khi người gửi khớp BẤT KỲ token nào được chọn.
+ * Không chọn gì → hiện với tất cả.
+ * Khi 'member' được chọn → hiện thêm slider số tháng tối thiểu.
+ */
+function VisibilitySection({ layer, set }) {
+  const roles = Array.isArray(layer.visibilityRoles) ? layer.visibilityRoles : [];
+  const memberMonthsMin = layer.memberMonthsMin ?? 0;
+  const memberChecked = roles.includes('member');
+
+  function toggleRole(role) {
+    const next = roles.includes(role)
+      ? roles.filter((r) => r !== role)
+      : [...roles, role];
+    // Nếu bỏ chọn 'member' thì reset tháng về 0 cho gọn.
+    const patch = { visibilityRoles: next };
+    if (role === 'member' && roles.includes('member')) patch.memberMonthsMin = 0;
+    set(patch);
+  }
+
+  return (
+    <div className="rounded-lg border border-line bg-panel/60 overflow-hidden">
+      <div className="flex items-center gap-1.5 px-3 py-2">
+        <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5 shrink-0 text-inkMuted">
+          <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M10 6v4l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+        <span className="text-xs font-semibold text-inkMuted">Điều kiện hiển thị</span>
+      </div>
+
+      <div className="flex flex-col gap-2.5 px-3 pb-3">
+        {/* Role checkboxes */}
+        <div className="flex flex-col gap-1.5">
+          {VISIBILITY_ROLES.map((role) => (
+            <label key={role} className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={roles.includes(role)}
+                onChange={() => toggleRole(role)}
+                className="accent-focusAccent w-3.5 h-3.5 shrink-0"
+              />
+              <span className="text-xs text-ink">{VISIBILITY_ROLE_LABELS[role] || role}</span>
+            </label>
+          ))}
+        </div>
+
+        {roles.length === 0 && (
+          <p className="text-[11px] text-inkMuted italic">Hiện với tất cả (không lọc)</p>
+        )}
+
+        {/* Member months threshold — only shown when 'member' is checked */}
+        {memberChecked && (
+          <div className="flex flex-col gap-1 pt-1 border-t border-line/40">
+            <RangeField
+              label="Số tháng thành viên tối thiểu"
+              unit="tháng"
+              min={0}
+              max={60}
+              value={memberMonthsMin}
+              onChange={(v) => set({ memberMonthsMin: v })}
+            />
+            <p className="text-[10px] text-inkMuted leading-relaxed">
+              {memberMonthsMin === 0
+                ? 'Hiện với tất cả thành viên (bất kể tháng)'
+                : `Chỉ hiện với thành viên ≥ ${memberMonthsMin} tháng`}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function LayerCard({ layer, index, count, open, onToggleOpen, onChange, onRemove, onDuplicate, onMove }) {
   const set = (patch) => onChange(index, { ...layer, ...patch });
   const enabled = layer.enabled !== false;
@@ -344,6 +429,7 @@ function LayerCard({ layer, index, count, open, onToggleOpen, onChange, onRemove
           />
 
           <MaskSection layer={layer} set={set} />
+          <VisibilitySection layer={layer} set={set} />
         </div>
       )}
     </div>

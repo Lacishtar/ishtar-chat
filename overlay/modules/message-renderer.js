@@ -102,6 +102,9 @@ export function createMessageNode(msg, options = {}) {
   if (msg.roles?.includes('moderator')) node.classList.add('ovs-moderator');
   if (msg.roles?.includes('member')) node.classList.add('ovs-member');
   if (msg.isSuperchat) node.classList.add('ovs-superchat');
+  // memberMonths is stored on the node so decoration.js can read it later
+  // (including when refreshAllDecorations() re-applies layers without a msg ref).
+  node.dataset.ovsMemberMonths = String(msg.memberMonths || 0);
 
   ensureBubbleTexture(node);
   applyMessageBunnyEars(node);

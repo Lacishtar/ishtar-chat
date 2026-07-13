@@ -3,7 +3,7 @@
 > "Dán link YouTube Live, chọn giao diện, dán vào OBS. Xong."
 
 Khung MVP đầy đủ theo đúng kiến trúc trong tài liệu thiết kế: Electron (Main
-process) điều phối 1 **hidden BrowserView** để scrape DOM chat YouTube, chạy
+process) điều phối 1 **hidden BrowserView** để capture DOM chat YouTube, chạy
 1 **HTTP + WebSocket server local** để phục vụ overlay cho OBS, và 1
 **Dashboard (React)** để Connect / chọn Theme / Customize với preview
 realtime (chính là overlay page nhúng qua iframe — không phải bản giả lập
@@ -15,8 +15,8 @@ riêng, nên preview và OBS luôn khớp nhau).
 main/                  Main process (Node) — nguồn sự thật duy nhất
   index.js             entry point, wiring toàn bộ app
   window-manager.js     tạo Dashboard BrowserWindow
-  scraper-manager.js    quản lý hidden BrowserView + IPC nhận dữ liệu scrape
-  scraper-preload.js    script tiêm vào BrowserView (MutationObserver)
+  capture-manager.js    quản lý hidden BrowserView + IPC nhận dữ liệu capture
+  capture-preload.js    script tiêm vào BrowserView (MutationObserver)
   selectors.config.json CSS selector của YouTube — sửa file này khi YouTube đổi DOM
   theme-registry.js     đọc danh sách theme + default-config.json
   server/http-server.js Express — serve /overlay và /themes
@@ -104,7 +104,7 @@ không cho domain youtube.com/ytimg.com), nên tôi đã:
   mà không cần sửa code) để tăng khả năng chịu lỗi, nhưng **vẫn chưa test
   được với trang thật**. Việc đầu tiên nên làm khi chạy thật: mở DevTools
   trên hidden BrowserView (tạm thời bật `view.webContents.openDevTools()`
-  trong `scraper-manager.js`), so khớp selector, và sửa trực tiếp trong
+  trong `capture-manager.js`), so khớp selector, và sửa trực tiếp trong
   `selectors.config.json` nếu cần — không phải sửa code.
 - ❌ Chưa build/test trên máy Windows/macOS thật (đóng gói NSIS/dmg) — cấu
   hình `electron-builder` trong `package.json` mới là khung, chưa chạy `npm

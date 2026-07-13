@@ -38,6 +38,15 @@ const MASK_TARGETS = [
 
 const MASK_MODES = ['none', 'clipInside', 'clipOutside'];
 
+/**
+ * Valid role tokens for the per-layer visibility condition.
+ *   'moderator' — chỉ hiện với mod
+ *   'member'    — chỉ hiện với thành viên (+ có thể lọc thêm theo số tháng)
+ *   'chat'      — chỉ hiện với người xem thường (không có role nào)
+ * Mảng rỗng (mặc định) → hiện với tất cả, không lọc.
+ */
+const VISIBILITY_ROLES = ['moderator', 'member', 'chat'];
+
 const DEFAULT_MASK = {
   maskEnabled: false,
   maskTarget: 'avatar',
@@ -60,6 +69,11 @@ const DEFAULT_LAYER = {
   height: 48,
   opacity: 1,
   ...DEFAULT_MASK,
+  // Visibility condition — which role types this layer renders for.
+  // [] = hiện với tất cả (no filter). Non-empty = OR logic across tokens.
+  // 'member' token pairs with memberMonthsMin for month-threshold filtering.
+  visibilityRoles: [],
+  memberMonthsMin: 0,
 };
 
 const DEFAULT_DECORATION_CONFIG = {
@@ -101,6 +115,11 @@ function normalizeMask(raw) {
   };
 }
 
+function normalizeVisibilityRoles(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((r) => VISIBILITY_ROLES.includes(r));
+}
+
 function normalizeLayer(raw, index = 0) {
   const layer = raw || {};
   const id = typeof layer.id === 'string' && layer.id.trim() ? layer.id.trim() : `deco-${index}`;
@@ -120,6 +139,9 @@ function normalizeLayer(raw, index = 0) {
     // Flat-merged so existing saved layers (no mask keys at all) load with
     // maskEnabled: false and render exactly as before this feature existed.
     ...normalizeMask(layer),
+    // Visibility condition — backward-compatible: missing key → [] → show all.
+    visibilityRoles: normalizeVisibilityRoles(layer.visibilityRoles),
+    memberMonthsMin: clampNumber(layer.memberMonthsMin, 0, 0, 120),
   };
 }
 
@@ -199,6 +221,7 @@ module.exports = {
   PLACEMENTS,
   MASK_TARGETS,
   MASK_MODES,
+  VISIBILITY_ROLES,
   DEFAULT_MASK,
   DEFAULT_DECORATION_CONFIG,
   DEFAULT_LAYER,
@@ -207,6 +230,7 @@ module.exports = {
   normalizeMaskTarget,
   normalizeMaskMode,
   normalizeMask,
+  normalizeVisibilityRoles,
   normalizeDecorationConfig,
   mergeDecorationConfig,
   createLayer,

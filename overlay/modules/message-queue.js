@@ -3,7 +3,7 @@
 // Why this exists: every incoming message is rendered by cloning a DOM
 // node AND (for non-flythrough themes) computing decoration masks via
 // getBoundingClientRect, which forces a synchronous layout. That's cheap
-// for one message, but when the scraper's batch delivers a burst (e.g.
+// for one message, but when the capturer's batch delivers a burst (e.g.
 // a dozen messages arriving within the same tick during a fast chat),
 // rendering all of them synchronously in one JS turn causes exactly the
 // "chat can't keep up" jank this module fixes.

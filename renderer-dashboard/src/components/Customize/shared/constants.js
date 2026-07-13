@@ -1,8 +1,51 @@
-export const FONT_OPTIONS = [
-  { value: 'Inter, system-ui, sans-serif', label: 'Inter (mặc định)' },
-  { value: '"Space Grotesk", system-ui, sans-serif', label: 'Space Grotesk' },
-  { value: 'ui-monospace, "JetBrains Mono", monospace', label: 'Mono' },
-  { value: '"Segoe UI", system-ui, sans-serif', label: 'Segoe UI' },
+// Font groups — rendered as <optgroup> in FontSection.jsx.
+// Mỗi nhóm ưu tiên fonts phù hợp với vibe hoặc ngôn ngữ của nhóm đó.
+// Google Fonts được inject vào cả renderer-dashboard/index.html và overlay/index.html.
+//
+// QUAN TRỌNG: mọi font trong danh sách này đã được kiểm tra để chắc chắn có
+// subset "vietnamese" chính thức trên Google Fonts (đủ dấu ệ, ữ, ẫ, ộ...),
+// không chỉ dựa vào "latin-ext" (latin-ext KHÔNG đủ để hiển thị đúng tiếng Việt).
+// Các font kiểu chữ Nhật/Hàn/Trung không có subset vietnamese (Klee One, Hachi
+// Maru Pop, DotGothic16, Rampart One, Noto Sans/Serif JP·KR·SC·TC, Zen Maru
+// Gothic, BIZ UDPMincho, Jua, Do Hyeon, Black Han Sans, ZCOOL XiaoWei, Ma Shan
+// Zheng, Long Cang, Gamja Flower, Cute Font) đã được bỏ khỏi danh sách — nếu
+// chọn các font đó, dấu tiếng Việt trong chat sẽ hiển thị sai/rớt về font dự
+// phòng. "Fredoka One" cũng bị Google Fonts gỡ bỏ nên không dùng được nữa.
+export const FONT_GROUPS = [
+  {
+    label: '🌸 Anime · VTuber · Maid · Kawaii',
+    fonts: [
+      { value: '"Baloo 2", sans-serif',          label: 'Baloo 2 — chữ phồng tròn dễ thương (Việt hoá đầy đủ)' },
+      { value: 'Comfortaa, sans-serif',          label: 'Comfortaa — tròn hiện đại, mềm mại' },
+      { value: 'Quicksand, sans-serif',          label: 'Quicksand — mỏng nhẹ, bay bổng' },
+      { value: 'Nunito, sans-serif',             label: 'Nunito — tròn dịu, dễ đọc' },
+      { value: 'Grandstander, cursive',          label: 'Grandstander — bo tròn nhảy nhót, năng động' },
+      { value: '"Varela Round", sans-serif',     label: 'Varela Round — bo tròn êm, kiểu bong bóng' },
+      { value: 'Mali, cursive',                  label: 'Mali — viết tay tròn ngộ nghĩnh, đúng chất maid/kawaii' },
+      { value: 'Itim, cursive',                  label: 'Itim — viết tay cong tròn, dễ thương' },
+      { value: 'Sriracha, cursive',              label: 'Sriracha — viết tay nét mảnh, phóng khoáng' },
+      { value: 'Yomogi, cursive',                label: 'Yomogi — tay viết ngọt kiểu anime (JP · VN)' },
+      { value: '"M PLUS Rounded 1c", sans-serif', label: 'M PLUS Rounded 1c — mềm mại kiểu Nhật (JP · VN)' },
+    ],
+  },
+  {
+    label: '🇻🇳 Tiếng Việt · Rõ ràng',
+    fonts: [
+      { value: '"Be Vietnam Pro", sans-serif',  label: 'Be Vietnam Pro — thiết kế riêng cho tiếng Việt' },
+      { value: 'Inter, system-ui, sans-serif',  label: 'Inter — mặc định, rõ ràng' },
+      { value: '"Source Sans 3", sans-serif',   label: 'Source Sans 3 — sạch, dễ đọc' },
+      { value: 'Raleway, sans-serif',            label: 'Raleway — thanh lịch, mỏng' },
+      { value: '"Exo 2", sans-serif',            label: 'Exo 2 — sci-fi, góc cạnh' },
+      { value: '"Space Grotesk", sans-serif',   label: 'Space Grotesk — hiện đại kỹ thuật số' },
+    ],
+  },
+  {
+    label: '✦ Phổ thông',
+    fonts: [
+      { value: 'ui-monospace, "JetBrains Mono", monospace', label: 'JetBrains Mono — lập trình' },
+      { value: '"Segoe UI", system-ui, sans-serif',          label: 'Segoe UI — system Windows' },
+    ],
+  },
 ];
 
 export const BORDER_STYLE_OPTIONS = [

@@ -1,5 +1,5 @@
 import { Field, inputClass } from '../shared/fields.jsx';
-import { FONT_OPTIONS } from '../shared/constants.js';
+import { FONT_GROUPS } from '../shared/constants.js';
 import ColorPicker from '../shared/ColorPicker.jsx';
 
 export default function FontSection({
@@ -22,10 +22,14 @@ export default function FontSection({
             value={fontFamily}
             onChange={(e) => onChange({ fontFamily: e.target.value })}
           >
-            {FONT_OPTIONS.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
+            {FONT_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.fonts.map((f) => (
+                  <option key={f.value} value={f.value}>
+                    {f.label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </Field>
