@@ -10,7 +10,6 @@ contextBridge.exposeInMainWorld('api', {
   getInitialState: () => ipcRenderer.invoke('app:get-initial-state'),
   connect: (url) => ipcRenderer.invoke('app:connect', url),
   disconnect: () => ipcRenderer.invoke('app:disconnect'),
-  selectTheme: (themeId) => ipcRenderer.invoke('theme:select', themeId),
   isThemeDirty: () => ipcRenderer.invoke('theme:is-dirty'),
   resetPreset: () => ipcRenderer.invoke('theme:reset-preset'),
   getThemeList: () => ipcRenderer.invoke('theme:list'),

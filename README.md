@@ -25,7 +25,7 @@ main/                  Main process (Node) — nguồn sự thật duy nhất
 preload/dashboard-preload.js   contextBridge — window.api cho Dashboard
 renderer-dashboard/    Dashboard UI (React + Tailwind, build bằng Vite)
 overlay/               Trang overlay thuần HTML/CSS/JS (OBS Browser Source load trang này)
-themes/                9 theme: classic, bubble, glass, minimal, anime, cyber, danmaku, ticker, scrapbook
+themes/                6 theme: classic, bubble, glass, minimal, anime, cyber
                        (mỗi theme = template.html + style.css + default-config.json)
 shared/                Schema dùng chung (ChatMessage, CustomizeConfig)
 scripts/smoke-test-server.js   Test HTTP+WS server độc lập, không cần Electron
@@ -47,7 +47,7 @@ Khi app mở, dán link `youtube.com/watch?v=...`, `/live/...` hoặc `youtu.be/
 đang có live chat vào Connect Panel. Overlay URL để dán vào OBS Browser Source
 nằm ngay dưới khung preview (nút "Copy URL cho OBS").
 
-## 9 theme có sẵn
+## 6 theme có sẵn
 
 | Theme | Phong cách |
 |---|---|
@@ -57,17 +57,12 @@ nằm ngay dưới khung preview (nút "Copy URL cho OBS").
 | `minimal` | Không khung nền, chỉ chữ — `Tên: nội dung`, tối giản tối đa |
 | `anime` | Pastel hồng/tím, viền avatar đứt nét, có icon ✦ trang trí, phù hợp VTuber |
 | `cyber` | Cyberpunk neon — viền phát sáng, chữ hoa, font mono |
-| `danmaku` | Bullet-comment kiểu Niconico/Bilibili — tin bay ngang màn hình thay vì xếp chồng dọc |
-| `ticker` | News ticker — chữ chạy ngang kiểu bản tin, phù hợp overlay dưới cùng màn hình |
-| `scrapbook` | Scrapbook/collage — layout riêng qua `layout-config.json` + `slot-style-config.json` |
 
 Tất cả theme dùng chung 1 bộ CSS variable do Customize Panel điều khiển
 (`shared/customize-config.js#toCssVariables`), nên panel hoạt động giống nhau
 dù đang dùng theme nào — trừ các ngoại lệ có ghi chú ngay trong CSS theme
-(`themes/minimal/style.css`, `themes/danmaku/style.css`, `themes/ticker/style.css`:
-minimal bỏ qua màu nền bubble/bo góc vì không có khung; danmaku và ticker bỏ
-qua một số tuỳ chỉnh animation vì tốc độ/chuyển động được set riêng theo layout
-— xem comment đầu file CSS tương ứng để biết chi tiết).
+(`themes/minimal/style.css`: minimal bỏ qua màu nền bubble/bo góc vì không
+có khung — xem comment đầu file CSS tương ứng để biết chi tiết).
 
 Thêm theme mới bằng cách tạo 1 thư mục trong `/themes` với `template.html`
 (giữ nguyên 4 hook `data-slot="avatar|author|badges|message"` để tương thích
@@ -115,11 +110,6 @@ không cho domain youtube.com/ytimg.com), nên tôi đã:
   hình `electron-builder` trong `package.json` mới là khung, chưa chạy `npm
   run build` thật (môi trường sandbox chặn tải Electron binary từ GitHub
   Releases — bạn cần chạy bước này trên máy thật).
-- ❌ Chưa test theme `danmaku` bằng mắt trên OBS thật — layout "bay ngang,
-  chia làn theo `:nth-child`" đã được kiểm tra là CSS hợp lệ và server ra
-  đúng, nhưng độ mượt/độ chồng chữ khi chat tốc độ cao thì cần xem trực
-  quan mới đánh giá được (ghi rõ giới hạn này trong comment đầu file
-  `themes/danmaku/style.css`).
 
 ## Chưa làm (ngoài phạm vi lần hoàn thiện này)
 

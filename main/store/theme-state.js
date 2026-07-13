@@ -1,10 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const { loadThemeDocument } = require('../theme-engine');
-const { readThemeConfig, THEMES_DIR, themeExists } = require('../theme-registry');
+const { readThemeConfig, THEMES_DIR } = require('../theme-registry');
 const { DEFAULT_CUSTOMIZE_CONFIG, sanitizeThemeDefaults } = require('../../shared/customize-config');
 const { mergeLayoutConfig } = require('../../shared/layout-config');
-const { mergeBubbleConfig } = require('../../shared/bubble-config');
 const { DEFAULT_SLOT_STYLE_CONFIG, mergeSlotStyleConfig } = require('../../shared/slot-style-config');
 const { DEFAULT_ANIMATION_CONFIG, mergeAnimationConfig } = require('../../shared/animation-config');
 const { DEFAULT_DECORATION_CONFIG, mergeDecorationConfig } = require('../../shared/decoration-config');
@@ -45,7 +44,6 @@ function resolveThemeState(themeId) {
     animationConfig: mergeAnimationConfig(DEFAULT_ANIMATION_CONFIG),
     decorationConfig: mergeDecorationConfig(DEFAULT_DECORATION_CONFIG, decorationPreset),
     roleStyleConfig: mergeRoleStyleConfig(DEFAULT_ROLE_STYLE_CONFIG),
-    bubbleConfig: mergeBubbleConfig(themeDoc.style.bubble),
   };
 }
 

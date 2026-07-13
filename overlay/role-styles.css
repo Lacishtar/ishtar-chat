@@ -191,19 +191,3 @@
   display: inline-block;
 }
 
-/* Danmaku / ticker — compact accents */
-#ovs-chat-list.ovs-theme-danmaku .ovs-message.ovs-moderator,
-#ovs-chat-list.ovs-theme-ticker .ovs-message.ovs-moderator {
-  outline: 2px solid var(--ovs-role-mod-message-border-color, rgba(248, 113, 113, 0.65));
-}
-
-#ovs-chat-list.ovs-theme-danmaku .ovs-message.ovs-member,
-#ovs-chat-list.ovs-theme-ticker .ovs-message.ovs-member {
-  outline: 2px solid var(--ovs-role-member-message-border-color, rgba(96, 165, 250, 0.55));
-}
-
-#ovs-chat-list.ovs-theme-danmaku .ovs-message.ovs-superchat,
-#ovs-chat-list.ovs-theme-ticker .ovs-message.ovs-superchat {
-  background: var(--ovs-role-superchat-row-bg, rgba(255, 202, 40, 0.35)) !important;
-  border: 1px solid var(--ovs-role-superchat-row-border-color, rgba(255, 202, 40, 0.7)) !important;
-}

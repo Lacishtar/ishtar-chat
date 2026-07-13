@@ -1,4 +1,4 @@
-/* Decoration layers — stack themes only. Danmaku/ticker use absolute fly-through layout. */
+/* Decoration layers — stack themes only. */
 
 #ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-message {
   position: relative !important;

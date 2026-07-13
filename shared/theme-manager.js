@@ -7,7 +7,7 @@
  *   ValidateTheme(obj)   — verify that an object looks like a complete theme.
  *   NormalizeTheme(obj)  — fill every missing/null field with canonical defaults.
  *   ApplyTheme(id, store) — apply a theme into the live config-store and return
- *                           the resulting state (same shape as theme:select).
+ *                           the resulting six config categories.
  *   ResetCurrentTheme(store) — re-apply the current theme's defaults (delegates to
  *                              the existing theme:reset-preset flow).
  *   ResetCategory(category, store) — reset only one config category to its
@@ -156,9 +156,8 @@ function NormalizeTheme(raw) {
 
 /**
  * Applies a named theme into the given config-store instance and broadcasts
- * the change. Mirrors the logic of the `theme:select` IPC handler without
- * touching the overlay theme (the existing theme stays selected; only
- * appearance settings change).
+ * the change, without touching the overlay theme (the existing theme stays
+ * selected; only appearance settings change).
  *
  * The `store` parameter is expected to expose `.get()` and `.set(partial)`,
  * matching the ConfigStore class in main/store/config-store.js.

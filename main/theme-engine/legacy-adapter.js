@@ -5,7 +5,6 @@ const { DEFAULT_LAYOUT_CONFIG } = require('../../shared/layout-config');
 const { DEFAULT_BUBBLE_CONFIG } = require('../../shared/bubble-config');
 
 const THEMES_DIR = path.join(__dirname, '..', '..', 'themes');
-const HIDDEN_THEME_IDS = new Set(['ticker', 'scrapbook']);
 
 // The 4 data-slots every legacy template.html uses (see themes/*/template.html)
 // mapped to the component names the future Layout Engine will look up in its
@@ -18,14 +17,12 @@ const SLOT_TO_COMPONENT = {
   message: 'Message',
 };
 
-// Danmaku is the one legacy theme whose CSS positions messages absolutely
-// (flying bullet-comments) instead of stacking them in a flex list — see
-// themes/danmaku/style.css's own comment block on why. Every other legacy
-// theme stacks in a flex column. This is what keeps that real layout
-// difference visible in the synthesized layout.json instead of flattening
-// every legacy theme into an identical shape regardless of how it actually
-// renders today.
-const ABSOLUTE_LAYOUT_THEMES = new Set(['danmaku', 'ticker']);
+// No remaining legacy theme positions messages absolutely (that was
+// danmaku/ticker's flying/scrolling behavior); every legacy theme now
+// stacks in a flex column. Kept as a Set (rather than deleting the
+// isAbsolute branch in buildLayout) so a future absolute-layout legacy
+// theme can opt in the same way without re-plumbing buildLayout.
+const ABSOLUTE_LAYOUT_THEMES = new Set();
 
 /**
  * Extracts the ordered list of data-slot names from a legacy template.html
@@ -134,9 +131,6 @@ function readJson(filePath, fallback = {}) {
 }
 
 function legacyThemeExists(themeId) {
-  if (HIDDEN_THEME_IDS.has(themeId)) {
-    return false;
-  }
   return fs.existsSync(path.join(THEMES_DIR, themeId, 'template.html'));
 }
 
@@ -179,7 +173,7 @@ function adaptLegacyTheme(themeId) {
 function listLegacyThemeIds() {
   return fs
     .readdirSync(THEMES_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && !HIDDEN_THEME_IDS.has(entry.name) && legacyThemeExists(entry.name))
+    .filter((entry) => entry.isDirectory() && legacyThemeExists(entry.name))
     .map((entry) => entry.name);
 }
 

@@ -1,8 +1,7 @@
-import { state, listEl, themeStyleEl, syncThemeModeClass, isFlythroughTheme } from './state.js';
+import { state, listEl, themeStyleEl, syncThemeModeClass } from './state.js';
 import { applyCssVariables } from './css-variables.js';
 import { refreshAllDecorations } from './decoration.js';
 import { renderHistory } from './message-renderer.js';
-import { resetTickerPlayback, resetDanmaku } from './special-modes.js';
 
 export async function loadTheme(themeId) {
   const id = themeId || state.currentTheme || 'classic';
@@ -41,17 +40,13 @@ export function applyThemePayload(data, options = {}) {
   const finish = () => {
     applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);
     if (themeSwitch) {
-      resetTickerPlayback();
-      resetDanmaku();
       listEl.innerHTML = '';
     }
     if (incomingHistory && (themeSwitch || options.forceHistory || listEl.children.length === 0)) {
       state.messageHistory = [...incomingHistory];
       renderHistory(state.messageHistory);
     }
-    if (!isFlythroughTheme()) {
-      refreshAllDecorations();
-    }
+    refreshAllDecorations();
   };
 
   if (themeSwitch || !state.messageTemplate) {

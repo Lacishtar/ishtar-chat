@@ -27,22 +27,10 @@ export const initialHistory = initial.history;
 export const listEl = document.getElementById('ovs-chat-list');
 export const themeStyleEl = document.getElementById('ovs-theme-style');
 
-export const TICKER_THEMES = new Set(['ticker']);
-export const DANMAKU_THEMES = new Set(['danmaku']);
-
+// Only one theme-mode remains (stack), but decoration-layers.css keys off
+// this dataset attribute (`#ovs-chat-list[data-ovs-theme-mode='stack']`),
+// so the attribute itself stays rather than inlining the value everywhere.
 export function syncThemeModeClass() {
   if (!listEl) return;
-  listEl.classList.toggle('ovs-theme-danmaku', DANMAKU_THEMES.has(state.currentTheme));
-  listEl.classList.toggle('ovs-theme-ticker', TICKER_THEMES.has(state.currentTheme));
-  if (DANMAKU_THEMES.has(state.currentTheme)) {
-    listEl.dataset.ovsThemeMode = 'danmaku';
-  } else if (TICKER_THEMES.has(state.currentTheme)) {
-    listEl.dataset.ovsThemeMode = 'ticker';
-  } else {
-    listEl.dataset.ovsThemeMode = 'stack';
-  }
-}
-
-export function isFlythroughTheme() {
-  return DANMAKU_THEMES.has(state.currentTheme) || TICKER_THEMES.has(state.currentTheme);
+  listEl.dataset.ovsThemeMode = 'stack';
 }

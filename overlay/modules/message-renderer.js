@@ -1,22 +1,12 @@
 // Builds/updates individual message DOM nodes, and owns the top-level
-// render dispatch (stack / ticker / danmaku) plus max-message trimming and
-// slot visibility refresh.
-//
-// NOTE: this module and special-modes.js import from each other — see the
-// comment at the top of special-modes.js for why that's safe.
+// render dispatch (stack) plus max-message trimming and slot visibility
+// refresh.
 
-import { state, listEl, TICKER_THEMES, DANMAKU_THEMES, isFlythroughTheme } from './state.js';
+import { state, listEl } from './state.js';
 import { resolveEffectiveSlotStyle } from './css-variables.js';
 import { applyAvatar } from './avatar.js';
 import { ensureBubbleTexture, applyMessageBunnyEars, applySlotBunnyEars } from './bubble.js';
 import { applyDecorationLayers } from './decoration.js';
-import {
-  appendTickerMessage,
-  appendDanmakuMessage,
-  renderTickerHistory,
-  renderDanmakuHistory,
-  getTickerTrackEl,
-} from './special-modes.js';
 
 export function applySlotVisibility(el, slotKey) {
   if (!el) return;
@@ -56,15 +46,10 @@ export function refreshMessageNodeVisibility(node) {
 export function refreshAllSlotVisibility() {
   const roots = listEl.querySelectorAll('.ovs-message');
   roots.forEach(refreshMessageNodeVisibility);
-  const tickerTrackEl = getTickerTrackEl();
-  if (tickerTrackEl) {
-    tickerTrackEl.querySelectorAll('.ovs-message').forEach(refreshMessageNodeVisibility);
-  }
 }
 
 function applySlotEnterAnimation(node, skip) {
   if (skip) return;
-  if (TICKER_THEMES.has(state.currentTheme) || DANMAKU_THEMES.has(state.currentTheme)) return;
   const root = getComputedStyle(document.documentElement);
   if (root.getPropertyValue('--ovs-anim-enabled').trim() === '0') return;
 
@@ -119,15 +104,11 @@ export function createMessageNode(msg, options = {}) {
   if (msg.isSuperchat) node.classList.add('ovs-superchat');
 
   ensureBubbleTexture(node);
-  if (!isFlythroughTheme()) {
-    applyMessageBunnyEars(node);
-  }
+  applyMessageBunnyEars(node);
   if (authorEl) {
     authorEl.textContent = msg.author;
     ensureBubbleTexture(authorEl);
-    if (!isFlythroughTheme()) {
-      applySlotBunnyEars(authorEl, 'author');
-    }
+    applySlotBunnyEars(authorEl, 'author');
   }
   if (badgesEl) {
     if (msg.badges?.length) {
@@ -141,9 +122,7 @@ export function createMessageNode(msg, options = {}) {
   if (messageEl) {
     messageEl.innerHTML = msg.messageHtml;
     ensureBubbleTexture(messageEl);
-    if (!isFlythroughTheme()) {
-      applySlotBunnyEars(messageEl, 'message');
-    }
+    applySlotBunnyEars(messageEl, 'message');
   }
 
   if (msg.isSuperchat && msg.superchatCurrencyRaw && authorEl?.parentElement) {
@@ -180,16 +159,6 @@ export function renderMessage(msg, options = {}) {
     }
   }
 
-  if (TICKER_THEMES.has(state.currentTheme)) {
-    appendTickerMessage(msg);
-    return;
-  }
-
-  if (DANMAKU_THEMES.has(state.currentTheme)) {
-    appendDanmakuMessage(msg);
-    return;
-  }
-
   const node = createMessageNode(msg, { skipEnterAnimation: options.skipEnterAnimation });
 
   if (state.currentConfig.position === 'top-down') {
@@ -204,22 +173,12 @@ export function renderMessage(msg, options = {}) {
   // actually attached to the document — every rect reads as 0x0 on a
   // detached node, which silently no-ops the whole masking step. Must
   // run after insertion, not inside createMessageNode().
-  if (!isFlythroughTheme()) {
-    applyDecorationLayers(node, state.currentDecoration);
-  }
+  applyDecorationLayers(node, state.currentDecoration);
 
   trimToMax();
 }
 
 export function renderHistory(history) {
   if (!Array.isArray(history) || history.length === 0) return;
-  if (TICKER_THEMES.has(state.currentTheme)) {
-    renderTickerHistory(history);
-    return;
-  }
-  if (DANMAKU_THEMES.has(state.currentTheme)) {
-    renderDanmakuHistory(history);
-    return;
-  }
   history.forEach((msg) => renderMessage(msg, { trackHistory: false }));
 }

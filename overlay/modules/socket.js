@@ -1,4 +1,4 @@
-import { state, isFlythroughTheme } from './state.js';
+import { state } from './state.js';
 import { applyCssVariables } from './css-variables.js';
 import { refreshAllDecorations } from './decoration.js';
 import { refreshAllSlotBunnyEars } from './bubble.js';
@@ -24,23 +24,19 @@ export function connectSocket() {
     } else if (payload.type === 'config:updated') {
       state.currentConfig = payload.data;
       applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);
-      if (!isFlythroughTheme()) {
-        refreshAllDecorations();
-        refreshAllSlotBunnyEars();
-      }
+      refreshAllDecorations();
+      refreshAllSlotBunnyEars();
     } else if (payload.type === 'layout:updated') {
       state.currentLayout = payload.data;
       applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);
-      if (!isFlythroughTheme()) refreshAllDecorations();
+      refreshAllDecorations();
     } else if (payload.type === 'slot-style:updated') {
       state.currentSlotStyle = payload.data;
       applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);
-      if (!isFlythroughTheme()) {
-        refreshAllSlotBunnyEars();
-        // Avatar size/border-radius live here — any avatar-targeted
-        // decoration mask must be rebuilt against the new shape.
-        refreshAllDecorations();
-      }
+      refreshAllSlotBunnyEars();
+      // Avatar size/border-radius live here — any avatar-targeted
+      // decoration mask must be rebuilt against the new shape.
+      refreshAllDecorations();
     } else if (payload.type === 'animation:updated') {
       state.currentAnimation = payload.data;
       applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);
@@ -51,7 +47,7 @@ export function connectSocket() {
       state.currentRoleStyle = payload.data || { roles: {} };
       applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);
       // Refresh ear colors vì màu phụ thuộc vào role config
-      if (!isFlythroughTheme()) refreshAllSlotBunnyEars();
+      refreshAllSlotBunnyEars();
     }
   });
 

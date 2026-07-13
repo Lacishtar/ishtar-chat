@@ -1,15 +1,16 @@
 const { adaptLegacyTheme, listLegacyThemeIds } = require('./legacy-adapter');
-const { compileStyleToCssVariables, compileStyleToCssText } = require('./style-engine');
-const { compileLayoutToCssVariables, compileLayoutToCssText } = require('./layout-engine');
 
 /**
  * Theme Engine facade (design doc §1.2/§8 step 2).
  *
  * Today this only wraps the legacy adapter, since no themes-packages/*
- * (.ovstheme) packages exist yet — that's refactor step 9. NOTHING in the
- * running app calls this yet: main/index.js and the overlay still use
- * main/theme-registry.js and static file serving exactly as before, so
- * this file changes no user-visible behavior.
+ * (.ovstheme) packages exist yet — that's refactor step 9.
+ *
+ * loadThemeDocument() IS called at runtime by main/store/theme-state.js
+ * (resolveThemeState — used on app boot and on theme:reset-preset) to
+ * source layout.settings for the active theme. The overlay itself still
+ * renders from static template.html/style.css files served as-is; only
+ * the dashboard-side config resolution goes through this facade.
  *
  * It exists so later refactor steps (Style/Layout/Animation/Rule engines)
  * have one stable place to load a ThemeDocument from, regardless of
@@ -30,8 +31,4 @@ function listThemeIds() {
 module.exports = {
   loadThemeDocument,
   listThemeIds,
-  compileStyleToCssVariables,
-  compileStyleToCssText,
-  compileLayoutToCssVariables,
-  compileLayoutToCssText,
 };

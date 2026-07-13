@@ -2,30 +2,6 @@ const fs = require('fs');
 const path = require('path');
 
 const THEMES_DIR = path.join(__dirname, '..', 'themes');
-const HIDDEN_THEME_IDS = new Set(['ticker', 'scrapbook']);
-
-function listThemes() {
-  return fs
-    .readdirSync(THEMES_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && !HIDDEN_THEME_IDS.has(entry.name))
-    .map((entry) => {
-      const themeId = entry.name;
-      const meta = readThemeConfig(themeId);
-      return {
-        id: themeId,
-        name: meta._label || themeId,
-        hasThumbnail: fs.existsSync(path.join(THEMES_DIR, themeId, 'thumbnail.png')),
-        // Lets the Theme Gallery render a live color swatch instead of a
-        // generic placeholder, without needing a real thumbnail.png per
-        // theme — cheap, but keeps the gallery visual-first (§1.1).
-        preview: {
-          bubbleBg: meta.bubbleBg || 'rgba(22, 25, 31, 0.72)',
-          authorColor: meta.authorColor || '#6E56F0',
-          textColor: meta.textColor || '#EAECEF',
-        },
-      };
-    });
-}
 
 function readThemeConfig(themeId) {
   const configPath = path.join(THEMES_DIR, themeId, 'default-config.json');
@@ -36,11 +12,4 @@ function readThemeConfig(themeId) {
   }
 }
 
-function themeExists(themeId) {
-  if (HIDDEN_THEME_IDS.has(themeId)) {
-    return false;
-  }
-  return fs.existsSync(path.join(THEMES_DIR, themeId, 'template.html'));
-}
-
-module.exports = { THEMES_DIR, listThemes, readThemeConfig, themeExists };
+module.exports = { THEMES_DIR, readThemeConfig };

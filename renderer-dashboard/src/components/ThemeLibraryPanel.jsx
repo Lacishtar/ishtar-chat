@@ -88,7 +88,7 @@ function ThemeCard({ theme, isSelected, isApplying, onSelect, onPreview }) {
   );
 }
 
-export default function ThemeLibraryPanel({ api, onApplied, resetPreset }) {
+export default function ThemeLibraryPanel({ api, resetPreset }) {
   const [themes, setThemes] = useState([]);
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState('');
@@ -143,8 +143,6 @@ export default function ThemeLibraryPanel({ api, onApplied, resetPreset }) {
       const result = await api.applyTheme(themeId);
       if (result?.ok) {
         // App.jsx already handles the live preview via onThemeChanged.
-        // Call onApplied so the parent can sync local state if needed.
-        onApplied?.(result);
         flashStatus('ok');
       } else {
         flashStatus('error');

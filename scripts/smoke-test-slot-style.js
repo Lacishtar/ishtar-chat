@@ -103,9 +103,4 @@ const contracted = contractSimpleLayout(layout);
 assert(contracted.avatarPadding === 4, 'contract avatar padding');
 assert(contracted.showAuthorSlot === false, 'contract author visibility');
 
-const { resolveThemeState } = require('../main/store/theme-state');
-const scrapbook = resolveThemeState('scrapbook');
-assert(scrapbook.slotStyleConfig.slots.avatar.rotate === -7, 'scrapbook preset rotate');
-assert(scrapbook.layoutConfig.messageRow.gap === 14, 'scrapbook preset layout gap');
-
 console.log('[smoke:slot-style] all checks passed');

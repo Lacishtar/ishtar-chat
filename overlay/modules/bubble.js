@@ -2,8 +2,7 @@
 // ::before/::after, so they don't conflict with custom badges on
 // .ovs-author — see the original inline comment below).
 
-import { state, listEl, isFlythroughTheme } from './state.js';
-import { getTickerTrackEl } from './special-modes.js';
+import { state, listEl } from './state.js';
 
 export function ensureBubbleTexture(parent) {
   if (!parent) return;
@@ -148,7 +147,6 @@ export function applySlotBunnyEars(el, slotName) {
 }
 
 export function refreshAllSlotBunnyEars() {
-  if (isFlythroughTheme()) return;
   const applyTo = (node) => {
     applyMessageBunnyEars(node);
     const authorEl = node.querySelector('[data-slot="author"]');
@@ -157,8 +155,4 @@ export function refreshAllSlotBunnyEars() {
     applySlotBunnyEars(messageEl, 'message');
   };
   listEl.querySelectorAll('.ovs-message').forEach(applyTo);
-  const tickerTrackEl = getTickerTrackEl();
-  if (tickerTrackEl) {
-    tickerTrackEl.querySelectorAll('.ovs-message').forEach(applyTo);
-  }
 }

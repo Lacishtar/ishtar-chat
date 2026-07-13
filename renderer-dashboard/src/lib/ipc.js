@@ -111,14 +111,6 @@ function createMock() {
   return {
     getInitialState: async () => ({
       status,
-      themes: [
-        {
-          id: 'classic',
-          name: 'Classic',
-          hasThumbnail: false,
-          preview: { bubbleBg: 'rgba(22, 25, 31, 0.72)', authorColor: '#6E56F0', textColor: '#EAECEF' },
-        },
-      ],
       selectedTheme: 'classic',
       customizeConfig: config,
       layoutConfig,
@@ -144,15 +136,6 @@ function createMock() {
       statusListeners.forEach((cb) => cb(status));
       return { ok: true };
     },
-    selectTheme: async (themeId) => ({
-      ok: true,
-      config,
-      layoutConfig,
-      slotStyleConfig,
-      decorationConfig,
-      roleStyleConfig,
-      animationConfig,
-    }),
     isThemeDirty: async () => ({ dirty: false, dirtyFields: [] }),
     resetPreset: async () => ({
       ok: true,
@@ -174,8 +157,6 @@ function createMock() {
       { id: 'cute-bubble',   name: 'Cute Bubble',    description: 'Round colourful bubbles.', preview: { bubbleBg: 'rgba(255, 214, 165, 0.9)', authorColor: '#F97316', textColor: '#7C2D12' } },
       { id: 'kawaii', name: 'Kawaii', description: 'Sakura-pink kawaii style.', preview: { bubbleBg: 'rgba(255, 240, 245, 0.92)', authorColor: '#FB7185', textColor: '#9D174D' } },
       { id: 'vtuber-cute',   name: 'VTuber Cute',    description: 'Idol-style with bunny ears.', preview: { bubbleBg: 'rgba(255, 245, 250, 0.9)', authorColor: '#C026D3', textColor: '#701A75' } },
-      { id: 'blue-archive',  name: 'Blue Archive',   description: 'Navy-and-sky Blue Archive.', preview: { bubbleBg: 'rgba(15, 23, 42, 0.85)', authorColor: '#38BDF8', textColor: '#E0F2FE' } },
-      { id: 'hololive-blue', name: 'Hololive Blue',  description: 'Sky-blue Hololive style.', preview: { bubbleBg: 'rgba(224, 242, 254, 0.9)', authorColor: '#0284C7', textColor: '#0C4A6E' } },
       { id: 'night-sky',     name: 'Night Sky',      description: 'Deep navy with aurora glow.', preview: { bubbleBg: 'rgba(8, 12, 28, 0.85)', authorColor: '#A78BFA', textColor: '#E0E7FF' } },
     ],
     applyTheme: async (themeId) => {

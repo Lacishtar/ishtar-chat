@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import { useEditorState } from '../state/EditorStateContext.jsx';
+import { Field, inputClass, EnableToggle } from './Customize/shared/fields.jsx';
 
 const ANCHOR_OPTIONS = [
   { value: 'bubble', label: 'Khung chat (bubble)' },
@@ -42,21 +44,10 @@ const MASK_MODE_OPTIONS = [
   { value: 'none', label: 'None — hiển thị bình thường' },
 ];
 
-const inputClass =
-  'w-full rounded-lg bg-panelAlt border border-line px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-focusAccent';
-
-function Field({ label, children }) {
-  // Plain wrapper, not <label> -- an unassociated <label> around
-  // multi-control content can cause the browser to auto-forward a
-  // phantom click to whichever labelable descendant is currently first
-  // in DOM order. See shared/fields.jsx for the full writeup.
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-xs text-inkMuted">{label}</span>
-      {children}
-    </div>
-  );
-}
+const ANCHOR_LABEL = Object.fromEntries(ANCHOR_OPTIONS.map((o) => [o.value, o.label]));
+const PLACEMENT_LABEL = Object.fromEntries(
+  PLACEMENT_OPTIONS.map((o) => [o.value, o.label.replace(/\s*\(.*\)$/, '')]),
+);
 
 function createLayerId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -87,264 +78,334 @@ function createDefaultLayer() {
   };
 }
 
-function LayerCard({ layer, index, onChange, onRemove }) {
-  const set = (patch) => onChange(index, { ...layer, ...patch });
+/**
+ * A range slider paired with a small editable number input, so precise
+ * values can be typed directly instead of hunting for them on the slider.
+ * Both controls stay in sync and share the same onChange.
+ */
+function RangeField({ label, value, min, max, step = 1, unit = '', onChange }) {
+  const commit = (raw) => {
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return;
+    onChange(Math.min(max, Math.max(min, n)));
+  };
 
   return (
-    <div className="rounded-xl border border-line bg-panelAlt/40 p-3 flex flex-col gap-3">
+    <div className="flex flex-col gap-1.5 min-w-0">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-inkMuted">Lớp {index + 1}</span>
-        <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1.5 text-xs text-inkMuted cursor-pointer">
+        <span className="text-xs text-inkMuted">{label}</span>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <input
+            type="number"
+            value={value}
+            min={min}
+            max={max}
+            step={step}
+            onChange={(e) => commit(e.target.value)}
+            className="w-14 rounded-md bg-panelAlt border border-line px-1.5 py-0.5 text-xs text-right focus:outline-none focus:ring-2 focus:ring-focusAccent"
+          />
+          {unit ? <span className="text-[10px] text-inkMuted">{unit}</span> : null}
+        </div>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => commit(e.target.value)}
+        className="w-full accent-focusAccent"
+      />
+    </div>
+  );
+}
+
+function Thumbnail({ imageUrl }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => setFailed(false), [imageUrl]);
+
+  if (!imageUrl || failed) {
+    return (
+      <div className="h-9 w-9 shrink-0 rounded-md border border-line bg-panel flex items-center justify-center">
+        <svg viewBox="0 0 24 24" className="h-4 w-4 text-inkMuted" fill="none">
+          <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="8.5" cy="9.5" r="1.5" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M21 15l-5-5-9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-9 w-9 shrink-0 rounded-md border border-line bg-panel flex items-center justify-center overflow-hidden">
+      <img
+        src={imageUrl}
+        alt=""
+        className="max-h-full max-w-full object-contain"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+      />
+    </div>
+  );
+}
+
+/** Icon-only button used for header actions (move, duplicate, delete, chevron). */
+function IconButton({ title, onClick, disabled, danger, children }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      disabled={disabled}
+      className={`h-7 w-7 shrink-0 flex items-center justify-center rounded-md border transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+        danger
+          ? 'border-line text-live hover:bg-live/10 hover:border-live/60'
+          : 'border-line text-inkMuted hover:text-ink hover:bg-panel'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Two-step delete: first click arms it, second click (within a few seconds) confirms. */
+function DeleteLayerButton({ onConfirm }) {
+  const [armed, setArmed] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  if (armed) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          clearTimeout(timerRef.current);
+          onConfirm();
+        }}
+        onBlur={() => setArmed(false)}
+        autoFocus
+        className="text-[11px] font-semibold text-white bg-live px-2 py-1 rounded-md whitespace-nowrap"
+      >
+        Xác nhận xóa?
+      </button>
+    );
+  }
+
+  return (
+    <IconButton
+      title="Xóa lớp"
+      danger
+      onClick={(e) => {
+        e.stopPropagation();
+        setArmed(true);
+        timerRef.current = setTimeout(() => setArmed(false), 3000);
+      }}
+    >
+      <svg viewBox="0 0 24 24" className="h-4 w-4 pointer-events-none" fill="none">
+        <path
+          d="M5 7h14M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0h10l-.7 12.1A2 2 0 0114.3 21H9.7a2 2 0 01-2-1.9L7 7z"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </IconButton>
+  );
+}
+
+function LayerCard({ layer, index, count, open, onToggleOpen, onChange, onRemove, onDuplicate, onMove }) {
+  const set = (patch) => onChange(index, { ...layer, ...patch });
+  const enabled = layer.enabled !== false;
+  const subtitle = `${ANCHOR_LABEL[layer.anchor] || layer.anchor} · ${
+    PLACEMENT_LABEL[layer.placement] || layer.placement
+  }`;
+
+  return (
+    <div className="rounded-xl border border-line bg-panelAlt/40 overflow-hidden">
+      {/* Header — always visible; this is what makes a list of many layers scannable.
+          Only the thumbnail+title button toggles open/close. The action-button
+          cluster is a plain sibling (no ancestor onClick), so there's never any
+          stopPropagation/bubbling to fight with when aiming at a small icon. */}
+      <div className={`flex items-center gap-2 px-3 py-2 ${!enabled ? 'opacity-50' : ''}`}>
+        <button
+          type="button"
+          onClick={onToggleOpen}
+          className="flex items-center gap-2 min-w-0 flex-1 text-left select-none"
+        >
+          <Thumbnail imageUrl={layer.imageUrl} />
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-semibold text-ink truncate">Lớp {index + 1}</div>
+            <div className="text-[11px] text-inkMuted truncate">{subtitle}</div>
+          </div>
+        </button>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          <IconButton title="Di chuyển lên" onClick={() => onMove(index, -1)} disabled={index === 0}>
+            <svg viewBox="0 0 24 24" className="h-4 w-4 pointer-events-none" fill="none">
+              <path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </IconButton>
+          <IconButton title="Di chuyển xuống" onClick={() => onMove(index, 1)} disabled={index === count - 1}>
+            <svg viewBox="0 0 24 24" className="h-4 w-4 pointer-events-none" fill="none">
+              <path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </IconButton>
+          <IconButton title="Nhân bản lớp" onClick={() => onDuplicate(index)}>
+            <svg viewBox="0 0 24 24" className="h-4 w-4 pointer-events-none" fill="none">
+              <rect x="8" y="8" width="12" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M5.5 15.5H5a1 1 0 01-1-1V5a1 1 0 011-1h9.5a1 1 0 011 1v.5" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </IconButton>
+          <DeleteLayerButton onConfirm={() => onRemove(index)} />
+          <IconButton title={open ? 'Thu gọn' : 'Mở rộng'} onClick={onToggleOpen}>
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              className={`h-4 w-4 pointer-events-none transition-transform ${open ? 'rotate-180' : ''}`}
+            >
+              <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          </IconButton>
+        </div>
+      </div>
+
+      {open && (
+        <div className="flex flex-col gap-3 px-3 pb-3 pt-1 border-t border-line/60">
+          <div className="flex items-center justify-between gap-2 pt-2">
+            <EnableToggle label="Bật lớp này" checked={enabled} onChange={(e) => set({ enabled: e.target.checked })} />
+          </div>
+
+          <Field label="URL ảnh">
             <input
-              type="checkbox"
-              checked={layer.enabled !== false}
-              onChange={(e) => set({ enabled: e.target.checked })}
-              className="rounded"
+              type="url"
+              className={inputClass}
+              placeholder="https://i.ibb.co/..."
+              value={layer.imageUrl || ''}
+              onChange={(e) => set({ imageUrl: e.target.value.trim() })}
             />
-            Bật
-          </label>
-          <button
-            type="button"
-            onClick={() => onRemove(index)}
-            className="text-xs text-live hover:underline"
-          >
-            Xóa
-          </button>
+          </Field>
+
+          <Field label="Gắn vào">
+            <select className={inputClass} value={layer.anchor || 'bubble'} onChange={(e) => set({ anchor: e.target.value })}>
+              {ANCHOR_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Vị trí trên khung">
+            <select
+              className={inputClass}
+              value={layer.placement || 'bottom-left'}
+              onChange={(e) => set({ placement: e.target.value })}
+            >
+              {PLACEMENT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <RangeField label="Tinh chỉnh X" unit="px" min={-120} max={120} value={layer.translateX ?? 0} onChange={(v) => set({ translateX: v })} />
+            <RangeField label="Tinh chỉnh Y" unit="px" min={-120} max={120} value={layer.translateY ?? 0} onChange={(v) => set({ translateY: v })} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <RangeField label="Góc xoay" unit="°" min={-180} max={180} value={layer.rotate ?? 0} onChange={(v) => set({ rotate: v })} />
+            <RangeField label="z-index" min={-10} max={100} value={layer.zIndex ?? 2} onChange={(v) => set({ zIndex: v })} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <RangeField label="Rộng" unit="px" min={16} max={200} value={layer.width ?? 48} onChange={(v) => set({ width: v })} />
+            <RangeField label="Cao" unit="px" min={16} max={200} value={layer.height ?? 48} onChange={(v) => set({ height: v })} />
+          </div>
+
+          <RangeField
+            label="Độ mờ"
+            unit="%"
+            min={0}
+            max={100}
+            value={Math.round((layer.opacity ?? 1) * 100)}
+            onChange={(v) => set({ opacity: v / 100 })}
+          />
+
+          <MaskSection layer={layer} set={set} />
         </div>
-      </div>
-
-      <Field label="URL ảnh">
-        <input
-          type="url"
-          className={inputClass}
-          placeholder="https://i.ibb.co/..."
-          value={layer.imageUrl || ''}
-          onChange={(e) => set({ imageUrl: e.target.value.trim() })}
-        />
-      </Field>
-
-      {layer.imageUrl ? (
-        <div className="rounded-lg border border-line bg-panel p-2 flex justify-center min-h-[56px]">
-          <img
-            src={layer.imageUrl}
-            alt=""
-            className="max-h-14 max-w-full object-contain"
-            referrerPolicy="no-referrer"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-            onLoad={(e) => {
-              e.currentTarget.style.display = '';
-            }}
-          />
-        </div>
-      ) : null}
-
-      <Field label="Gắn vào">
-        <select
-          className={inputClass}
-          value={layer.anchor || 'bubble'}
-          onChange={(e) => set({ anchor: e.target.value })}
-        >
-          {ANCHOR_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </Field>
-
-      <Field label="Vị trí trên khung">
-        <select
-          className={inputClass}
-          value={layer.placement || 'bottom-left'}
-          onChange={(e) => set({ placement: e.target.value })}
-        >
-          {PLACEMENT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </Field>
-
-      <Field label={`Tinh chỉnh X — ${layer.translateX ?? 0}px`}>
-        <input
-          type="range"
-          min={-120}
-          max={120}
-          step={1}
-          value={layer.translateX ?? 0}
-          onChange={(e) => set({ translateX: Number(e.target.value) })}
-          className="w-full accent-focusAccent"
-        />
-      </Field>
-
-      <Field label={`Tinh chỉnh Y — ${layer.translateY ?? 0}px`}>
-        <input
-          type="range"
-          min={-120}
-          max={120}
-          step={1}
-          value={layer.translateY ?? 0}
-          onChange={(e) => set({ translateY: Number(e.target.value) })}
-          className="w-full accent-focusAccent"
-        />
-      </Field>
-
-      <Field label={`Góc xoay — ${layer.rotate ?? 0}°`}>
-        <input
-          type="range"
-          min={-180}
-          max={180}
-          step={1}
-          value={layer.rotate ?? 0}
-          onChange={(e) => set({ rotate: Number(e.target.value) })}
-          className="w-full accent-focusAccent"
-        />
-      </Field>
-
-      <Field label={`z-index — ${layer.zIndex ?? 2}`}>
-        <input
-          type="range"
-          min={-10}
-          max={100}
-          step={1}
-          value={layer.zIndex ?? 2}
-          onChange={(e) => set({ zIndex: Number(e.target.value) })}
-          className="w-full accent-focusAccent"
-        />
-      </Field>
-
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={`Rộng — ${layer.width ?? 48}px`}>
-          <input
-            type="range"
-            min={16}
-            max={200}
-            step={1}
-            value={layer.width ?? 48}
-            onChange={(e) => set({ width: Number(e.target.value) })}
-            className="w-full accent-focusAccent"
-          />
-        </Field>
-        <Field label={`Cao — ${layer.height ?? 48}px`}>
-          <input
-            type="range"
-            min={16}
-            max={200}
-            step={1}
-            value={layer.height ?? 48}
-            onChange={(e) => set({ height: Number(e.target.value) })}
-            className="w-full accent-focusAccent"
-          />
-        </Field>
-      </div>
-
-      <Field label={`Độ mờ — ${Math.round((layer.opacity ?? 1) * 100)}%`}>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.05}
-          value={layer.opacity ?? 1}
-          onChange={(e) => set({ opacity: Number(e.target.value) })}
-          className="w-full accent-focusAccent"
-        />
-      </Field>
-
-      <MaskSection layer={layer} set={set} />
+      )}
     </div>
   );
 }
 
 /**
- * Mask controls for a single decoration layer. All child controls are
- * disabled while "Enable Mask" is off, per spec — they still render (so
- * the last-used values are visible/preserved) but can't be edited.
+ * Mask controls for a single decoration layer. Collapsible on its own so a
+ * disabled mask doesn't take up space by default — it starts open only when
+ * the layer already has a mask enabled.
  */
 function MaskSection({ layer, set }) {
   const maskEnabled = layer.maskEnabled === true;
+  const [open, setOpen] = useState(maskEnabled);
 
   return (
-    <div className="rounded-lg border border-line bg-panel/60 p-3 flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-inkMuted">Mask</span>
-        <label className="flex items-center gap-1.5 text-xs text-inkMuted cursor-pointer">
-          <input
-            type="checkbox"
-            checked={maskEnabled}
-            onChange={(e) => set({ maskEnabled: e.target.checked })}
-            className="rounded"
-          />
-          Enable Mask
-        </label>
+    <div className="rounded-lg border border-line bg-panel/60 overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-3 py-2">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-inkMuted"
+        >
+          Mask
+          <svg viewBox="0 0 20 20" fill="none" className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`}>
+            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </button>
+        <EnableToggle
+          label=""
+          checked={maskEnabled}
+          onChange={(e) => {
+            set({ maskEnabled: e.target.checked });
+            if (e.target.checked) setOpen(true);
+          }}
+        />
       </div>
 
-      <fieldset disabled={!maskEnabled} className="flex flex-col gap-3 disabled:opacity-40">
-        <Field label="Mask Target">
-          <select
-            className={inputClass}
-            value={layer.maskTarget || 'avatar'}
-            onChange={(e) => set({ maskTarget: e.target.value })}
-          >
-            {MASK_TARGET_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </Field>
+      {open && (
+        <fieldset disabled={!maskEnabled} className="flex flex-col gap-3 px-3 pb-3 disabled:opacity-40">
+          <Field label="Mask Target">
+            <select className={inputClass} value={layer.maskTarget || 'avatar'} onChange={(e) => set({ maskTarget: e.target.value })}>
+              {MASK_TARGET_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-        <Field label="Mask Mode">
-          <select
-            className={inputClass}
-            value={layer.maskMode || 'clipInside'}
-            onChange={(e) => set({ maskMode: e.target.value })}
-          >
-            {MASK_MODE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </Field>
+          <Field label="Mask Mode">
+            <select className={inputClass} value={layer.maskMode || 'clipInside'} onChange={(e) => set({ maskMode: e.target.value })}>
+              {MASK_MODE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-        <Field label={`Mask Padding — ${layer.maskPadding ?? 0}px`}>
-          <input
-            type="range"
-            min={-100}
-            max={100}
-            step={1}
-            value={layer.maskPadding ?? 0}
-            onChange={(e) => set({ maskPadding: Number(e.target.value) })}
-            className="w-full accent-focusAccent"
-          />
-        </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <RangeField label="Padding" unit="px" min={-100} max={100} value={layer.maskPadding ?? 0} onChange={(v) => set({ maskPadding: v })} />
+            <RangeField label="Feather" unit="px" min={0} max={100} value={layer.maskFeather ?? 0} onChange={(v) => set({ maskFeather: v })} />
+          </div>
 
-        <Field label={`Mask Feather — ${layer.maskFeather ?? 0}px`}>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={layer.maskFeather ?? 0}
-            onChange={(e) => set({ maskFeather: Number(e.target.value) })}
-            className="w-full accent-focusAccent"
-          />
-        </Field>
-
-        <label className="flex items-center gap-1.5 text-xs text-inkMuted cursor-pointer">
-          <input
-            type="checkbox"
-            checked={layer.maskInvert === true}
-            onChange={(e) => set({ maskInvert: e.target.checked })}
-            className="rounded"
-          />
-          Invert Mask
-        </label>
-      </fieldset>
+          <EnableToggle label="Invert Mask" checked={layer.maskInvert === true} onChange={(e) => set({ maskInvert: e.target.checked })} />
+        </fieldset>
+      )}
     </div>
   );
 }
@@ -354,27 +415,64 @@ export default function DecorationsPanel() {
   // with CustomPresetsPanel — no separate local copy here anymore.
   const { decorationLocal, pushDecorationUpdate } = useEditorState();
   const local = decorationLocal || { layers: [] };
+  const layers = local.layers || [];
+
+  // Which layer cards are expanded. Kept outside the layer data itself since
+  // it's pure UI state, not something that should ever be persisted/pushed.
+  const [openIds, setOpenIds] = useState(() => new Set());
 
   function pushUpdate(nextLayers) {
     pushDecorationUpdate(nextLayers);
   }
 
+  function toggleOpen(id) {
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   function handleLayerChange(index, nextLayer) {
-    const layers = [...(local.layers || [])];
-    layers[index] = nextLayer;
-    pushUpdate(layers);
+    const next = [...layers];
+    next[index] = nextLayer;
+    pushUpdate(next);
   }
 
   function handleAddLayer() {
-    pushUpdate([...(local.layers || []), createDefaultLayer()]);
+    const layer = createDefaultLayer();
+    pushUpdate([...layers, layer]);
+    setOpenIds((prev) => new Set(prev).add(layer.id));
   }
 
   function handleRemoveLayer(index) {
-    const layers = (local.layers || []).filter((_, i) => i !== index);
-    pushUpdate(layers);
+    pushUpdate(layers.filter((_, i) => i !== index));
   }
 
-  const layers = local.layers || [];
+  function handleDuplicateLayer(index) {
+    const clone = { ...layers[index], id: createLayerId() };
+    const next = [...layers];
+    next.splice(index + 1, 0, clone);
+    pushUpdate(next);
+    setOpenIds((prev) => new Set(prev).add(clone.id));
+  }
+
+  function handleMoveLayer(index, dir) {
+    const target = index + dir;
+    if (target < 0 || target >= layers.length) return;
+    const next = [...layers];
+    [next[index], next[target]] = [next[target], next[index]];
+    pushUpdate(next);
+  }
+
+  function handleExpandAll() {
+    setOpenIds(new Set(layers.map((l) => l.id)));
+  }
+
+  function handleCollapseAll() {
+    setOpenIds(new Set());
+  }
 
   return (
     <section className="rounded-xl border border-line bg-panel p-4 flex flex-col gap-3">
@@ -396,17 +494,36 @@ export default function DecorationsPanel() {
       {layers.length === 0 ? (
         <p className="text-xs text-inkMuted italic py-2">Chưa có lớp trang trí. Nhấn &quot;+ Thêm lớp&quot; để bắt đầu.</p>
       ) : (
-        <div className="flex flex-col gap-3 max-h-[480px] overflow-y-auto pr-1">
-          {layers.map((layer, index) => (
-            <LayerCard
-              key={layer.id || index}
-              layer={layer}
-              index={index}
-              onChange={handleLayerChange}
-              onRemove={handleRemoveLayer}
-            />
-          ))}
-        </div>
+        <>
+          <div className="flex items-center justify-between gap-2 -mb-1">
+            <span className="text-[11px] text-inkMuted">{layers.length} lớp</span>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={handleExpandAll} className="text-[11px] text-inkMuted hover:text-ink underline-offset-2 hover:underline">
+                Mở tất cả
+              </button>
+              <button type="button" onClick={handleCollapseAll} className="text-[11px] text-inkMuted hover:text-ink underline-offset-2 hover:underline">
+                Thu gọn tất cả
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {layers.map((layer, index) => (
+              <LayerCard
+                key={layer.id || index}
+                layer={layer}
+                index={index}
+                count={layers.length}
+                open={openIds.has(layer.id)}
+                onToggleOpen={() => toggleOpen(layer.id)}
+                onChange={handleLayerChange}
+                onRemove={handleRemoveLayer}
+                onDuplicate={handleDuplicateLayer}
+                onMove={handleMoveLayer}
+              />
+            ))}
+          </div>
+        </>
       )}
     </section>
   );

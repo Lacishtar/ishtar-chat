@@ -9,8 +9,7 @@ const fs = require('fs');
 const { loadThemeDocument, listThemeIds } = require('../main/theme-engine');
 const { THEMES_DIR, readThemeConfig } = require('../main/theme-registry');
 
-const EXPECTED_THEME_IDS = ['classic', 'bubble', 'glass', 'minimal', 'kawaii', 'cyber', 'danmaku', 'ticker', 'scrapbook'];
-const ABSOLUTE_LAYOUT_THEMES = new Set(['danmaku', 'ticker']);
+const EXPECTED_THEME_IDS = ['classic'];
 const EXPECTED_SLOT_COMPONENTS = ['Avatar', 'Username', 'Badges', 'Message'];
 
 function fail(message) {
@@ -43,10 +42,9 @@ function checkTheme(themeId) {
     }
   }
 
-  // --- layout mode: danmaku is the one absolute-positioned exception ---
-  const expectedMode = ABSOLUTE_LAYOUT_THEMES.has(themeId) ? 'absolute' : 'flex-column';
-  if (doc.layout.root.mode !== expectedMode) {
-    fail(`${themeId}: expected root.mode "${expectedMode}", got "${doc.layout.root.mode}"`);
+  // --- layout mode: every remaining legacy theme stacks in a flex column ---
+  if (doc.layout.root.mode !== 'flex-column') {
+    fail(`${themeId}: expected root.mode "flex-column", got "${doc.layout.root.mode}"`);
   }
 
   // --- style tokens mirror the original flat config ---

@@ -103,12 +103,11 @@ function AppShell() {
           status={status}
           lastSessionUrl={lastSessionUrl}
           onConnected={(url) => setLastSessionUrl(url)}
-          compact
         />
         <StatusBadge status={status.status} />
       </header>
 
-      <main className="flex-1 min-h-0 grid grid-cols-[300px_1fr_300px] gap-4 p-4">
+      <main className="flex-1 min-h-0 grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] gap-4 p-4">
         <div className="flex flex-col gap-4 min-h-0">
           <TabBar active={activeTab} onChange={setActiveTab} />
 

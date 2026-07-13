@@ -1,4 +1,4 @@
-/* Per-slot entrance animations — shared across themes (except ticker). */
+/* Per-slot entrance animations — shared across themes. */
 
 .ovs-avatar.ovs-slot-enter {
   animation: ovs-slot-avatar-in var(--ovs-anim-avatar-duration, 220ms) var(--ovs-anim-avatar-easing, ease-out)

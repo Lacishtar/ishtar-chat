@@ -10,9 +10,8 @@
 // mask is disabled (the default), none of this code path runs and the
 // decoration renders exactly as it did before this feature existed.
 
-import { state, listEl, isFlythroughTheme } from './state.js';
+import { state, listEl } from './state.js';
 import { applyInlineStyle, compileLayerInlineStyle, toImageProxyUrl } from './utils.js';
-import { getTickerTrackEl } from './special-modes.js';
 
 function ensurePositionedAnchor(el) {
   if (!el) return null;
@@ -324,14 +323,9 @@ export function applyDecorationLayers(messageNode, decorationConfig) {
 }
 
 export function refreshAllDecorations() {
-  if (isFlythroughTheme()) return;
   const applyTo = (node) => {
     clearDecorationLayers(node);
     applyDecorationLayers(node, state.currentDecoration);
   };
   listEl.querySelectorAll('.ovs-message').forEach(applyTo);
-  const tickerTrackEl = getTickerTrackEl();
-  if (tickerTrackEl) {
-    tickerTrackEl.querySelectorAll('.ovs-message').forEach(applyTo);
-  }
 }

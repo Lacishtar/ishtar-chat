@@ -9,7 +9,6 @@ const { ConfigStore } = require('./store/config-store');
 const { CustomPresetsStore, validateImportedPresets } = require('./store/custom-presets-store');
 const { startServer } = require('./server/http-server');
 const { attachWebSocketServer } = require('./server/ws-server');
-const { listThemes, themeExists } = require('./theme-registry');
 const { mergeLayoutConfig } = require('../shared/layout-config');
 const { mergeSlotStyleConfig } = require('../shared/slot-style-config');
 const { mergeAnimationConfig } = require('../shared/animation-config');
@@ -101,7 +100,6 @@ function registerIpcHandlers() {
     const state = configStore.get();
     return {
       status: latestStatus,
-      themes: listThemes(),
       selectedTheme: state.selectedTheme,
       customizeConfig: state.customizeConfig,
       layoutConfig: state.layoutConfig,
@@ -126,51 +124,6 @@ function registerIpcHandlers() {
     await scraperManager.disconnect();
     messageHistory = [];
     return { ok: true };
-  });
-
-  ipcMain.handle('theme:select', (_event, themeId) => {
-    if (!themeExists(themeId)) {
-      return { ok: false, error: 'theme_not_found' };
-    }
-    const themeState = resolveThemeState(themeId);
-    configStore.set(themeState);
-
-    const {
-      customizeConfig: config,
-      layoutConfig,
-      slotStyleConfig,
-      animationConfig,
-      decorationConfig,
-      roleStyleConfig,
-    } = themeState;
-    wsBroadcast('theme:changed', {
-      themeId,
-      config,
-      layoutConfig,
-      slotStyleConfig,
-      animationConfig,
-      decorationConfig,
-      roleStyleConfig,
-      history: messageHistory,
-    });
-    safeSend(mainWindow, 'theme:changed', {
-      themeId,
-      config,
-      layoutConfig,
-      slotStyleConfig,
-      animationConfig,
-      decorationConfig,
-      roleStyleConfig,
-    });
-    return {
-      ok: true,
-      config,
-      layoutConfig,
-      slotStyleConfig,
-      animationConfig,
-      decorationConfig,
-      roleStyleConfig,
-    };
   });
 
   ipcMain.handle('theme:is-dirty', () => {
