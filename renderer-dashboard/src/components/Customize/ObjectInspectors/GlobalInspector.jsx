@@ -5,12 +5,13 @@ import BorderSection from '../Appearance/BorderSection.jsx';
 import ShadowSection from '../Appearance/ShadowSection.jsx';
 import GlowSection from '../Appearance/GlowSection.jsx';
 import BubbleShapeSection from '../Bubble/BubbleShapeSection.jsx';
+import BubbleSizeSection from '../Bubble/BubbleSizeSection.jsx';
 import BubbleTextureSection from '../Bubble/BubbleTextureSection.jsx';
 import BunnySection from '../Bubble/BunnySection.jsx';
 import AnimationSection from '../Animation/AnimationSection.jsx';
 import { Field, PresetButton, PresetBadge } from '../shared/fields.jsx';
 import ColorPicker from '../shared/ColorPicker.jsx';
-import { configVal, isUserSet } from '../shared/configHelpers.js';
+import { configVal, isUserSet, bubbleSizeConfigPatch } from '../shared/configHelpers.js';
 
 const OBJECT_ID = 'global';
 
@@ -61,7 +62,6 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
           padRight={configVal(local, 'bubblePaddingRight', configVal(local, 'bubblePaddingX', configVal(local, 'bubblePadding', 14)))}
           padBottom={configVal(local, 'bubblePaddingBottom', configVal(local, 'bubblePaddingY', configVal(local, 'bubblePadding', 10)))}
           padLeft={configVal(local, 'bubblePaddingLeft', configVal(local, 'bubblePaddingX', configVal(local, 'bubblePadding', 14)))}
-          minWidth={local.bubbleMinWidth ?? 0}
           onChange={(patch) =>
             pushUpdate({
               ...(patch.radius !== undefined ? { bubbleRadius: patch.radius } : {}),
@@ -70,9 +70,17 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
               ...(patch.padRight !== undefined ? { bubblePaddingRight: patch.padRight } : {}),
               ...(patch.padBottom !== undefined ? { bubblePaddingBottom: patch.padBottom } : {}),
               ...(patch.padLeft !== undefined ? { bubblePaddingLeft: patch.padLeft } : {}),
-              ...(patch.minWidth !== undefined ? { bubbleMinWidth: patch.minWidth } : {}),
             })
           }
+        />
+        <BubbleSizeSection
+          minWidth={local.bubbleMinWidth ?? 0}
+          maxWidth={local.bubbleMaxWidth ?? 0}
+          fixedWidth={local.bubbleFixedWidth ?? 0}
+          minHeight={local.bubbleMinHeight ?? 0}
+          maxHeight={local.bubbleMaxHeight ?? 0}
+          fixedHeight={local.bubbleFixedHeight ?? 0}
+          onChange={(patch) => pushUpdate(bubbleSizeConfigPatch(patch))}
         />
       </AccordionSection>
 

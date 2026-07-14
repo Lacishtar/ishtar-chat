@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { slotBubbleVal, isSlotBubbleUserSet } from '../shared/configHelpers.js';
+import { slotBubbleVal, isSlotBubbleUserSet, bubbleSizeConfigPatch } from '../shared/configHelpers.js';
 import BackgroundSection from '../Appearance/BackgroundSection.jsx';
 import BorderSection from '../Appearance/BorderSection.jsx';
 import ShadowSection from '../Appearance/ShadowSection.jsx';
 import GlowSection from '../Appearance/GlowSection.jsx';
 import BubbleShapeSection from './BubbleShapeSection.jsx';
+import BubbleSizeSection from './BubbleSizeSection.jsx';
 import BubbleTextureSection from './BubbleTextureSection.jsx';
 import BunnySection from './BunnySection.jsx';
 import { PresetBadge } from '../shared/fields.jsx';
@@ -69,6 +70,11 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
       bubbleTextureRepeat: null,
       bubbleTextureOpacity: null,
       bubbleMinWidth: null,
+      bubbleMaxWidth: null,
+      bubbleFixedWidth: null,
+      bubbleMinHeight: null,
+      bubbleMaxHeight: null,
+      bubbleFixedHeight: null,
       bubbleBunnyEars: null,
       bubbleBunnyEarsWidth: null,
       bubbleBunnyEarsHeight: null,
@@ -124,7 +130,6 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
               padRight={padRight}
               padBottom={padBottom}
               padLeft={padLeft}
-              minWidth={slotBubbleVal(slotLocal, slot, 'bubbleMinWidth', globalConfig, globalConfig.bubbleMinWidth ?? 0)}
               onChange={(patch) =>
                 pushSlotUpdate(slot, {
                   ...(patch.radius !== undefined ? { bubbleRadius: patch.radius } : {}),
@@ -133,9 +138,17 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
                   ...(patch.padRight !== undefined ? { bubblePaddingRight: patch.padRight } : {}),
                   ...(patch.padBottom !== undefined ? { bubblePaddingBottom: patch.padBottom } : {}),
                   ...(patch.padLeft !== undefined ? { bubblePaddingLeft: patch.padLeft } : {}),
-                  ...(patch.minWidth !== undefined ? { bubbleMinWidth: patch.minWidth } : {}),
                 })
               }
+            />
+            <BubbleSizeSection
+              minWidth={slotBubbleVal(slotLocal, slot, 'bubbleMinWidth', globalConfig, globalConfig.bubbleMinWidth ?? 0)}
+              maxWidth={slotBubbleVal(slotLocal, slot, 'bubbleMaxWidth', globalConfig, globalConfig.bubbleMaxWidth ?? 0)}
+              fixedWidth={slotBubbleVal(slotLocal, slot, 'bubbleFixedWidth', globalConfig, globalConfig.bubbleFixedWidth ?? 0)}
+              minHeight={slotBubbleVal(slotLocal, slot, 'bubbleMinHeight', globalConfig, globalConfig.bubbleMinHeight ?? 0)}
+              maxHeight={slotBubbleVal(slotLocal, slot, 'bubbleMaxHeight', globalConfig, globalConfig.bubbleMaxHeight ?? 0)}
+              fixedHeight={slotBubbleVal(slotLocal, slot, 'bubbleFixedHeight', globalConfig, globalConfig.bubbleFixedHeight ?? 0)}
+              onChange={(patch) => pushSlotUpdate(slot, bubbleSizeConfigPatch(patch))}
             />
           </>
         )}

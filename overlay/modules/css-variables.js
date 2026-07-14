@@ -28,6 +28,25 @@ import { compileBubbleDecorationToCssVariables } from '/shared/customize-config.
 
 export { normalizeBubbleWrapScreen, isRowBubbleWrap, resolveEffectiveSlotStyle };
 
+/** Inline :root vars for optional size caps — must be removed when disabled (0). */
+const RESET_WHEN_UNSET = new Set([
+  '--ovs-bubble-max-width',
+  '--ovs-bubble-fixed-width',
+  '--ovs-bubble-min-height',
+  '--ovs-bubble-max-height',
+  '--ovs-bubble-fixed-height',
+  '--ovs-slot-author-bubble-max-width',
+  '--ovs-slot-author-bubble-fixed-width',
+  '--ovs-slot-author-bubble-min-height',
+  '--ovs-slot-author-bubble-max-height',
+  '--ovs-slot-author-bubble-fixed-height',
+  '--ovs-slot-message-bubble-max-width',
+  '--ovs-slot-message-bubble-fixed-width',
+  '--ovs-slot-message-bubble-min-height',
+  '--ovs-slot-message-bubble-max-height',
+  '--ovs-slot-message-bubble-fixed-height',
+]);
+
 function applyRoleStyleFlags(rootFlags) {
   const root = document.documentElement;
   // rootFlags keys coming from shared/role-style-config.js are already the
@@ -60,6 +79,11 @@ export function applyCssVariables(config, layout, slotStyle, animationConfig, ro
     '--ovs-bubble-texture-size': typeof cfg.bubbleTextureSize === 'number' ? `${cfg.bubbleTextureSize}px` : (cfg.bubbleTextureSize || 'auto'),
     '--ovs-bubble-texture-opacity': cfg.bubbleTextureOpacity != null ? String(cfg.bubbleTextureOpacity) : undefined,
     '--ovs-bubble-min-width': cfg.bubbleMinWidth != null ? `${cfg.bubbleMinWidth}px` : undefined,
+    '--ovs-bubble-max-width': cfg.bubbleMaxWidth > 0 ? `${cfg.bubbleMaxWidth}px` : null,
+    '--ovs-bubble-fixed-width': cfg.bubbleFixedWidth > 0 ? `${cfg.bubbleFixedWidth}px` : null,
+    '--ovs-bubble-min-height': cfg.bubbleMinHeight > 0 ? `${cfg.bubbleMinHeight}px` : null,
+    '--ovs-bubble-max-height': cfg.bubbleMaxHeight > 0 ? `${cfg.bubbleMaxHeight}px` : null,
+    '--ovs-bubble-fixed-height': cfg.bubbleFixedHeight > 0 ? `${cfg.bubbleFixedHeight}px` : null,
     ...compileBubbleDecorationToCssVariables(cfg),
     ...compileLayoutToCssVariables(layout),
     ...compileSlotStyleToCssVariables(slotStyle || state.currentSlotStyle, cfg, layout || state.currentLayout),
@@ -69,9 +93,27 @@ export function applyCssVariables(config, layout, slotStyle, animationConfig, ro
   Object.entries(map).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== 'undefinedpx') {
       root.style.setProperty(key, value);
+    } else if (RESET_WHEN_UNSET.has(key)) {
+      root.style.removeProperty(key);
     }
   });
   applyRoleStyleFlags(roleCompiled.rootFlags);
+
+  // Overflow is only clipped on a bubble when it actually has a max/fixed
+  // height cap in effect — clipping unconditionally would make flex items'
+  // default content-protecting `min-height: auto` resolve to 0 instead
+  // (per the flexbox spec, that automatic minimum only applies when
+  // overflow is visible), collapsing bubbles that have no cap at all.
+  root.dataset.ovsRowHeightCapped =
+    map['--ovs-bubble-max-height'] != null || map['--ovs-bubble-fixed-height'] != null ? 'true' : 'false';
+  root.dataset.ovsAuthorHeightCapped =
+    map['--ovs-slot-author-bubble-max-height'] != null || map['--ovs-slot-author-bubble-fixed-height'] != null
+      ? 'true'
+      : 'false';
+  root.dataset.ovsMessageHeightCapped =
+    map['--ovs-slot-message-bubble-max-height'] != null || map['--ovs-slot-message-bubble-fixed-height'] != null
+      ? 'true'
+      : 'false';
 
   const screen = normalizeBubbleWrapScreen(layout?.screen || {});
   root.dataset.ovsBubbleWrapRow = isRowBubbleWrap(screen) ? 'true' : 'false';

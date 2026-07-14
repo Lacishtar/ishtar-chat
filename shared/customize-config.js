@@ -39,6 +39,11 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   bubbleBunnyEarsRotate: 0, // deg, tilts ears outward (mirrored L/R)
   bubbleBunnyEarsZIndex: -1, // stacking order vs. the bubble (negative = behind)
   bubbleMinWidth: 0,
+  bubbleMaxWidth: 0, // 0 = no cap
+  bubbleFixedWidth: 0, // 0 = auto / fit-content
+  bubbleMinHeight: 0,
+  bubbleMaxHeight: 0, // 0 = no cap
+  bubbleFixedHeight: 0, // 0 = auto
   avatarSize: 32, // px
   showAvatar: true,
   showBadges: true,

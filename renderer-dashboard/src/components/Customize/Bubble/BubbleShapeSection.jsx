@@ -7,7 +7,6 @@ export default function BubbleShapeSection({
   padRight,
   padBottom,
   padLeft,
-  minWidth,
   onChange,
 }) {
   const applyToAllSides = (value) =>
@@ -52,21 +51,6 @@ export default function BubbleShapeSection({
       <Field label={`Padding trái — ${padLeft}px`}>
         <input type="range" min={0} max={40} value={padLeft} onChange={(e) => onChange({ padLeft: Number(e.target.value) })} />
       </Field>
-
-      {minWidth !== undefined && (
-        <div className="col-span-2">
-          <Field label={`Độ rộng tối thiểu — ${minWidth}px`}>
-            <input
-              type="range"
-              min={0}
-              max={320}
-              step={10}
-              value={minWidth}
-              onChange={(e) => onChange({ minWidth: Number(e.target.value) })}
-            />
-          </Field>
-        </div>
-      )}
     </>
   );
 }

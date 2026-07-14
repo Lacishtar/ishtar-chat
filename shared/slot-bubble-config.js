@@ -34,6 +34,11 @@ const BUBBLE_KEYS = [
   'bubbleBunnyEarsOffsetY',
   'bubbleBunnyEarsZIndex',
   'bubbleMinWidth',
+  'bubbleMaxWidth',
+  'bubbleFixedWidth',
+  'bubbleMinHeight',
+  'bubbleMaxHeight',
+  'bubbleFixedHeight',
 ];
 
 function createSlotBubbleDefaults(overrides = {}) {
@@ -158,6 +163,26 @@ function compileSlotBubbleDecoration(prefix, slot, globalConfig) {
 
   const minWidth = resolveSlotBubbleValue(slot, 'bubbleMinWidth', globalConfig);
   if (minWidth != null) vars[`--ovs-slot-${prefix}-bubble-min-width`] = px(minWidth);
+
+  const maxWidth = resolveSlotBubbleValue(slot, 'bubbleMaxWidth', globalConfig);
+  vars[`--ovs-slot-${prefix}-bubble-max-width`] =
+    maxWidth != null && maxWidth > 0 ? px(maxWidth) : null;
+
+  const fixedWidth = resolveSlotBubbleValue(slot, 'bubbleFixedWidth', globalConfig);
+  vars[`--ovs-slot-${prefix}-bubble-fixed-width`] =
+    fixedWidth != null && fixedWidth > 0 ? px(fixedWidth) : null;
+
+  const minHeight = resolveSlotBubbleValue(slot, 'bubbleMinHeight', globalConfig);
+  vars[`--ovs-slot-${prefix}-bubble-min-height`] =
+    minHeight != null && minHeight > 0 ? px(minHeight) : null;
+
+  const maxHeight = resolveSlotBubbleValue(slot, 'bubbleMaxHeight', globalConfig);
+  vars[`--ovs-slot-${prefix}-bubble-max-height`] =
+    maxHeight != null && maxHeight > 0 ? px(maxHeight) : null;
+
+  const fixedHeight = resolveSlotBubbleValue(slot, 'bubbleFixedHeight', globalConfig);
+  vars[`--ovs-slot-${prefix}-bubble-fixed-height`] =
+    fixedHeight != null && fixedHeight > 0 ? px(fixedHeight) : null;
 
   const earsWidth = resolveSlotBubbleValue(slot, 'bubbleBunnyEarsWidth', globalConfig);
   if (earsWidth != null) vars[`--ovs-slot-${prefix}-bunny-ears-width`] = px(earsWidth);

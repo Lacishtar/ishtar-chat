@@ -39,3 +39,15 @@ export function isSlotBubbleUserSet(slotLocal, slot, key) {
   const v = slotLocal?.slots?.[slot]?.[key];
   return v !== undefined && v !== null;
 }
+
+/** Maps BubbleSizeSection UI patch keys to customizeConfig / slot bubble keys. */
+export function bubbleSizeConfigPatch(patch) {
+  return {
+    ...(patch.minWidth !== undefined ? { bubbleMinWidth: patch.minWidth } : {}),
+    ...(patch.maxWidth !== undefined ? { bubbleMaxWidth: patch.maxWidth } : {}),
+    ...(patch.fixedWidth !== undefined ? { bubbleFixedWidth: patch.fixedWidth } : {}),
+    ...(patch.minHeight !== undefined ? { bubbleMinHeight: patch.minHeight } : {}),
+    ...(patch.maxHeight !== undefined ? { bubbleMaxHeight: patch.maxHeight } : {}),
+    ...(patch.fixedHeight !== undefined ? { bubbleFixedHeight: patch.fixedHeight } : {}),
+  };
+}

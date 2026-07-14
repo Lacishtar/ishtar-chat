@@ -16,6 +16,10 @@
   opacity: 1 !important;
 }
 
+:root[data-ovs-bubble-wrap-row='true'][data-ovs-row-height-capped='true'] .ovs-message:not([data-bunny-ears="true"]):not([data-has-decoration="true"]) {
+  overflow: hidden !important;
+}
+
 :root[data-ovs-bubble-wrap-row='true'] .ovs-message {
   padding: var(--ovs-bubble-pad-top, var(--ovs-bubble-pad-y, 8px))
     var(--ovs-bubble-pad-right, var(--ovs-bubble-pad-x, 12px))
@@ -32,6 +36,11 @@
   backdrop-filter: var(--ovs-bubble-backdrop, none) !important;
   -webkit-backdrop-filter: var(--ovs-bubble-backdrop, none) !important;
   min-width: var(--ovs-bubble-min-width, 0px) !important;
+  max-width: var(--ovs-bubble-max-width, none) !important;
+  width: var(--ovs-bubble-fixed-width, auto) !important;
+  min-height: var(--ovs-bubble-min-height, auto) !important;
+  max-height: var(--ovs-bubble-max-height, none) !important;
+  height: var(--ovs-bubble-fixed-height, auto) !important;
 }
 
 :root[data-ovs-bubble-wrap-row='true'] .ovs-text {
@@ -66,15 +75,22 @@
   align-items: var(--ovs-layout-body-align, flex-start) !important;
 }
 
+:root[data-ovs-bubble-wrap-author='true'][data-ovs-author-height-capped='true'] .ovs-author:not([data-bunny-ears="true"]):not([data-has-decoration="true"]) {
+  overflow: hidden !important;
+}
+
 :root[data-ovs-bubble-wrap-author='true'] .ovs-author {
   display: inline-block;
-  width: fit-content;
-  max-width: 100%;
+  width: var(--ovs-slot-author-bubble-fixed-width, var(--ovs-bubble-fixed-width, fit-content));
+  max-width: var(--ovs-slot-author-bubble-max-width, var(--ovs-bubble-max-width, 100%));
   /* Same fix as .ovs-meta above: mirror the row-wrap behavior (where
      .ovs-author has no align-self override and simply inherits from
      .ovs-meta's align-items) instead of always hugging the start side. */
   align-self: var(--ovs-layout-meta-align, flex-start);
   min-width: var(--ovs-slot-author-bubble-min-width, var(--ovs-bubble-min-width, 0px)) !important;
+  min-height: var(--ovs-slot-author-bubble-min-height, var(--ovs-bubble-min-height, auto)) !important;
+  max-height: var(--ovs-slot-author-bubble-max-height, var(--ovs-bubble-max-height, none)) !important;
+  height: var(--ovs-slot-author-bubble-fixed-height, var(--ovs-bubble-fixed-height, auto)) !important;
   box-sizing: border-box;
   background: var(--ovs-slot-author-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
   opacity: var(--ovs-slot-author-bubble-opacity, var(--ovs-bubble-opacity, 1));
@@ -97,11 +113,18 @@
   -webkit-backdrop-filter: var(--ovs-bubble-backdrop, none);
 }
 
+:root[data-ovs-bubble-wrap-message='true'][data-ovs-message-height-capped='true'] .ovs-text:not([data-bunny-ears="true"]):not([data-has-decoration="true"]) {
+  overflow: hidden !important;
+}
+
 :root[data-ovs-bubble-wrap-message='true'] .ovs-text {
   display: inline-block;
-  width: fit-content;
-  max-width: 100%;
+  width: var(--ovs-slot-message-bubble-fixed-width, var(--ovs-bubble-fixed-width, fit-content));
+  max-width: var(--ovs-slot-message-bubble-max-width, var(--ovs-bubble-max-width, 100%));
   min-width: var(--ovs-slot-message-bubble-min-width, var(--ovs-bubble-min-width, 0px)) !important;
+  min-height: var(--ovs-slot-message-bubble-min-height, var(--ovs-bubble-min-height, auto)) !important;
+  max-height: var(--ovs-slot-message-bubble-max-height, var(--ovs-bubble-max-height, none)) !important;
+  height: var(--ovs-slot-message-bubble-fixed-height, var(--ovs-bubble-fixed-height, auto)) !important;
   /* Same fix as .ovs-body above: mirror row-wrap's inherited alignment
      instead of always hugging the start side, so the message bubble follows
      the configured Layout Direction in split-wrap mode too. */
@@ -139,6 +162,12 @@
 }
 .ovs-message {
   position: relative;
+  /* #ovs-chat-list is a column flex container; without this, flex-shrink defaults
+     to 1 and the browser silently squeezes rows below their configured
+     min-height/max-height/fixed-height (below) once the list overflows the
+     viewport height. The row's own height rules should be the only thing
+     controlling its size. */
+  flex-shrink: 0;
 }
 
 .ovs-bubble-texture {

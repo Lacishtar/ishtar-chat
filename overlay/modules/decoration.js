@@ -92,6 +92,7 @@ function resolveAnchorElement(messageNode, anchor) {
 function ensureDecorationHost(anchorEl, anchorName) {
   if (!anchorEl) return null;
   ensurePositionedAnchor(anchorEl);
+  anchorEl.dataset.hasDecoration = 'true';
   let host = anchorEl.querySelector(`:scope > .ovs-decoration-host[data-for-anchor="${anchorName}"]`);
   if (!host) {
     host = document.createElement('div');
@@ -105,6 +106,8 @@ function ensureDecorationHost(anchorEl, anchorName) {
 export function clearDecorationLayers(messageNode) {
   if (!messageNode) return;
   messageNode.querySelectorAll('.ovs-decoration-layer').forEach((el) => el.remove());
+  if (messageNode.dataset.hasDecoration) delete messageNode.dataset.hasDecoration;
+  messageNode.querySelectorAll('[data-has-decoration]').forEach((el) => delete el.dataset.hasDecoration);
 }
 
 // Cache of generated SVG mask data-URLs, keyed by a signature of every
