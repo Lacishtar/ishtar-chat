@@ -22,7 +22,7 @@ export function refreshBadgesVisibility(badgesEl) {
   if (!badgesEl) return;
   applySlotVisibility(badgesEl, 'badges');
   if (badgesEl.getAttribute('data-hidden') === 'true') return;
-  if (state.currentConfig.showBadges === false || !badgesEl.textContent.trim()) {
+  if (!badgesEl.textContent.trim()) {
     badgesEl.setAttribute('data-hidden', 'true');
   }
 }
