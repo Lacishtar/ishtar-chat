@@ -48,6 +48,11 @@ const DEFAULT_LAYOUT_CONFIG = {
     chatAlign: 'left', // 'left' | 'center' | 'right'
     contentDirection: 'ltr', // 'ltr' | 'rtl'
     chatGap: 10,
+    // Fine-tune position of the whole chat frame on screen, applied as a
+    // translate() on top of the chatAlign anchor. Positive x moves right,
+    // positive y moves down.
+    chatOffsetX: 0,
+    chatOffsetY: 0,
     /** @deprecated use bubbleWrapRow / bubbleWrapAuthor / bubbleWrapMessage */
     bubbleScope: null,
     bubbleWrapRow: null, // null | true = bọc cả hàng; false = bọc riêng slot
@@ -248,6 +253,8 @@ function compileLayoutToCssVariables(layout) {
 
     '--ovs-layout-chat-align': ALIGN_TO_FLEX[screen.chatAlign] || 'flex-start',
     '--ovs-layout-chat-gap': px(screen.chatGap ?? 10),
+    '--ovs-layout-chat-offset-x': px(screen.chatOffsetX ?? 0),
+    '--ovs-layout-chat-offset-y': px(screen.chatOffsetY ?? 0),
     '--ovs-layout-content-direction': 'ltr',
     '--ovs-bubble-wrap-row': isRowBubbleWrap(screen) ? '1' : '0',
     '--ovs-bubble-wrap-author': !isRowBubbleWrap(screen) && screen.bubbleWrapAuthor ? '1' : '0',
@@ -304,6 +311,8 @@ function contractSimpleLayout(layout) {
     padding: l.messageRow.padding ?? 8,
     chatAlign: screen.chatAlign ?? 'left',
     chatGap: screen.chatGap ?? 10,
+    chatOffsetX: screen.chatOffsetX ?? 0,
+    chatOffsetY: screen.chatOffsetY ?? 0,
     contentDirection: screen.contentDirection ?? 'ltr',
     bubbleWrapMode: isRowBubbleWrap(screen) ? 'row' : 'split',
     bubbleWrapAuthor: Boolean(screen.bubbleWrapAuthor),
@@ -391,6 +400,8 @@ function expandSimpleLayout(simple) {
   return { messageRow, metaRow, bodyColumn, slots, screen: {
     chatAlign: s.chatAlign || 'left',
     chatGap: s.chatGap,
+    chatOffsetX: s.chatOffsetX ?? 0,
+    chatOffsetY: s.chatOffsetY ?? 0,
     contentDirection: s.contentDirection || 'ltr',
     bubbleWrapRow: wrapRow,
     bubbleWrapAuthor: wrapAuthor,

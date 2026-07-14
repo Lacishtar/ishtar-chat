@@ -121,6 +121,8 @@ function contractSimpleLayout(layout) {
       gap: 10,
       padding: 8,
       chatAlign: 'left',
+      chatOffsetX: 0,
+      chatOffsetY: 0,
       contentDirection: 'ltr',
       bubbleWrapMode: 'row',
       bubbleWrapAuthor: false,
@@ -166,6 +168,8 @@ function contractSimpleLayout(layout) {
     padding: mr.padding ?? 8,
     chatAlign: screen.chatAlign ?? 'left',
     chatGap: screen.chatGap ?? 10,
+    chatOffsetX: screen.chatOffsetX ?? 0,
+    chatOffsetY: screen.chatOffsetY ?? 0,
     contentDirection: screen.contentDirection ?? 'ltr',
     bubbleWrapMode: screen.bubbleWrapRow === true ? 'row' : 'split',
     bubbleWrapAuthor: Boolean(screen.bubbleWrapAuthor),
@@ -246,6 +250,8 @@ function expandSimpleLayout(simple) {
     screen: {
       chatAlign: s.chatAlign || 'left',
       chatGap: s.chatGap,
+      chatOffsetX: s.chatOffsetX ?? 0,
+      chatOffsetY: s.chatOffsetY ?? 0,
       contentDirection: s.contentDirection || 'ltr',
       bubbleWrapRow: wrapRow,
       bubbleWrapAuthor: wrapAuthor,
@@ -289,6 +295,34 @@ export default function LayoutPanel() {
           { value: 'right', label: 'Phải', hint: 'Neo khung chat vào mép phải màn hình', icon: ICONS.alignRight },
         ]}
       />
+
+      <div className="flex flex-wrap gap-4">
+        <Field label={`Dịch ngang (X) — ${local.chatOffsetX ?? 0}px`}>
+          <input
+            type="range"
+            min={-40}
+            max={40}
+            value={local.chatOffsetX ?? 0}
+            onChange={(e) => pushUpdate({ chatOffsetX: Number(e.target.value) })}
+          />
+        </Field>
+        <Field label={`Dịch dọc (Y) — ${local.chatOffsetY ?? 0}px`}>
+          <input
+            type="range"
+            min={-40}
+            max={40}
+            value={local.chatOffsetY ?? 0}
+            onChange={(e) => pushUpdate({ chatOffsetY: Number(e.target.value) })}
+          />
+        </Field>
+        <button
+          type="button"
+          onClick={() => pushUpdate({ chatOffsetX: 0, chatOffsetY: 0 })}
+          className="self-end rounded-lg border border-line bg-panelAlt px-3 py-1.5 text-xs text-inkMuted hover:bg-line hover:text-ink"
+        >
+          Đặt lại vị trí
+        </button>
+      </div>
 
       <Field label={`Khoảng cách giữa các tin nhắn — ${local.chatGap ?? 10}px`}>
         <input

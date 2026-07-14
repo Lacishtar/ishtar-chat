@@ -18,6 +18,7 @@ body {
   height: 100vh;
   box-sizing: border-box;
   justify-content: flex-end;
+  transform: translate(var(--ovs-layout-chat-offset-x, 0px), var(--ovs-layout-chat-offset-y, 0px));
 }
 
 #ovs-chat-list.ovs-position-top-down {
