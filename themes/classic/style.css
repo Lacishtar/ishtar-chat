@@ -7,6 +7,7 @@ body {
   background: transparent;
   overflow: hidden;
   font-family: var(--ovs-font-family, 'Inter', system-ui, sans-serif);
+  text-align: var(--ovs-text-align, left);
 }
 
 #ovs-chat-list {
@@ -92,6 +93,7 @@ body {
   color: var(--ovs-slot-author-color, var(--ovs-author-color, #6e56f0));
   opacity: var(--ovs-slot-author-opacity, 1);
   white-space: nowrap;
+  text-align: var(--ovs-slot-author-text-align, var(--ovs-text-align, left));
 }
 
 .ovs-badges {
@@ -121,6 +123,7 @@ body {
   opacity: var(--ovs-slot-message-opacity, 1);
   line-height: 1.35;
   word-break: break-word;
+  text-align: var(--ovs-slot-message-text-align, var(--ovs-text-align, left));
 }
 
 .ovs-text img {

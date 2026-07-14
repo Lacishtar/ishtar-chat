@@ -26,6 +26,7 @@ function createTextSlotDefaults(overrides = {}) {
     fontWeight: null,
     opacity: null,
     margin: 0,
+    textAlign: null,
     ...createTransformDefaults(),
     ...overrides,
   };
@@ -118,6 +119,7 @@ function resolveEffectiveSlotStyle(slotStyle, customizeConfig, layoutConfig) {
       fontWeight: slots.author.fontWeight ?? 700,
       opacity: slots.author.opacity ?? 1,
       margin: slots.author.margin ?? 0,
+      textAlign: slots.author.textAlign ?? cfg.textAlign ?? null,
       ...resolveTransform(slots.author, false, isRtl),
     },
     badges: {
@@ -135,6 +137,7 @@ function resolveEffectiveSlotStyle(slotStyle, customizeConfig, layoutConfig) {
       fontWeight: slots.message.fontWeight ?? null,
       opacity: slots.message.opacity ?? 1,
       margin: slots.message.margin ?? 0,
+      textAlign: slots.message.textAlign ?? cfg.textAlign ?? null,
       ...resolveTransform(slots.message, true, isRtl),
     },
   };
@@ -204,6 +207,7 @@ function compileSlotStyleToCssVariables(slotStyle, customizeConfig, layoutConfig
   if (e.author.fontWeight != null) vars['--ovs-slot-author-font-weight'] = String(e.author.fontWeight);
   if (e.author.opacity != null) vars['--ovs-slot-author-opacity'] = String(e.author.opacity);
   if (e.author.margin != null) vars['--ovs-slot-author-margin'] = px(e.author.margin);
+  if (e.author.textAlign) vars['--ovs-slot-author-text-align'] = e.author.textAlign;
   Object.assign(vars, compileTransformVars('author', e.author, isRtl));
 
   if (e.badges.fontSize != null) vars['--ovs-slot-badges-font-size'] = px(e.badges.fontSize);
@@ -217,6 +221,7 @@ function compileSlotStyleToCssVariables(slotStyle, customizeConfig, layoutConfig
   if (e.message.fontWeight != null) vars['--ovs-slot-message-font-weight'] = String(e.message.fontWeight);
   if (e.message.opacity != null) vars['--ovs-slot-message-opacity'] = String(e.message.opacity);
   if (e.message.margin != null) vars['--ovs-slot-message-margin'] = px(e.message.margin);
+  if (e.message.textAlign) vars['--ovs-slot-message-text-align'] = e.message.textAlign;
   Object.assign(vars, compileTransformVars('message', e.message, isRtl));
 
   Object.assign(vars, compileSlotBubblesToCssVariables(s, customizeConfig));
@@ -243,6 +248,7 @@ function componentOverridesToSlotStyle(componentOverrides) {
     if (src.opacity != null) target.opacity = src.opacity;
     if (src.visible != null) target.visible = src.visible;
     if (src.margin != null) target.margin = src.margin;
+    if (src.textAlign != null) target.textAlign = src.textAlign;
     mapTransform(src, target);
   };
 

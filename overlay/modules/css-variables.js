@@ -64,6 +64,7 @@ export function applyCssVariables(config, layout, slotStyle, animationConfig, ro
   const roleCompiled = compileRoleStyleToCssVariables(roleStyle || state.currentRoleStyle);
   const map = {
     '--ovs-font-family': cfg.fontFamily,
+    '--ovs-text-align': cfg.textAlign,
     '--ovs-font-size': cfg.fontSize != null ? `${cfg.fontSize}px` : undefined,
     '--ovs-text-color': cfg.textColor,
     '--ovs-author-color': cfg.authorColor,

@@ -114,7 +114,7 @@ function defaultSlotStyle() {
       },
       author: {
         visible: null, fontFamily: null, fontSize: null, color: null,
-        fontWeight: null, opacity: null, margin: 0,
+        fontWeight: null, opacity: null, margin: 0, textAlign: null,
         rotate: 0, translateX: 0, translateY: 0, transformOrigin: null, zIndex: null,
         bubbleBg: null, bubbleRadius: null, bubbleOpacity: null, bubbleBorderWidth: null,
         bubbleBorderStyle: null, bubbleBorderColor: null, bubbleBorderOffset: null,
@@ -134,7 +134,7 @@ function defaultSlotStyle() {
       },
       message: {
         visible: null, fontFamily: null, fontSize: null, color: null,
-        fontWeight: null, opacity: null, margin: 0,
+        fontWeight: null, opacity: null, margin: 0, textAlign: null,
         rotate: 0, translateX: 0, translateY: 0, transformOrigin: null, zIndex: null,
         bubbleBg: null, bubbleRadius: null, bubbleOpacity: null, bubbleBorderWidth: null,
         bubbleBorderStyle: null, bubbleBorderColor: null, bubbleBorderOffset: null,

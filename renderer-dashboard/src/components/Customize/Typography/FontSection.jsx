@@ -7,10 +7,13 @@ export default function FontSection({
   fontSize,
   color,
   opacity,
+  textAlign,
   onChange,
   showFontFamily = true,
   showColor = true,
   showOpacity = true,
+  showTextAlign = true,
+  allowDefaultAlign = true,
   sizeRange = [10, 32],
 }) {
   return (
@@ -31,6 +34,20 @@ export default function FontSection({
                 ))}
               </optgroup>
             ))}
+          </select>
+        </Field>
+      )}
+      {showTextAlign && (
+        <Field label="Căn lề">
+          <select
+            className={inputClass}
+            value={textAlign || ''}
+            onChange={(e) => onChange({ textAlign: e.target.value || null })}
+          >
+            {allowDefaultAlign && <option value="">Mặc định</option>}
+            <option value="left">Trái</option>
+            <option value="center">Giữa</option>
+            <option value="right">Phải</option>
           </select>
         </Field>
       )}

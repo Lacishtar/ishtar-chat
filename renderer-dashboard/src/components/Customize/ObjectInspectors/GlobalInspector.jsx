@@ -33,14 +33,17 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
           fontFamily={local.fontFamily}
           fontSize={local.fontSize}
           color={local.textColor}
+          textAlign={local.textAlign || 'left'}
           opacity={1}
           showOpacity={false}
+          allowDefaultAlign={false}
           sizeRange={[12, 28]}
           onChange={(patch) =>
             pushUpdate({
               ...(patch.fontFamily !== undefined ? { fontFamily: patch.fontFamily } : {}),
               ...(patch.fontSize !== undefined ? { fontSize: patch.fontSize } : {}),
               ...(patch.color !== undefined ? { textColor: patch.color } : {}),
+              ...(patch.textAlign !== undefined ? { textAlign: patch.textAlign } : {}),
             })
           }
         />

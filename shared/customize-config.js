@@ -9,6 +9,7 @@ const { toImageProxyUrl } = require('./image-url');
 const DEFAULT_CUSTOMIZE_CONFIG = {
   fontFamily: 'Inter, system-ui, sans-serif',
   fontSize: 16, // px
+  textAlign: 'left',
   textColor: '#EAECEF',
   authorColor: '#6E56F0',
   bubbleBg: 'rgba(22, 25, 31, 0.72)',
@@ -115,6 +116,7 @@ function toCssVariables(config) {
   const c = { ...DEFAULT_CUSTOMIZE_CONFIG, ...config };
   return {
     '--ovs-font-family': c.fontFamily,
+    '--ovs-text-align': c.textAlign,
     '--ovs-font-size': `${c.fontSize}px`,
     '--ovs-text-color': c.textColor,
     '--ovs-author-color': c.authorColor,
