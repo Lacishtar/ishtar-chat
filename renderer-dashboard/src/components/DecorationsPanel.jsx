@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useEditorState } from '../state/EditorStateContext.jsx';
 import { Field, inputClass, EnableToggle } from './Customize/shared/fields.jsx';
-import { MASK_TARGETS, VISIBILITY_ROLES } from '../../../shared/decoration-config.js';
+import { MASK_TARGETS, VISIBILITY_ROLES, STACK_LAYERS } from '../../../shared/decoration-config.js';
 
 const ANCHOR_OPTIONS = [
   { value: 'bubble', label: 'Khung chat (bubble)' },
@@ -50,6 +50,11 @@ const MASK_MODE_OPTIONS = [
   { value: 'none', label: 'None — hiển thị bình thường' },
 ];
 
+const STACK_LAYER_OPTIONS = [
+  { value: 'foreground', label: 'Tiền cảnh — trên chữ' },
+  { value: 'background', label: 'Hậu cảnh — trong bubble, dưới chữ' },
+];
+
 const ANCHOR_LABEL = Object.fromEntries(ANCHOR_OPTIONS.map((o) => [o.value, o.label]));
 const PLACEMENT_LABEL = Object.fromEntries(
   PLACEMENT_OPTIONS.map((o) => [o.value, o.label.replace(/\s*\(.*\)$/, '')]),
@@ -84,6 +89,8 @@ function createDefaultLayer() {
     // Visibility condition defaults.
     visibilityRoles: [],
     memberMonthsMin: 0,
+    // Stack layer default — kept in sync with shared/decoration-config.js#DEFAULT_LAYER.
+    stackLayer: 'foreground',
   };
 }
 
@@ -311,7 +318,8 @@ function VisibilitySection({ layer, set }) {
 function LayerCard({ layer, index, count, open, onToggleOpen, onChange, onRemove, onDuplicate, onMove }) {
   const set = (patch) => onChange(index, { ...layer, ...patch });
   const enabled = layer.enabled !== false;
-  const subtitle = `${ANCHOR_LABEL[layer.anchor] || layer.anchor} · ${
+  const isBackground = layer.stackLayer === 'background';
+  const subtitle = `${isBackground ? '🖼 BG · ' : ''}${ANCHOR_LABEL[layer.anchor] || layer.anchor} · ${
     PLACEMENT_LABEL[layer.placement] || layer.placement
   }`;
 
@@ -388,6 +396,33 @@ function LayerCard({ layer, index, count, open, onToggleOpen, onChange, onRemove
                 </option>
               ))}
             </select>
+          </Field>
+
+          <Field label="Lớp hiển thị">
+            <div className="flex gap-1">
+              {STACK_LAYER_OPTIONS.map((opt) => {
+                const active = (layer.stackLayer || 'foreground') === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => set({ stackLayer: opt.value })}
+                    className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium border transition-colors text-left leading-snug ${
+                      active
+                        ? 'bg-focusAccent/20 border-focusAccent text-focusAccent'
+                        : 'bg-panelAlt border-line text-inkMuted hover:text-ink hover:bg-panel'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            {(layer.stackLayer || 'foreground') === 'background' && (
+              <p className="mt-1.5 text-[11px] text-inkMuted leading-snug">
+                Ảnh nằm <strong className="text-ink">trong bubble</strong>, phía sau chữ. Anchor nên chọn "Khung chat" hoặc "Toàn dòng chat". Ảnh tự clip theo border-radius của bubble.
+              </p>
+            )}
           </Field>
 
           <Field label="Vị trí trên khung">

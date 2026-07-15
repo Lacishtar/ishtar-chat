@@ -39,6 +39,15 @@ const MASK_TARGETS = [
 const MASK_MODES = ['none', 'clipInside', 'clipOutside'];
 
 /**
+ * Determines where the decoration renders relative to the bubble's text content.
+ *   'foreground' — rendered above all slot content (z-index: 50). Default.
+ *   'background' — rendered inside the bubble, UNDER text (z-index: -1,
+ *                  clipped to the bubble's border-radius). Useful for bubble
+ *                  background images, watermarks, and texture overlays.
+ */
+const STACK_LAYERS = ['foreground', 'background'];
+
+/**
  * Valid role tokens for the per-layer visibility condition.
  *   'moderator' — chỉ hiện với mod
  *   'member'    — chỉ hiện với thành viên (+ có thể lọc thêm theo số tháng)
@@ -69,6 +78,10 @@ const DEFAULT_LAYER = {
   height: 48,
   opacity: 1,
   ...DEFAULT_MASK,
+  // Determines z-axis render position relative to bubble text content.
+  // 'foreground' = above text (z-index: 50); 'background' = below text,
+  // clipped inside the bubble (z-index: -1, overflow: hidden).
+  stackLayer: 'foreground',
   // Visibility condition — which role types this layer renders for.
   // [] = hiện với tất cả (no filter). Non-empty = OR logic across tokens.
   // 'member' token pairs with memberMonthsMin for month-threshold filtering.
@@ -100,6 +113,10 @@ function normalizeMaskTarget(target) {
 
 function normalizeMaskMode(mode) {
   return MASK_MODES.includes(mode) ? mode : DEFAULT_MASK.maskMode;
+}
+
+function normalizeStackLayer(val) {
+  return STACK_LAYERS.includes(val) ? val : DEFAULT_LAYER.stackLayer;
 }
 
 /** Normalizes the mask sub-properties of a layer; missing values fall back to sensible defaults. */
@@ -142,6 +159,8 @@ function normalizeLayer(raw, index = 0) {
     // Visibility condition — backward-compatible: missing key → [] → show all.
     visibilityRoles: normalizeVisibilityRoles(layer.visibilityRoles),
     memberMonthsMin: clampNumber(layer.memberMonthsMin, 0, 0, 120),
+    // Stack layer — backward-compatible: missing key → 'foreground' (existing behavior).
+    stackLayer: normalizeStackLayer(layer.stackLayer),
   };
 }
 
@@ -221,6 +240,7 @@ module.exports = {
   PLACEMENTS,
   MASK_TARGETS,
   MASK_MODES,
+  STACK_LAYERS,
   VISIBILITY_ROLES,
   DEFAULT_MASK,
   DEFAULT_DECORATION_CONFIG,

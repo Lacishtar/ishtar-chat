@@ -31,9 +31,25 @@
 .ovs-decoration-host {
   position: absolute;
   inset: 0;
-  z-index: 50;
   pointer-events: none;
+}
+
+/* Foreground (default, or explicit): floats above all slot content. */
+.ovs-decoration-host:not([data-stack-layer='background']) {
+  z-index: 50;
   overflow: visible;
+}
+
+/* Background: renders inside the bubble, UNDER text content.
+   z-index: -1 places this host in paint step 2 (negative stacking contexts),
+   which comes BEFORE block-flow children (step 3) in CSS paint order.
+   The anchor element is given isolation: isolate by decoration.js so this
+   negative z-index is contained within the bubble, not the whole page.
+   overflow: hidden + border-radius: inherit clip the image to the bubble shape. */
+.ovs-decoration-host[data-stack-layer='background'] {
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
 .ovs-decoration-layer {

@@ -89,16 +89,31 @@ function resolveAnchorElement(messageNode, anchor) {
   return messageNode;
 }
 
-function ensureDecorationHost(anchorEl, anchorName) {
+function ensureDecorationHost(anchorEl, anchorName, stackLayer) {
   if (!anchorEl) return null;
   ensurePositionedAnchor(anchorEl);
   anchorEl.dataset.hasDecoration = 'true';
-  let host = anchorEl.querySelector(`:scope > .ovs-decoration-host[data-for-anchor="${anchorName}"]`);
+  const sl = stackLayer === 'background' ? 'background' : 'foreground';
+  let host = anchorEl.querySelector(`:scope > .ovs-decoration-host[data-for-anchor="${anchorName}"][data-stack-layer="${sl}"]`);
   if (!host) {
     host = document.createElement('div');
     host.className = 'ovs-decoration-host';
     host.dataset.forAnchor = anchorName;
-    anchorEl.insertBefore(host, anchorEl.firstChild);
+    host.dataset.stackLayer = sl;
+    if (sl === 'background') {
+      // For background layers: ensure the anchor creates a stacking context so
+      // z-index: -1 on this host is contained within the bubble and renders
+      // BETWEEN the bubble's own background (step 1 of paint order) and its
+      // block-flow children / text (step 3), not behind the entire ancestor tree.
+      anchorEl.style.isolation = 'isolate';
+      // Insert as first child so DOM order matches intent if stacking contexts
+      // are somehow absent (fallback to paint order).
+      anchorEl.insertBefore(host, anchorEl.firstChild);
+    } else {
+      // Foreground: z-index: 50 on the host handles ordering; DOM position is
+      // secondary but keeping firstChild insertion preserves existing behavior.
+      anchorEl.insertBefore(host, anchorEl.firstChild);
+    }
   }
   return host;
 }
@@ -331,7 +346,7 @@ export function applyDecorationLayers(messageNode, decorationConfig) {
     if (!layer || layer.enabled === false || !layer.imageUrl) return;
     if (!messageMatchesLayer(messageNode, layer)) return;
     const anchorEl = resolveAnchorElement(messageNode, layer.anchor || 'message');
-    const host = ensureDecorationHost(anchorEl, layer.anchor || 'message');
+    const host = ensureDecorationHost(anchorEl, layer.anchor || 'message', layer.stackLayer);
     if (!host) return;
 
     const img = document.createElement('img');
