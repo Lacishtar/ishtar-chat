@@ -35,7 +35,44 @@ export function applyThemePayload(data, options = {}) {
   if (data.decorationConfig) state.currentDecoration = data.decorationConfig;
   if (data.roleStyleConfig) state.currentRoleStyle = data.roleStyleConfig;
 
-  const incomingHistory = Array.isArray(data.history) ? data.history : null;
+  const isPreview = new URLSearchParams(window.location.search).has('preview');
+  let incomingHistory = Array.isArray(data.history) ? data.history : null;
+  if (isPreview && (!incomingHistory || incomingHistory.length === 0)) {
+    incomingHistory = [
+      {
+        avatarUrl: 'mock-avatar:Thanh Bình',
+        author: 'Thanh Bình',
+        messageHtml: 'Hello anh em! Nhìn giao diện xịn xò quá 👍',
+        roles: [],
+        badges: []
+      },
+      {
+        avatarUrl: 'mock-avatar:Hoàng Nam',
+        author: 'Hoàng Nam',
+        messageHtml: 'Mọi người nhớ like và đăng ký kênh ủng hộ streamer nhé! 🔔',
+        roles: ['moderator'],
+        badges: ['MOD']
+      },
+      {
+        avatarUrl: 'mock-avatar:Minh Thư',
+        author: 'Minh Thư',
+        messageHtml: 'Kênh live stream đều đặn quá, thiết kế overlay này rất đẹp 💖',
+        roles: ['member'],
+        badges: ['★'],
+        memberMonths: 12
+      },
+      {
+        avatarUrl: 'mock-avatar:Khánh Linh',
+        author: 'Khánh Linh',
+        messageHtml: 'Chúc kênh ngày càng phát triển hơn nữa nha!',
+        roles: ['member'],
+        badges: ['★'],
+        isSuperchat: true,
+        superchatCurrencyRaw: '50.000 ₫',
+        memberMonths: 6
+      }
+    ];
+  }
 
   const finish = () => {
     applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);

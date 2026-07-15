@@ -61,6 +61,17 @@ function applyRoleStyleFlags(rootFlags) {
 export function applyCssVariables(config, layout, slotStyle, animationConfig, roleStyle) {
   const cfg = config || {};
   const root = document.documentElement;
+
+  // Clear any existing role-specific custom properties from root style first
+  const keysToRemove = [];
+  for (let i = 0; i < root.style.length; i++) {
+    const name = root.style[i];
+    if (name.startsWith('--ovs-role-')) {
+      keysToRemove.push(name);
+    }
+  }
+  keysToRemove.forEach((key) => root.style.removeProperty(key));
+
   const roleCompiled = compileRoleStyleToCssVariables(roleStyle || state.currentRoleStyle);
   const map = {
     '--ovs-font-family': cfg.fontFamily,

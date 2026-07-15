@@ -132,7 +132,3 @@ body {
   vertical-align: -0.2em;
 }
 
-.ovs-message.ovs-superchat {
-  background: linear-gradient(135deg, rgba(255, 202, 40, 0.28), var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)));
-  border: 1px solid rgba(255, 202, 40, 0.45);
-}

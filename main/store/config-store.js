@@ -3,6 +3,24 @@ const path = require('path');
 const { app } = require('electron');
 const { resolveThemeState } = require('./theme-state');
 
+// One-time migration for config.json files saved before the row-bg fix:
+// older code let a role's `rowBg`/`rowBorderColor` get permanently baked in
+// as a literal value (from the default config, or from whichever theme was
+// selected at the time) and then kept echoing it back on every dashboard
+// edit forever, since no dashboard panel actually exposes a control for
+// these two fields. There's no legitimate source for them once a profile
+// has been through that old code path, so on load we just release them —
+// the normal fallback (rowBg -> messageBg -> theme default) takes over
+// again immediately and reflects whatever messageBg is actually set to.
+function stripStaleRoleRowDefaults(roleStyleConfig) {
+  if (!roleStyleConfig?.roles) return roleStyleConfig;
+  const roles = {};
+  Object.entries(roleStyleConfig.roles).forEach(([key, role]) => {
+    roles[key] = { ...role, rowBg: null, rowBorderColor: null };
+  });
+  return { roles };
+}
+
 const DEFAULT_STATE = {
   lastSessionUrl: '',
   selectedTheme: 'classic',
@@ -49,7 +67,7 @@ class ConfigStore {
         slotStyleConfig: profile.slotStyleConfig ?? baseline.slotStyleConfig,
         animationConfig: profile.animationConfig ?? baseline.animationConfig,
         decorationConfig: profile.decorationConfig ?? baseline.decorationConfig,
-        roleStyleConfig: profile.roleStyleConfig ?? baseline.roleStyleConfig,
+        roleStyleConfig: stripStaleRoleRowDefaults(profile.roleStyleConfig) ?? baseline.roleStyleConfig,
         lastSessionUrl: persisted.lastSessionUrl || '',
         windowBounds: persisted.windowBounds || DEFAULT_STATE.windowBounds,
       };

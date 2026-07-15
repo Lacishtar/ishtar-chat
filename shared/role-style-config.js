@@ -49,7 +49,7 @@ const DEFAULT_ROLE_STYLE_CONFIG = {
       badgeBefore: '★',
     }),
     superchat: createRoleDefaults({
-      enabled: false,
+      enabled: true,
       authorColor: '#fde047',
       authorBorderColor: 'rgba(255, 202, 40, 0.55)',
       messageBg: 'linear-gradient(135deg, rgba(255, 202, 40, 0.28), rgba(22, 25, 31, 0.72))',
@@ -65,6 +65,8 @@ const DEFAULT_ROLE_STYLE_CONFIG = {
 function normalizeRole(raw, fallback) {
   const base = fallback || createRoleDefaults();
   const role = raw || {};
+  const hasCustomMessageBg = typeof role.messageBg === 'string';
+  const hasCustomMessageBorderColor = typeof role.messageBorderColor === 'string';
   return {
     enabled: typeof role.enabled === 'boolean' ? role.enabled : base.enabled !== false,
     authorColor: typeof role.authorColor === 'string' ? role.authorColor : base.authorColor,
@@ -82,8 +84,8 @@ function normalizeRole(raw, fallback) {
     rowBg:
       typeof role.rowBg === 'string'
         ? role.rowBg
-        : (typeof role.rowBgColor === 'string' ? role.rowBgColor : base.rowBg),
-    rowBorderColor: typeof role.rowBorderColor === 'string' ? role.rowBorderColor : base.rowBorderColor,
+        : (typeof role.rowBgColor === 'string' ? role.rowBgColor : (hasCustomMessageBg ? null : base.rowBg)),
+    rowBorderColor: typeof role.rowBorderColor === 'string' ? role.rowBorderColor : (hasCustomMessageBorderColor ? null : base.rowBorderColor),
     earColor: typeof role.earColor === 'string' ? role.earColor : base.earColor,
     badgeBefore:
       role.badgeBefore !== undefined && role.badgeBefore !== null
@@ -113,10 +115,27 @@ function normalizeRoleStyleConfig(config) {
 function mergeRoleStyleConfig(base, overrides) {
   const b = normalizeRoleStyleConfig(base || DEFAULT_ROLE_STYLE_CONFIG);
   const o = overrides || {};
-  const mergeOne = (key) => ({
-    ...b.roles[key],
-    ...(o.roles?.[key] || {}),
-  });
+  const mergeOne = (key) => {
+    const ov = o.roles?.[key] || {};
+    const merged = { ...b.roles[key], ...ov };
+    // No dashboard panel has a control for rowBg/rowBorderColor, so any
+    // value present here — whether it came from DEFAULT_ROLE_STYLE_CONFIG,
+    // a theme preset's own baked gradient, or a stale value from an older
+    // bug — is never something the user just chose; it's only ever an echo
+    // of whatever was there before, forwarded back because the dashboard
+    // round-trips the *entire* role object on every edit. Trying to
+    // distinguish "default" from "user-set" via typeof on that echoed
+    // value doesn't work (it's indistinguishable from real input once
+    // merged), so instead: every dashboard-driven edit unconditionally
+    // releases rowBg/rowBorderColor back to null, letting messageBg drive
+    // the visual from that point on. A theme's authored rowBg still shows
+    // correctly right after selecting the theme (that path normalizes the
+    // preset directly, bypassing this merge) — it's just no longer pinned
+    // in place the moment the user customizes that role here.
+    merged.rowBg = null;
+    merged.rowBorderColor = null;
+    return merged;
+  };
   return normalizeRoleStyleConfig({
     roles: {
       moderator: mergeOne('moderator'),
@@ -142,6 +161,14 @@ function compileRoleStyleToCssVariables(roleStyle) {
     const enabled = role.enabled !== false;
     rootFlags[`data-ovs-role-${prefix}-enabled`] = enabled ? 'true' : 'false';
 
+    if (roleKey === 'superchat') {
+      if (role.showAmount === false) {
+        rootFlags['data-ovs-role-superchat-show-amount'] = 'false';
+      } else {
+        rootFlags['data-ovs-role-superchat-show-amount'] = 'true';
+      }
+    }
+
     if (!enabled) return;
 
     if (role.authorColor) vars[`--ovs-role-${prefix}-author-color`] = role.authorColor;
@@ -163,12 +190,6 @@ function compileRoleStyleToCssVariables(roleStyle) {
       vars[`--ovs-role-${prefix}-message-font-size`] = `${role.fontSize}px`;
       vars[`--ovs-role-${prefix}-author-font-size`] = `${Math.round(role.fontSize * 0.9)}px`;
       vars[`--ovs-role-${prefix}-badges-font-size`] = `${Math.round(role.fontSize * 0.65)}px`;
-    }
-
-    if (roleKey === 'superchat' && role.showAmount === false) {
-      rootFlags['data-ovs-role-superchat-show-amount'] = 'false';
-    } else if (roleKey === 'superchat') {
-      rootFlags['data-ovs-role-superchat-show-amount'] = 'true';
     }
   });
 

@@ -42,7 +42,7 @@ export default function ChatPreview({ overlayUrl, previewKey, onRefresh }) {
         <iframe
           key={previewKey}
           title="Xem trước overlay"
-          src={overlayUrl}
+          src={`${overlayUrl}&preview=1`}
           className="w-full h-full border-0"
         />
       </div>

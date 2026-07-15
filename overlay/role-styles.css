@@ -1,4 +1,4 @@
-/* Role-based styling — moderator, member, superchat (user-tunable via --ovs-role-* vars). */
+/* Role-based styling — member, moderator, superchat (user-tunable via --ovs-role-* vars). */
 
 /* Fallback chain when a role omits message/row bg — keep default bubble vars, not inherit (parent is transparent). */
 :root {
@@ -11,40 +11,43 @@
   --ovs-role-fallback-row-border: var(--ovs-bubble-border-color, transparent);
 }
 
-:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator .ovs-author,
-:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member .ovs-author,
+:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-author,
+:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-author,
 :root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-author {
   position: relative;
 }
 
-:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator .ovs-author::before {
-  content: var(--ovs-role-mod-badge-before-content, none);
-  margin-right: 0.35em;
-  font-size: 0.82em;
-  opacity: 0.92;
-}
-
-:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator .ovs-author::after {
-  content: var(--ovs-role-mod-badge-after-content, none);
-  margin-left: 0.35em;
-  font-size: 0.82em;
-  opacity: 0.92;
-}
-
-:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator) .ovs-author::before {
+/* --- Member Badges --- */
+:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-author::before {
   content: var(--ovs-role-member-badge-before-content, none);
   margin-right: 0.35em;
   font-size: 0.82em;
   opacity: 0.92;
 }
 
-:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator) .ovs-author::after {
+:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-author::after {
   content: var(--ovs-role-member-badge-after-content, none);
   margin-left: 0.35em;
   font-size: 0.82em;
   opacity: 0.92;
 }
 
+/* --- Moderator Badges --- */
+:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-author::before {
+  content: var(--ovs-role-mod-badge-before-content, none);
+  margin-right: 0.35em;
+  font-size: 0.82em;
+  opacity: 0.92;
+}
+
+:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-author::after {
+  content: var(--ovs-role-mod-badge-after-content, none);
+  margin-left: 0.35em;
+  font-size: 0.82em;
+  opacity: 0.92;
+}
+
+/* --- Super Chat Badges --- */
 :root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-author::before {
   content: var(--ovs-role-superchat-badge-before-content, none);
   margin-right: 0.35em;
@@ -59,88 +62,38 @@
   opacity: 0.92;
 }
 
-/* --- Moderator --- */
-:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator .ovs-author {
-  color: var(--ovs-role-mod-author-color, inherit) !important;
-}
-
-:root[data-ovs-role-mod-author-bg='true'] .ovs-message.ovs-moderator .ovs-author {
-  display: inline-block;
-  background: var(--ovs-role-mod-author-bg);
-  padding: 0.15em 0.55em;
-  border-radius: 999px;
-}
-
-:root[data-ovs-role-mod-enabled='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-moderator .ovs-text {
-  background: var(--ovs-role-mod-message-bg, var(--ovs-role-fallback-message-bg)) !important;
-  border-color: var(--ovs-role-mod-message-border-color, var(--ovs-role-fallback-message-border)) !important;
-  color: var(--ovs-role-mod-message-text-color, inherit) !important;
-  box-shadow: inset 0 0 0 1px var(--ovs-role-mod-message-border-color, transparent);
-}
-
-:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator .ovs-text {
-  font-size: var(--ovs-role-mod-message-font-size, inherit) !important;
-}
-:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator .ovs-author {
-  font-size: var(--ovs-role-mod-author-font-size, inherit) !important;
-}
-:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator .ovs-badges {
-  font-size: var(--ovs-role-mod-badges-font-size, inherit) !important;
-}
-
-:root[data-ovs-role-mod-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-moderator {
-  background: var(
-      --ovs-role-mod-row-bg,
-      var(--ovs-role-mod-message-bg, var(--ovs-role-fallback-row-bg))
-    ) !important;
-  border-color: var(
-      --ovs-role-mod-row-border-color,
-      var(--ovs-role-mod-message-border-color, var(--ovs-role-fallback-row-border))
-    ) !important;
-}
-:root[data-ovs-role-mod-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-moderator .ovs-text {
-  color: var(--ovs-role-mod-message-text-color, inherit) !important;
-}
-
-/* --- Member ---
-   :not(.ovs-moderator) on the base rules below keeps the documented
-   priority order (superchat > mod > member): a chatter who is both a
-   Mod and a Member gets full Mod styling, not Member styling. Without
-   this exclusion, these Member rules — declared after the Moderator
-   block above with identical specificity — would win the cascade and
-   silently swallow every Mod override (color, bubble bg, badge, font
-   size) whenever a Mod also happened to be a channel member. The
-   dedicated Mod+Superchat / Member+Superchat blend blocks further down
-   are unaffected — they already out-specificity these base rules. */
-:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator) .ovs-author {
+/* ==========================================
+   1. MEMBER STYLES (Lowest priority)
+   ========================================== */
+:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-author {
   color: var(--ovs-role-member-author-color, inherit) !important;
 }
 
-:root[data-ovs-role-member-author-bg='true'] .ovs-message.ovs-member:not(.ovs-moderator) .ovs-author {
+:root[data-ovs-role-member-author-bg='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-author {
   display: inline-block;
   background: var(--ovs-role-member-author-bg);
   padding: 0.15em 0.55em;
   border-radius: 999px;
 }
 
-:root[data-ovs-role-member-enabled='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-member:not(.ovs-moderator) .ovs-text {
+:root[data-ovs-role-member-enabled='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-text {
   background: var(--ovs-role-member-message-bg, var(--ovs-role-fallback-message-bg)) !important;
   border-color: var(--ovs-role-member-message-border-color, var(--ovs-role-fallback-message-border)) !important;
   color: var(--ovs-role-member-message-text-color, inherit) !important;
   box-shadow: inset 0 0 0 1px var(--ovs-role-member-message-border-color, transparent);
 }
 
-:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator) .ovs-text {
+:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-text {
   font-size: var(--ovs-role-member-message-font-size, inherit) !important;
 }
-:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator) .ovs-author {
+:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-author {
   font-size: var(--ovs-role-member-author-font-size, inherit) !important;
 }
-:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator) .ovs-badges {
+:root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-badges {
   font-size: var(--ovs-role-member-badges-font-size, inherit) !important;
 }
 
-:root[data-ovs-role-member-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-member:not(.ovs-moderator) {
+:root[data-ovs-role-member-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) {
   background: var(
       --ovs-role-member-row-bg,
       var(--ovs-role-member-message-bg, var(--ovs-role-fallback-row-bg))
@@ -150,27 +103,83 @@
       var(--ovs-role-member-message-border-color, var(--ovs-role-fallback-row-border))
     ) !important;
 }
-:root[data-ovs-role-member-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-member:not(.ovs-moderator) .ovs-text {
+:root[data-ovs-role-member-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-text {
   color: var(--ovs-role-member-message-text-color, inherit) !important;
 }
 
-/* --- Super Chat --- */
-:root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-author {
-  color: var(--ovs-role-superchat-author-color, inherit) !important;
+/* ==========================================
+   2. MODERATOR STYLES (Medium priority)
+   ========================================== */
+:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-author {
+  color: var(--ovs-role-mod-author-color, inherit) !important;
 }
 
-:root[data-ovs-role-superchat-author-bg='true'] .ovs-message.ovs-superchat .ovs-author {
+:root[data-ovs-role-mod-author-bg='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-author {
+  display: inline-block;
+  background: var(--ovs-role-mod-author-bg);
+  padding: 0.15em 0.55em;
+  border-radius: 999px;
+}
+
+:root[data-ovs-role-mod-enabled='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-text {
+  background: var(--ovs-role-mod-message-bg, var(--ovs-role-fallback-message-bg)) !important;
+  border-color: var(--ovs-role-mod-message-border-color, var(--ovs-role-fallback-message-border)) !important;
+  color: var(--ovs-role-mod-message-text-color, inherit) !important;
+  box-shadow: inset 0 0 0 1px var(--ovs-role-mod-message-border-color, transparent);
+}
+
+:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-text {
+  font-size: var(--ovs-role-mod-message-font-size, inherit) !important;
+}
+:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-author {
+  font-size: var(--ovs-role-mod-author-font-size, inherit) !important;
+}
+:root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-badges {
+  font-size: var(--ovs-role-mod-badges-font-size, inherit) !important;
+}
+
+:root[data-ovs-role-mod-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) {
+  background: var(
+      --ovs-role-mod-row-bg,
+      var(--ovs-role-mod-message-bg, var(--ovs-role-fallback-row-bg))
+    ) !important;
+  border-color: var(
+      --ovs-role-mod-row-border-color,
+      var(--ovs-role-mod-message-border-color, var(--ovs-role-fallback-row-border))
+    ) !important;
+}
+:root[data-ovs-role-mod-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-text {
+  color: var(--ovs-role-mod-message-text-color, inherit) !important;
+}
+
+/* ==========================================
+   3. SUPER CHAT STYLES (Highest priority)
+   ========================================== */
+:root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-author {
+  color: var(--ovs-role-superchat-author-color, #fde047) !important;
+}
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-author-bg='true'] .ovs-message.ovs-superchat .ovs-author {
   display: inline-block;
   background: var(--ovs-role-superchat-author-bg);
   padding: 0.15em 0.55em;
   border-radius: 999px;
 }
 
+/* If bubble wrap row is false (per-slot mode): style the text bubble */
 :root[data-ovs-role-superchat-enabled='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-superchat .ovs-text {
-  background: var(--ovs-role-superchat-message-bg, var(--ovs-role-fallback-message-bg)) !important;
-  border-color: var(--ovs-role-superchat-message-border-color, var(--ovs-role-fallback-message-border)) !important;
+  background: var(
+    --ovs-role-superchat-message-bg,
+    linear-gradient(135deg, rgba(255, 202, 40, 0.28), var(--ovs-role-fallback-message-bg))
+  ) !important;
+  border-width: var(--ovs-bubble-border-width, 1px) !important;
+  border-style: solid !important;
+  border-color: var(
+    --ovs-role-superchat-message-border-color,
+    rgba(255, 202, 40, 0.45)
+  ) !important;
   color: var(--ovs-role-superchat-message-text-color, inherit) !important;
-  box-shadow: inset 0 0 0 1px var(--ovs-role-superchat-message-border-color, transparent);
+  box-shadow: inset 0 0 0 1px var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45));
 }
 
 :root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-text {
@@ -183,45 +192,24 @@
   font-size: var(--ovs-role-superchat-badges-font-size, inherit) !important;
 }
 
+/* If bubble wrap row is true (row mode): style the row */
 :root[data-ovs-role-superchat-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-superchat {
   background: var(
       --ovs-role-superchat-row-bg,
-      var(--ovs-role-superchat-message-bg, var(--ovs-role-fallback-row-bg))
+      var(--ovs-role-superchat-message-bg, linear-gradient(135deg, rgba(255, 202, 40, 0.22), var(--ovs-role-fallback-row-bg)))
     ) !important;
+  border-width: var(--ovs-bubble-border-width, 1px) !important;
+  border-style: solid !important;
   border-color: var(
       --ovs-role-superchat-row-border-color,
-      var(--ovs-role-superchat-message-border-color, var(--ovs-role-fallback-row-border))
+      var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45))
     ) !important;
 }
 :root[data-ovs-role-superchat-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-superchat .ovs-text {
   color: var(--ovs-role-superchat-message-text-color, inherit) !important;
 }
 
-/* Combined roles + superchat (per-slot bubble) */
-:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-member-enabled='true']:not([data-ovs-bubble-wrap-row='true'])
-  .ovs-message.ovs-member.ovs-superchat
-  .ovs-text {
-  background: linear-gradient(
-    135deg,
-    rgba(96, 165, 250, 0.18),
-    rgba(255, 202, 40, 0.22),
-    var(--ovs-slot-message-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)))
-  ) !important;
-  border-color: var(--ovs-role-member-message-border-color, rgba(96, 165, 250, 0.55)) !important;
-}
-
-:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-mod-enabled='true']:not([data-ovs-bubble-wrap-row='true'])
-  .ovs-message.ovs-moderator.ovs-superchat
-  .ovs-text {
-  background: linear-gradient(
-    135deg,
-    rgba(248, 113, 113, 0.2),
-    rgba(255, 202, 40, 0.24),
-    var(--ovs-slot-message-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)))
-  ) !important;
-  border-color: var(--ovs-role-mod-message-border-color, rgba(248, 113, 113, 0.6)) !important;
-}
-
+/* Superchat Amount Badge */
 .ovs-superchat-amount {
   display: none;
   margin-left: 0.35em;
