@@ -17,6 +17,7 @@ const { mergeRoleStyleConfig } = require('../shared/role-style-config');
 const { resolveThemeState } = require('./store/theme-state');
 const { getDirtyFields } = require('./store/theme-baseline');
 const { GetThemeList, ApplyTheme, ResetCategory } = require('../shared/theme-manager');
+const { initializeAutoUpdater } = require('./auto-updater');
 
 const sessionId = crypto.randomUUID();
 
@@ -93,6 +94,9 @@ async function bootstrap() {
   wsBroadcast = broadcast;
 
   registerIpcHandlers();
+
+  // Khởi tạo hệ thống tự động cập nhật
+  initializeAutoUpdater();
 }
 
 function registerIpcHandlers() {

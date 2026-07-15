@@ -1,125 +1,119 @@
-# YouTube Overlay Studio — MVP
+# Lacishtar Chat
 
 > "Dán link YouTube Live, chọn giao diện, dán vào OBS. Xong."
 
-Khung MVP đầy đủ theo đúng kiến trúc trong tài liệu thiết kế: Electron (Main
-process) điều phối 1 **hidden BrowserView** để capture DOM chat YouTube, chạy
-1 **HTTP + WebSocket server local** để phục vụ overlay cho OBS, và 1
-**Dashboard (React)** để Connect / chọn Theme / Customize với preview
-realtime (chính là overlay page nhúng qua iframe — không phải bản giả lập
-riêng, nên preview và OBS luôn khớp nhau).
+**Lacishtar Chat** (tiền thân là YouTube Overlay Studio) là một ứng dụng máy tính (Desktop App) mạnh mẽ giúp chuyển đổi live chat trên YouTube thành các giao diện Overlay đẹp mắt, mượt mà và trực quan để nhúng trực tiếp vào OBS Studio cho các streamer. 
 
-## Cấu trúc
+Ứng dụng hoạt động dựa trên cơ chế: Electron (Main process) điều phối 1 **hidden BrowserView** để capture DOM chat YouTube thật, chạy 1 **HTTP + WebSocket server local** để phục vụ overlay cho OBS, và 1 **Dashboard (React)** để điều khiển kết nối, chọn theme, và tùy chỉnh cấu hình hiển thị với preview realtime.
 
+---
+
+## Tính năng nổi bật
+
+- ⚡ **Realtime Preview**: Trình xem trước trong Dashboard là trang overlay thật được nhúng qua iframe, đảm bảo những gì bạn thấy trên Dashboard và hiển thị trên OBS luôn trùng khớp 100%.
+- 🎨 **9 Theme mặc định & Hỗ trợ Custom**: Tích hợp sẵn 9 phong cách thiết kế từ tối giản, dễ thương cho tới phong cách game thủ, cyberpunk.
+- ⚙️ **Tùy chỉnh sâu & Mạnh mẽ**:
+  - **Custom Size Bubble**: Tự do điều chỉnh kích thước bóng chat theo ý muốn.
+  - **Text Alignment & Khung chat**: Căn chỉnh vị trí chữ (trái/phải/giữa) và căn lề khung chat linh hoạt.
+  - **Font chữ đa dạng**: Hỗ trợ tích hợp thêm font chữ tùy chọn để đồng bộ với nhận diện thương hiệu của kênh stream.
+  - **Phân loại vai trò (Role styling)**: Tùy biến kiểu hiển thị riêng cho Moderator, Member (Hội viên), và Superchat (bao gồm hiển thị loại tiền tệ).
+  - **Trang trí nâng cao (Decorations)**: Hỗ trợ layer stack cho phép hiển thị các họa tiết trang trí đè lên hoặc nằm phía dưới văn bản chat một cách linh hoạt.
+- 🔄 **Hệ thống tự động cập nhật (Auto-updater)**: Tích hợp sẵn `electron-updater` giúp ứng dụng tự động kiểm tra, tải về bản cập nhật mới trong nền từ GitHub Releases và thông báo khởi động lại để áp dụng khi hoàn tất.
+
+---
+
+## Cấu trúc thư mục
+
+```text
+main/                  Main process (Node) — Nguồn sự thật duy nhất
+  index.js             Entry point của Electron app, điều hướng và kết nối IPC
+  auto-updater.js      Quản lý logic tự động kiểm tra và tải cập nhật từ GitHub Releases
+  window-manager.js    Khởi tạo BrowserWindow hiển thị Dashboard
+  capture-manager.js   Quản lý hidden BrowserView + IPC nhận dữ liệu chat đã capture
+  capture-preload.js   Script được tiêm vào BrowserView để theo dõi DOM (MutationObserver)
+  selectors.config.json Cấu hình các selector CSS để thu dữ liệu chat (dễ dàng chỉnh sửa khi YouTube đổi giao diện)
+  theme-registry.js    Trình quản lý theme ở main process
+  server/http-server.js Khởi chạy HTTP Server cục bộ phục vụ các file tĩnh, overlay và themes
+  server/ws-server.js   WebSocket Server để truyền tin nhắn và đồng bộ cấu hình thời gian thực
+  store/               Nơi lưu trữ file config.json của ứng dụng trong thư mục userData
+preload/               Preload script tạo cầu nối an toàn (contextBridge) giữa Electron và React UI
+renderer-dashboard/    Mã nguồn giao diện Dashboard (React + Tailwind CSS, build bằng Vite)
+overlay/               Trang hiển thị overlay thuần HTML/CSS/JS (OBS Browser Source sẽ load trang này)
+themes/                Thư mục chứa các theme (mỗi theme gồm template.html, style.css và default-config.json)
+shared/                Chứa các schema dùng chung và logic xử lý cấu hình (Layout, Animation, Role, Theme presets)
+scripts/               Các script kiểm thử nhanh hệ thống độc lập
 ```
-main/                  Main process (Node) — nguồn sự thật duy nhất
-  index.js             entry point, wiring toàn bộ app
-  window-manager.js     tạo Dashboard BrowserWindow
-  capture-manager.js    quản lý hidden BrowserView + IPC nhận dữ liệu capture
-  capture-preload.js    script tiêm vào BrowserView (MutationObserver)
-  selectors.config.json CSS selector của YouTube — sửa file này khi YouTube đổi DOM
-  theme-registry.js     đọc danh sách theme + default-config.json
-  server/http-server.js Express — serve /overlay và /themes
-  server/ws-server.js   WebSocket — broadcast chat:new / theme:changed / config:updated
-  store/config-store.js đọc/ghi config.json trong userData (không DB)
-preload/dashboard-preload.js   contextBridge — window.api cho Dashboard
-renderer-dashboard/    Dashboard UI (React + Tailwind, build bằng Vite)
-overlay/               Trang overlay thuần HTML/CSS/JS (OBS Browser Source load trang này)
-themes/                6 theme: classic, bubble, glass, minimal, anime, cyber
-                       (mỗi theme = template.html + style.css + default-config.json)
-shared/                Schema dùng chung (ChatMessage, CustomizeConfig)
-scripts/smoke-test-server.js   Test HTTP+WS server độc lập, không cần Electron
-```
 
-## Cài đặt & chạy
+---
+
+## Cài đặt & Khởi chạy
+
+Yêu cầu máy tính đã cài đặt **Node.js**.
 
 ```bash
+# 1. Cài đặt các thư viện phụ thuộc
 npm install
 
-# Chạy dev (Vite dashboard + Electron cùng lúc, có hot reload cho UI)
+# 2. Khởi chạy chế độ phát triển (Phát chạy song song cả React Dev Server và Electron)
 npm run dev
 
-# Hoặc build dashboard rồi chạy bản gần-production
+# 3. Build giao diện React và chạy ứng dụng Electron giả lập production
 npm run start
+
+# 4. Đóng gói ứng dụng thành file cài đặt (.exe cho Windows hoặc .dmg cho macOS)
+npm run build
 ```
 
-Khi app mở, dán link `youtube.com/watch?v=...`, `/live/...` hoặc `youtu.be/...`
-đang có live chat vào Connect Panel. Overlay URL để dán vào OBS Browser Source
-nằm ngay dưới khung preview (nút "Copy URL cho OBS").
+Khi ứng dụng mở ra, dán link livestream dạng `youtube.com/watch?v=...`, `/live/...` hoặc `youtu.be/...` vào ô kết nối. Link Overlay để dán vào OBS Browser Source sẽ hiển thị ngay bên dưới khung preview.
 
-## 6 theme có sẵn
+---
 
-| Theme | Phong cách |
+## 9 Theme tích hợp sẵn
+
+| Theme | Phong cách thiết kế |
 |---|---|
-| `classic` | Bubble tối giản, nền mờ, phù hợp đa số stream |
-| `bubble` | Bong bóng chat kiểu Messenger, có đuôi bong bóng |
-| `glass` | Glassmorphism — kính mờ, viền sáng, đổ bóng mềm |
-| `minimal` | Không khung nền, chỉ chữ — `Tên: nội dung`, tối giản tối đa |
-| `anime` | Pastel hồng/tím, viền avatar đứt nét, có icon ✦ trang trí, phù hợp VTuber |
-| `cyber` | Cyberpunk neon — viền phát sáng, chữ hoa, font mono |
+| `default` | Classic Dark — Khung bubble tối, bo góc, nền mờ mềm mại |
+| `minimal-white` | Tối giản sáng — Chữ tối trên nền bubble trắng, lược bỏ avatar |
+| `minimal-dark` | Tối giản tối — Chữ sáng trên nền bong bóng tối mờ |
+| `discord` | Discord Dark — Thiết kế lấy cảm hứng từ Discord với màu xanh Blurple |
+| `cyber-neon` | Cyberpunk Neon — Khung phát sáng neon cyan/magenta, font chữ monospace |
+| `pastel-pink` | Pastel Pink — Tông màu hồng phấn nhẹ nhàng, bo góc tròn rộng |
+| `glassmorphism` | Kính mờ — Hiệu ứng Blur kính xuyên thấu thời thượng, viền sáng mảnh |
+| `cute-bubble` | Bong bóng tròn — Kiểu bong bóng chat tinh nghịch kèm hiệu ứng xuất hiện nảy (bounce) |
+| `anime` | Sakura Anime — Tông hồng đào ngọt ngào thích hợp cho các VTuber |
 
-Tất cả theme dùng chung 1 bộ CSS variable do Customize Panel điều khiển
-(`shared/customize-config.js#toCssVariables`), nên panel hoạt động giống nhau
-dù đang dùng theme nào — trừ các ngoại lệ có ghi chú ngay trong CSS theme
-(`themes/minimal/style.css`: minimal bỏ qua màu nền bubble/bo góc vì không
-có khung — xem comment đầu file CSS tương ứng để biết chi tiết).
+---
 
-Thêm theme mới bằng cách tạo 1 thư mục trong `/themes` với `template.html`
-(giữ nguyên 4 hook `data-slot="avatar|author|badges|message"` để tương thích
-với `overlay/overlay-client.js`) + `style.css` (đọc từ các CSS variable
-`--ovs-*`, xem `themes/classic/style.css` làm mẫu) + `default-config.json`
-(bắt buộc có `_label`).
+## Cơ chế tự động cập nhật (Auto-updater)
 
-## Test server độc lập (không cần Electron/OBS)
+Tính năng tự động cập nhật liên kết trực tiếp với các bản phát hành (Releases) trên kho lưu trữ GitHub của bạn.
 
-```bash
-node scripts/smoke-test-server.js
-```
+- **Khi hoạt động**: 
+  - Chỉ kích hoạt khi ứng dụng chạy ở phiên bản đóng gói hoàn chỉnh (Production / Packaged). Khi chạy ở chế độ dev (`npm run dev`), hệ thống sẽ bỏ qua để tránh lỗi.
+  - Khi có phiên bản mới tải lên GitHub Releases công khai, ứng dụng sẽ tự động tải phiên bản đó về trong nền.
+  - Sau khi tải xong, một hộp thoại sẽ hiển thị hỏi người dùng có muốn khởi động lại ngay lập tức để cập nhật hay không. Nếu người dùng chọn "Để sau", bản cập nhật sẽ được áp dụng vào lần tiếp theo khi tắt mở ứng dụng.
 
-Script này khởi động HTTP+WS server thật, gọi `/overlay`, `/overlay/overlay-client.js`,
-`/themes/classic/...`, và bắn thử 1 message qua WebSocket — dùng để xác nhận
-tầng server không lỗi trước khi đụng tới Electron/BrowserView.
+- **Cách phát hành bản cập nhật**:
+  1. Tăng số `version` trong `package.json` (Ví dụ từ `1.0.0` lên `1.0.1`).
+  2. Đặt mã thông báo GitHub cá nhân (Personal Access Token) vào biến môi trường `GH_TOKEN` trên thiết bị build của bạn.
+  3. Chạy lệnh đóng gói và tự động đẩy lên nháp:
+     ```bash
+     # electron-builder sẽ tự động build và upload lên GitHub Releases nháp dựa trên cấu hình publish trong package.json
+     npm run build
+     ```
+  4. Truy cập GitHub Releases của dự án, kiểm tra bản nháp và nhấn **Publish Release**.
 
-## ⚠️ Điểm cần bạn tự kiểm tra trước khi dùng thật
+---
 
-Môi trường tôi build/hoàn thiện code này **không có quyền truy cập youtube.com
-và không chạy được Electron GUI** (network sandbox chỉ cho phép npm/GitHub,
-không cho domain youtube.com/ytimg.com), nên tôi đã:
+## Hướng dẫn phát triển & Khắc phục lỗi
 
-- ✅ Syntax-check toàn bộ file trong `main/`, `preload/`, `shared/`, `overlay/`
-- ✅ Chạy thật HTTP+WS server (Express/`ws`) qua `scripts/smoke-test-server.js` — pass
-- ✅ Build thật Dashboard React/Tailwind bằng Vite — pass
-- ✅ Viết thêm script kiểm tra riêng cho vòng lặp "9 theme": xác nhận
-  `theme-registry.listThemes()` trả đúng 9 theme, mỗi theme có `_label`,
-  `template.html` (đủ 4 `data-slot`), `style.css` (đọc đủ các CSS variable
-  liên quan), và cả `template.html` + `style.css` đều serve được qua HTTP
-  server thật (`/themes/:id/template.html`, `/themes/:id/style.css`) — pass
-  cho cả 9 theme
-- ❌ **Chưa** kiểm tra được `main/selectors.config.json` khớp với DOM thật của
-  `youtube.com/live_chat` — các selector (`yt-live-chat-text-message-renderer`,
-  `#author-name`, `#message`...) là dựa theo cấu trúc YouTube hay dùng, nhưng
-  đây đúng là phần dễ vỡ nhất theo tài liệu thiết kế (§2.4, §2.12). Tôi đã
-  thêm sẵn vài selector dự phòng dạng danh sách phân tách bằng dấu phẩy cho
-  `chatContainer` và `avatar` (CSS tự hiểu "khớp 1 trong các selector này"
-  mà không cần sửa code) để tăng khả năng chịu lỗi, nhưng **vẫn chưa test
-  được với trang thật**. Việc đầu tiên nên làm khi chạy thật: mở DevTools
-  trên hidden BrowserView (tạm thời bật `view.webContents.openDevTools()`
-  trong `capture-manager.js`), so khớp selector, và sửa trực tiếp trong
-  `selectors.config.json` nếu cần — không phải sửa code.
-- ❌ Chưa build/test trên máy Windows/macOS thật (đóng gói NSIS/dmg) — cấu
-  hình `electron-builder` trong `package.json` mới là khung, chưa chạy `npm
-  run build` thật (môi trường sandbox chặn tải Electron binary từ GitHub
-  Releases — bạn cần chạy bước này trên máy thật).
+### Tùy biến hoặc Thêm Theme mới
+Bạn có thể dễ dàng thêm theme tùy chỉnh bằng cách tạo một thư mục mới trong `/themes` có cấu trúc:
+- `template.html`: Chứa khung HTML của một dòng chat. Bắt buộc có đủ 4 thuộc tính `data-slot="avatar|author|badges|message"` để script tự động điền dữ liệu.
+- `style.css`: CSS áp dụng cho dòng chat của theme đó. Bạn có thể sử dụng các biến CSS `--ovs-*` được tính toán sẵn từ cấu hình chung.
+- `default-config.json`: Chứa cấu hình mặc định cho theme này (bao gồm trường `_label` đặt tên hiển thị).
 
-## Chưa làm (ngoài phạm vi lần hoàn thiện này)
-
-- Chưa có licensing/activation (mục §2.14 của tài liệu thiết kế) — đây là 1
-  hệ thống con riêng (chọn nền tảng bán hàng, ký license offline...) cần bạn
-  quyết định trước (Gumroad/Paddle/LemonSqueezy? có cần ngay cho bản đầu hay
-  để sau?) nên tôi chưa tự ý dựng khung cho phần này. Nói tôi biết nếu muốn
-  làm tiếp phần này.
-- Dashboard chưa hiển thị danh sách chat dạng text riêng (dùng iframe overlay
-  làm preview trực tiếp — vừa đúng nguyên tắc "1 nguồn render duy nhất", vừa
-  đỡ trùng lặp code) — đây là lựa chọn thiết kế có chủ đích, không phải thiếu
-  sót, nhưng nói tôi biết nếu bạn muốn có thêm 1 danh sách chat dạng text.
-
+### Cấu hình bộ thu dữ liệu chat khi YouTube đổi giao diện
+Nếu YouTube thay đổi cấu trúc trang web khiến tính năng kết xuất chat bị hỏng:
+- Bạn chỉ cần mở tệp [selectors.config.json](file:///c:/Users/LENOVO/Projects/youtube-overlay-studio/youtube-overlay-studio/main/selectors.config.json).
+- Cập nhật lại các Selector CSS cho phù hợp mà không cần phải can thiệp hay sửa đổi bất cứ mã nguồn JavaScript nào của ứng dụng.

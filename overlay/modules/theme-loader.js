@@ -40,35 +40,35 @@ export function applyThemePayload(data, options = {}) {
   if (isPreview && (!incomingHistory || incomingHistory.length === 0)) {
     incomingHistory = [
       {
-        avatarUrl: 'mock-avatar:Thanh Bình',
-        author: 'Thanh Bình',
-        messageHtml: 'Hello anh em! Nhìn giao diện xịn xò quá 👍',
+        avatarUrl: 'mock-avatar:A Viewer',
+        author: 'A Viewer',
+        messageHtml: 'Chào bạn 👋👋👋',
         roles: [],
         badges: []
       },
       {
-        avatarUrl: 'mock-avatar:Hoàng Nam',
-        author: 'Hoàng Nam',
-        messageHtml: 'Mọi người nhớ like và đăng ký kênh ủng hộ streamer nhé! 🔔',
-        roles: ['moderator'],
-        badges: ['MOD']
+        avatarUrl: 'mock-avatar:B Viewer',
+        author: 'B Viewer',
+        messageHtml: 'Vui lòng ko spam tn nha mn 😡😡😡',
+        roles: ['moderator' , 'member'],
+        badges: []
       },
       {
-        avatarUrl: 'mock-avatar:Minh Thư',
-        author: 'Minh Thư',
-        messageHtml: 'Kênh live stream đều đặn quá, thiết kế overlay này rất đẹp 💖',
+        avatarUrl: 'mock-avatar:C Viewer',
+        author: 'C Viewer',
+        messageHtml: 'bạn này ngố phết kkkkk',
         roles: ['member'],
-        badges: ['★'],
+        badges: [],
         memberMonths: 12
       },
       {
-        avatarUrl: 'mock-avatar:Khánh Linh',
-        author: 'Khánh Linh',
-        messageHtml: 'Chúc kênh ngày càng phát triển hơn nữa nha!',
+        avatarUrl: 'mock-avatar:D Viewer',
+        author: 'D Viewer',
+        messageHtml: 'Vtuber này thuần sinh tố bịch :vv',
         roles: ['member'],
-        badges: ['★'],
+        badges: [],
         isSuperchat: true,
-        superchatCurrencyRaw: '50.000 ₫',
+        superchatCurrencyRaw: '500.000 ₫',
         memberMonths: 6
       }
     ];

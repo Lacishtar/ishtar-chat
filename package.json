@@ -1,6 +1,7 @@
 {
-  "name": "youtube-overlay-studio",
-  "version": "0.2.0",
+  "name": "Lacishtar-chat",
+  "version": "1.0.0",
+  "author": "Lacishtar",
   "description": "Dán link YouTube Live, chọn giao diện, dán vào OBS. Xong.",
   "private": true,
   "main": "main/index.js",
@@ -16,6 +17,7 @@
     "smoke:role-style": "node scripts/smoke-test-role-style-config.js"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "express": "^4.19.2",
     "ws": "^8.17.0"
   },
@@ -34,10 +36,28 @@
     "wait-on": "^7.2.0"
   },
   "build": {
-    "appId": "com.example.youtube-overlay-studio",
-    "productName": "YouTube Overlay Studio",
-    "files": ["main/**/*", "preload/**/*", "overlay/**/*", "themes/**/*", "shared/**/*", "dist-dashboard/**/*"],
-    "win": { "target": "nsis" },
-    "mac": { "target": "dmg" }
+    "appId": "com.lac.lacishtar-chat",
+    "productName": "Lacishtar Chat",
+    "files": [
+      "main/**/*",
+      "preload/**/*",
+      "overlay/**/*",
+      "themes/**/*",
+      "shared/**/*",
+      "dist-dashboard/**/*"
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "Lacishtar",
+      "repo": "ishtar-chat"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.ico"
+    }
   }
 }
