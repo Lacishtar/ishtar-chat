@@ -10,16 +10,69 @@ const ANIMATION_STYLE_OPTIONS = Object.entries(ANIMATION_STYLE_PRESETS).map(([va
 }));
 
 export default function AnimationSection({ local, onChange, animLocal, onAnimationChange }) {
+  const displayMode = local.displayMode === 'danmaku' ? 'danmaku' : 'stack';
+  const isDanmaku = displayMode === 'danmaku';
+
   return (
     <>
       <div className="col-span-2">
-        <Field label="Vị trí tin mới">
-          <select className={inputClass} value={local.position} onChange={(e) => onChange({ position: e.target.value })}>
-            <option value="bottom-up">Tin mới ở dưới</option>
-            <option value="top-down">Tin mới ở trên</option>
+        <Field label="Kiểu hiển thị chat">
+          <select className={inputClass} value={displayMode} onChange={(e) => onChange({ displayMode: e.target.value })}>
+            <option value="stack">Xếp chồng (mặc định)</option>
+            <option value="danmaku">Đạn bay (Danmaku) — bay ngang màn hình</option>
           </select>
         </Field>
       </div>
+      {isDanmaku ? (
+        <>
+          <Field label={`Tốc độ bay — x${(local.danmakuSpeed ?? 1).toFixed(1)}`}>
+            <input
+              type="range"
+              min={0.3}
+              max={3}
+              step={0.1}
+              value={local.danmakuSpeed ?? 1}
+              onChange={(e) => onChange({ danmakuSpeed: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label={`Số làn (lanes) — ${local.danmakuLanes ?? 12}`}>
+            <input
+              type="range"
+              min={3}
+              max={30}
+              value={local.danmakuLanes ?? 12}
+              onChange={(e) => onChange({ danmakuLanes: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label={`Chừa trống phía trên — ${local.danmakuAreaTopPct ?? 4}%`}>
+            <input
+              type="range"
+              min={0}
+              max={40}
+              value={local.danmakuAreaTopPct ?? 4}
+              onChange={(e) => onChange({ danmakuAreaTopPct: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label={`Chừa trống phía dưới — ${local.danmakuAreaBottomPct ?? 4}%`}>
+            <input
+              type="range"
+              min={0}
+              max={40}
+              value={local.danmakuAreaBottomPct ?? 4}
+              onChange={(e) => onChange({ danmakuAreaBottomPct: Number(e.target.value) })}
+            />
+          </Field>
+        </>
+      ) : (
+        <div className="col-span-2">
+          <Field label="Vị trí tin mới">
+            <select className={inputClass} value={local.position} onChange={(e) => onChange({ position: e.target.value })}>
+              <option value="bottom-up">Tin mới ở dưới</option>
+              <option value="top-down">Tin mới ở trên</option>
+            </select>
+          </Field>
+        </div>
+      )}
       <div className="col-span-2">
         <Field label="Kiểu hiệu ứng xuất hiện">
           <select

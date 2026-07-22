@@ -1,0 +1,50 @@
+/* Danmaku display mode — bullet-style flying comments (Niconico/Bilibili
+ * style), toggled via customize-config's displayMode === 'danmaku' and
+ * reflected here through the [data-ovs-theme-mode='danmaku'] attribute on
+ * #ovs-chat-list (see overlay/modules/state.js#syncThemeModeClass).
+ *
+ * Selectors are ID + attribute qualified so they win over each theme's own
+ * `#ovs-chat-list` / `.ovs-message` rules (themes/*\/style.css) regardless
+ * of stylesheet load order.
+ */
+
+#ovs-chat-list[data-ovs-theme-mode='danmaku'] {
+  position: fixed;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  pointer-events: none;
+  transform: none;
+}
+
+#ovs-chat-list[data-ovs-theme-mode='danmaku'] .ovs-message {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  margin: 0;
+  max-width: none;
+  animation-name: ovs-danmaku-fly;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  will-change: transform;
+}
+
+@keyframes ovs-danmaku-fly {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* Clears the container's full width plus a comfortable margin for the
+       bullet's own width, so it always finishes fully off-screen to the
+       left before its node is removed on animationend. */
+    transform: translateX(-200vw);
+  }
+}
+
+/* NOTE: `prefers-reduced-motion` is intentionally NOT applied here.
+ * OBS's Browser Source (CEF) frequently reports `reduce` regardless of
+ * the actual OS setting — the same issue that killed slot-enter animations
+ * (see overlay/slot-animations.css). The flight animation IS the danmaku
+ * feature: suppressing it makes every bullet invisible (1ms → instant
+ * remove). Speed control is exposed via danmakuSpeed in the dashboard. */

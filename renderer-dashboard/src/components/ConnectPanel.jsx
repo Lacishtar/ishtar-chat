@@ -1,20 +1,32 @@
 import { useEffect, useState } from 'react';
 
-function formatStatusError(status, localError) {
-  if (localError) return localError;
-  if (!status.error) return null;
-
-  const msg = status.error;
-  if (msg.includes('Link không đúng') || msg === 'invalid_url') {
-    return 'Link không đúng định dạng — dùng youtube.com/watch, /live/ hoặc youtu.be.';
+// Ánh xạ mã lỗi ngắn gọn từ captureManager.connect() (result.error) sang câu
+// thông báo dễ hiểu. Dùng chung cho cả lỗi trả về trực tiếp từ api.connect()
+// lẫn lỗi đẩy qua sự kiện 'status' (status.error) — hai đường đều có thể
+// mang cùng một lý do thật, không nên bị một thông báo chung chung che mất.
+function friendlyErrorMessage(errCode) {
+  if (!errCode) return null;
+  if (errCode === 'invalid_url' || errCode.includes('Link không đúng')) {
+    return 'Link không đúng định dạng — dùng link video/live hoặc link kênh YouTube (@handle, /channel/...).';
   }
-  if (msg.includes('Không tìm thấy khung chat') || msg.includes('container-not-found')) {
+  if (errCode === 'channel_not_live' || errCode.includes('không có livestream')) {
+    return 'Kênh hiện không có livestream nào đang diễn ra.';
+  }
+  if (errCode === 'load_failed' || errCode.includes('Không tải được')) {
+    return 'Không tải được trang chat — kiểm tra kết nối mạng rồi thử lại.';
+  }
+  if (errCode.includes('Không tìm thấy khung chat') || errCode.includes('container-not-found')) {
     return 'Không tìm thấy khung chat — video có thể không live hoặc YouTube đã đổi giao diện.';
   }
-  if (msg.includes('selector') || msg.includes('Selector')) {
+  if (errCode.includes('selector') || errCode.includes('Selector')) {
     return 'Lỗi selector DOM — kiểm tra main/selectors.config.json hoặc thử lại sau.';
   }
-  return msg;
+  return errCode;
+}
+
+function formatStatusError(status, localError) {
+  if (localError) return localError;
+  return friendlyErrorMessage(status.error);
 }
 
 /**
@@ -48,24 +60,42 @@ export default function ConnectPanel({ api, status, lastSessionUrl, onConnected 
     }
   }, [isConnected, url, status.status]);
 
-  async function doConnect(targetUrl) {
+  async function doConnect(rawTargetUrl) {
     setLocalError(null);
 
-    if (!/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(targetUrl.trim())) {
-      setLocalError('Link phải là youtube.com/watch, youtube.com/live hoặc youtu.be.');
+    // Người dùng hay dán link không có "https://" (copy tay, share từ điện
+    // thoại) — tự thêm scheme trước khi validate/kết nối thay vì chặn thẳng.
+    let targetUrl = rawTargetUrl.trim();
+    if (targetUrl && !/^https?:\/\//i.test(targetUrl)) {
+      targetUrl = `https://${targetUrl}`;
+    }
+
+    // Khớp với độ permissive của parseChannelLiveUrl/parseVideoId bên main
+    // process: chấp nhận mọi subdomain của youtube.com (kể cả m.youtube.com
+    // từ link mobile), không chỉ mỗi www./không-subdomain.
+    let isYoutubeHost = false;
+    try {
+      const { hostname } = new URL(targetUrl);
+      isYoutubeHost = /(^|\.)youtube\.com$/i.test(hostname) || /(^|\.)youtu\.be$/i.test(hostname);
+    } catch (_e) {
+      isYoutubeHost = false;
+    }
+
+    if (!isYoutubeHost) {
+      setLocalError('Link phải là youtube.com/watch, /live/, youtu.be, hoặc link kênh (@handle, /channel/...).');
       return false;
     }
 
     setSubmitting(true);
-    const result = await api.connect(targetUrl.trim());
+    const result = await api.connect(targetUrl);
     setSubmitting(false);
 
     if (!result.ok) {
-      setLocalError('Không kết nối được — kiểm tra lại link livestream.');
+      setLocalError(friendlyErrorMessage(result.error) || 'Không kết nối được — kiểm tra lại link livestream.');
       return false;
     }
 
-    if (onConnected) onConnected(targetUrl.trim());
+    if (onConnected) onConnected(targetUrl);
     return true;
   }
 
@@ -114,7 +144,7 @@ export default function ConnectPanel({ api, status, lastSessionUrl, onConnected 
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Dán link youtube.com/watch?v=... hoặc /live/..."
+              placeholder="Dán link video/live, hoặc link kênh (@handle, /channel/...)"
               disabled={isConnecting}
               className="w-64 rounded-lg bg-panelAlt border border-line px-3 py-1.5 text-xs font-mono
                          placeholder:text-inkMuted/60 focus:outline-none focus:ring-2 focus:ring-focusAccent

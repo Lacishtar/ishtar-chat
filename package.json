@@ -14,7 +14,8 @@
     "build": "npm run build:dashboard && electron-builder",
     "smoke:slot-style": "node scripts/smoke-test-slot-style.js",
     "smoke:decoration": "node scripts/smoke-test-decoration-config.js",
-    "smoke:role-style": "node scripts/smoke-test-role-style-config.js"
+    "smoke:role-style": "node scripts/smoke-test-role-style-config.js",
+    "smoke:danmaku": "node scripts/smoke-test-danmaku-config.js"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",

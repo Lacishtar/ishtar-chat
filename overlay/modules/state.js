@@ -27,10 +27,30 @@ export const initialHistory = initial.history;
 export const listEl = document.getElementById('ovs-chat-list');
 export const themeStyleEl = document.getElementById('ovs-theme-style');
 
-// Only one theme-mode remains (stack), but decoration-layers.css keys off
-// this dataset attribute (`#ovs-chat-list[data-ovs-theme-mode='stack']`),
-// so the attribute itself stays rather than inlining the value everywhere.
+// 'stack' is the normal chat feed (bubbles stack up/down per
+// currentConfig.position). 'danmaku' flies each message across the screen
+// once instead — see overlay/modules/special-modes.js.
+let currentDisplayMode = 'stack';
+
+export function getDisplayMode() {
+  return state.currentConfig?.displayMode === 'danmaku' ? 'danmaku' : 'stack';
+}
+
+// Reflects the active display mode onto #ovs-chat-list via a dataset
+// attribute — decoration-layers.css keys off `[data-ovs-theme-mode='stack']`,
+// and overlay/danmaku.css keys off `[data-ovs-theme-mode='danmaku']` — and
+// wipes the list whenever the mode actually changes so the two rendering
+// paths (flex stack vs absolutely-positioned flying bullets) never mix
+// leftover DOM nodes. Returns true when the mode changed, so callers know
+// whether the message history needs replaying into the new mode.
 export function syncThemeModeClass() {
-  if (!listEl) return;
-  listEl.dataset.ovsThemeMode = 'stack';
+  if (!listEl) return false;
+  const mode = getDisplayMode();
+  const changed = mode !== currentDisplayMode;
+  if (changed) {
+    currentDisplayMode = mode;
+    listEl.innerHTML = '';
+  }
+  listEl.dataset.ovsThemeMode = mode;
+  return changed;
 }

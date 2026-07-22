@@ -1,9 +1,10 @@
-import { state } from './state.js';
+import { state, syncThemeModeClass } from './state.js';
 import { applyCssVariables } from './css-variables.js';
 import { refreshAllDecorations } from './decoration.js';
 import { refreshAllSlotBunnyEars } from './bubble.js';
 import { applyThemePayload } from './theme-loader.js';
 import { enqueueMessage } from './message-queue.js';
+import { renderHistory } from './message-renderer.js';
 
 export function connectSocket() {
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -23,9 +24,11 @@ export function connectSocket() {
       applyThemePayload(payload.data || {});
     } else if (payload.type === 'config:updated') {
       state.currentConfig = payload.data;
+      const modeChanged = syncThemeModeClass();
       applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);
       refreshAllDecorations();
       refreshAllSlotBunnyEars();
+      if (modeChanged) renderHistory(state.messageHistory);
     } else if (payload.type === 'layout:updated') {
       state.currentLayout = payload.data;
       applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);

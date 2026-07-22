@@ -51,6 +51,23 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   animationMs: 220,
   position: 'bottom-up', // 'bottom-up' | 'top-down'
   maxMessages: 40,
+  // 'stack' = normal chat feed (bubbles stack up/down, see `position`).
+  // 'danmaku' = bullet-comment mode: each message flies across the screen
+  // once (Niconico/Bilibili style) instead of stacking. Handled entirely
+  // client-side by overlay/modules/special-modes.js — see
+  // overlay/modules/state.js#getDisplayMode / #syncThemeModeClass for the
+  // switch-over logic.
+  displayMode: 'stack', // 'stack' | 'danmaku'
+  danmakuSpeed: 1, // speed multiplier for danmaku flight — 1 = default, >1 faster, <1 slower
+  danmakuLanes: 12, // number of horizontal lanes danmaku bullets cycle through
+  // How much of the screen height danmaku lanes are allowed to use, as a
+  // margin (%) kept clear at the top and bottom respectively. Raising these
+  // shrinks the flyable band so bullets can't land right at the very edge
+  // (e.g. behind a webcam/alert overlay, or just too close together near
+  // the top/bottom for comfortable reading). Independent top/bottom values
+  // let users protect only the edge that actually overlaps other overlays.
+  danmakuAreaTopPct: 4,
+  danmakuAreaBottomPct: 4,
 };
 
 function isSet(value) {

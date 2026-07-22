@@ -76,10 +76,11 @@ export function applyThemePayload(data, options = {}) {
 
   const finish = () => {
     applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);
+    const modeChanged = syncThemeModeClass();
     if (themeSwitch) {
       listEl.innerHTML = '';
     }
-    if (incomingHistory && (themeSwitch || options.forceHistory || listEl.children.length === 0)) {
+    if (incomingHistory && (themeSwitch || modeChanged || options.forceHistory || listEl.children.length === 0)) {
       state.messageHistory = [...incomingHistory];
       renderHistory(state.messageHistory);
     }

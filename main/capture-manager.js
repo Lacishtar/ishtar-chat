@@ -28,6 +28,37 @@ function parseVideoId(rawUrl) {
   }
 }
 
+// Recognizes a *channel* URL (not a specific video/live URL) — /channel/UC…,
+// /c/name, /user/name, or the modern /@handle form — and returns the
+// channel's canonical "/live" URL. YouTube resolves that URL server-side:
+// if the channel is currently streaming it redirects (301/302) to the
+// active watch page; if not, it just serves the channel page itself. We
+// exploit that redirect to turn "channel link" into "current live video id"
+// without needing the YouTube Data API or a signed-in session.
+function parseChannelLiveUrl(rawUrl) {
+  try {
+    const url = new URL(rawUrl.trim());
+    if (!/(^|\.)youtube\.com$/i.test(url.hostname)) return null;
+
+    let pathname = url.pathname.replace(/\/+$/, '');
+    if (pathname.toLowerCase().endsWith('/live')) {
+      pathname = pathname.slice(0, -'/live'.length);
+    }
+
+    const isChannelRef =
+      /^\/channel\/[^/]+$/.test(pathname) ||
+      /^\/c\/[^/]+$/.test(pathname) ||
+      /^\/user\/[^/]+$/.test(pathname) ||
+      /^\/@[^/]+$/.test(pathname);
+
+    if (!isChannelRef) return null;
+
+    return `https://www.youtube.com${pathname}/live`;
+  } catch (err) {
+    return null;
+  }
+}
+
 class CaptureManager extends EventEmitter {
   constructor(mainWindow) {
     super();
@@ -74,11 +105,127 @@ class CaptureManager extends EventEmitter {
     this.emit('status', { status, error: error || null, videoId: this.videoId });
   }
 
+  // Probes a channel's "/live" URL with a throwaway hidden BrowserView (kept
+  // off `this.view` so it never collides with disconnect()/the real capture
+  // view) and reads the video id back out of wherever YouTube's redirect
+  // lands. Resolves to null if the channel isn't currently live, or if the
+  // probe fails/times out.
+  //
+  // YouTube doesn't consistently use a real HTTP 30x for this anymore — some
+  // channel redirects now happen client-side (history.pushState/replaceState
+  // after the page's JS reads its own ytInitialData), which never fires
+  // Electron's `did-navigate` (that event is for full/document navigations
+  // only). So we watch three independent signals and take whichever resolves
+  // a video id first:
+  //   1. did-navigate       — classic server-side redirect
+  //   2. did-navigate-in-page — client-side pushState/replaceState redirect
+  //   3. canonical link tag  — fallback read of the DOM once the page has
+  //      settled, in case YouTube updates the address bar via a mechanism
+  //      that doesn't fire either navigation event at all
+  _resolveChannelVideoId(channelLiveUrl) {
+    return new Promise((resolve) => {
+      const probe = new BrowserView({
+        webPreferences: {
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: false,
+          backgroundThrottling: false,
+        },
+      });
+
+      let settled = false;
+      const timeoutId = setTimeout(() => finish(null), 12000);
+
+      const finish = (videoId) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        try {
+          this.mainWindow.removeBrowserView(probe);
+        } catch (_e) {
+          /* no-op */
+        }
+        resolve(videoId);
+      };
+
+      // Reads the canonical/og:url the page currently reports and tries to
+      // pull a video id out of it. Used as a fallback after load settles,
+      // and also re-checked shortly after each navigation event in case the
+      // event fired before YouTube's JS finished updating the URL.
+      const checkCanonical = async () => {
+        if (settled) return;
+        try {
+          const href = await probe.webContents.executeJavaScript(
+            `(document.querySelector('link[rel="canonical"]') || document.querySelector('meta[property="og:url"]'))?.[document.querySelector('link[rel="canonical"]') ? 'href' : 'content'] || location.href`,
+            true
+          );
+          finish(parseVideoId(href));
+        } catch (_e) {
+          /* page may have navigated away mid-read; ignore, other signals will settle it */
+        }
+      };
+
+      this.mainWindow.addBrowserView(probe);
+      probe.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+      probe.setAutoResize({ width: false, height: false });
+      probe.webContents.setAudioMuted(true);
+      probe.webContents.setUserAgent(CHROME_UA);
+
+      // did-navigate fires once the main frame has finished navigating,
+      // i.e. after any redirect chain has resolved — so getURL()/the event
+      // arg here is already the final destination.
+      probe.webContents.on('did-navigate', (_e, navigatedUrl) => {
+        const videoId = parseVideoId(navigatedUrl);
+        if (videoId) {
+          finish(videoId);
+        } else {
+          // Landed on the plain channel/live page over HTTP — YouTube may
+          // still redirect us client-side a moment later, so keep waiting
+          // and double check the DOM once things settle.
+          setTimeout(checkCanonical, 800);
+        }
+      });
+      // Client-side redirect (history.pushState/replaceState) — same
+      // document, so did-navigate never fires for this.
+      probe.webContents.on('did-navigate-in-page', (_e, navigatedUrl) => {
+        finish(parseVideoId(navigatedUrl));
+      });
+      probe.webContents.on('did-finish-load', () => {
+        // Belt-and-suspenders: whatever mechanism YouTube used (or didn't
+        // use) to update the URL, the canonical tag reflects the real
+        // current video once the page has actually finished loading.
+        setTimeout(checkCanonical, 500);
+      });
+      probe.webContents.on('did-fail-load', (_e, code) => {
+        if (code === -3) return;
+        finish(null);
+      });
+
+      probe.webContents
+        .loadURL(channelLiveUrl, { extraHeaders: 'Accept-Language: vi-VN,vi;q=0.9\n' })
+        .catch(() => finish(null));
+    });
+  }
+
   async connect(rawUrl) {
-    const videoId = parseVideoId(rawUrl);
+    let videoId = parseVideoId(rawUrl);
+
     if (!videoId) {
-      this._setStatus('error', 'Link không đúng định dạng YouTube live/watch.');
-      return { ok: false, error: 'invalid_url' };
+      const channelLiveUrl = parseChannelLiveUrl(rawUrl);
+      if (!channelLiveUrl) {
+        this._setStatus(
+          'error',
+          'Link không đúng định dạng — dùng link video/live hoặc link kênh YouTube.'
+        );
+        return { ok: false, error: 'invalid_url' };
+      }
+
+      this._setStatus('connecting');
+      videoId = await this._resolveChannelVideoId(channelLiveUrl);
+      if (!videoId) {
+        this._setStatus('error', 'Kênh hiện không có livestream nào đang diễn ra.');
+        return { ok: false, error: 'channel_not_live' };
+      }
     }
 
     await this.disconnect();
@@ -157,4 +304,4 @@ class CaptureManager extends EventEmitter {
   }
 }
 
-module.exports = { CaptureManager, parseVideoId };
+module.exports = { CaptureManager, parseVideoId, parseChannelLiveUrl };

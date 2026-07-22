@@ -2,11 +2,12 @@
 // render dispatch (stack) plus max-message trimming and slot visibility
 // refresh.
 
-import { state, listEl } from './state.js';
+import { state, listEl, getDisplayMode, syncThemeModeClass } from './state.js';
 import { resolveEffectiveSlotStyle } from './css-variables.js';
 import { applyAvatar } from './avatar.js';
 import { ensureBubbleTexture, applyMessageBunnyEars, applySlotBunnyEars } from './bubble.js';
 import { applyDecorationLayers } from './decoration.js';
+import { appendDanmakuMessage, renderDanmakuHistory } from './special-modes.js';
 
 export function applySlotVisibility(el, slotKey) {
   if (!el) return;
@@ -162,6 +163,15 @@ export function renderMessage(msg, options = {}) {
     }
   }
 
+  // Self-heals the dataset attribute / clears the list if some call site
+  // missed reacting to a displayMode change — cheap no-op when unchanged.
+  syncThemeModeClass();
+
+  if (getDisplayMode() === 'danmaku') {
+    appendDanmakuMessage(msg);
+    return;
+  }
+
   const node = createMessageNode(msg, { skipEnterAnimation: options.skipEnterAnimation });
 
   if (state.currentConfig.position === 'top-down') {
@@ -183,5 +193,9 @@ export function renderMessage(msg, options = {}) {
 
 export function renderHistory(history) {
   if (!Array.isArray(history) || history.length === 0) return;
+  if (getDisplayMode() === 'danmaku') {
+    renderDanmakuHistory(history);
+    return;
+  }
   history.forEach((msg) => renderMessage(msg, { trackHistory: false }));
 }

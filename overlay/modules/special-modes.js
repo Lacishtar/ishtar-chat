@@ -1,25 +1,85 @@
-// Danmaku (flying-lane) and Ticker (horizontal-scroll) rendering modes.
+// Danmaku (flying-bullet) rendering mode — an alternative to the normal
+// stacked chat feed. Each message becomes one absolutely-positioned node
+// that flies once across the screen on a CSS animation (see
+// overlay/danmaku.css for the `ovs-danmaku-fly` keyframe + container
+// styles, both scoped to `#ovs-chat-list[data-ovs-theme-mode='danmaku']`)
+// and removes itself when the animation ends.
 //
 // NOTE: this module and message-renderer.js import from each other
 // (special-modes needs createMessageNode; message-renderer needs
-// appendTickerMessage/appendDanmakuMessage/resetTickerPlayback/resetDanmaku
-// to dispatch renderMessage()/renderHistory() by theme mode). That's a
-// circular ES module import, which is safe here because every cross-use
-// happens *inside* a function body, never at module-evaluation time.
+// appendDanmakuMessage/renderDanmakuHistory to dispatch by display mode).
+// That's a circular ES module import, which is safe here because every
+// cross-use happens *inside* a function body, never at module-evaluation
+// time.
 
-import { state, listEl, TICKER_THEMES } from './state.js';
+import { state, listEl } from './state.js';
 import { createMessageNode } from './message-renderer.js';
 
-// ── Danmaku ────────────────────────────────────────────────────────────
+const DEFAULT_LANE_COUNT = 12;
+const MIN_LANE_COUNT = 3;
+const MAX_LANE_COUNT = 30;
+// Base flight durations (seconds) per lane index before the user's speed
+// multiplier is applied. Slightly varied per lane (rather than one flat
+// number) so bullets in different lanes don't all move in visual lockstep.
+// Cycled with `% length` for lane counts other than this array's own size.
+const BASE_LANE_DURATION_SEC = [9, 11, 8, 10, 12, 9, 11, 8, 10, 12, 9, 11];
+// Keep lanes off the very top/bottom edge of the screen. Defaults mirror
+// the old hardcoded margin; user-configurable via danmakuAreaTopPct /
+// danmakuAreaBottomPct so streamers can carve out extra clearance where
+// another overlay element (webcam, alert box, ticker, ...) sits, or just
+// stop bullets from reading as jammed together right at the edges.
+const DEFAULT_LANE_EDGE_MARGIN_PCT = 4;
+// However this is configured, always leave at least this much of the
+// screen height flyable — otherwise a bad combination of top+bottom
+// margins could collapse the band to nothing (or invert it).
+const MIN_FLYABLE_BAND_PCT = 10;
 
-const DANMAKU_LANE_COUNT = 12;
-const DANMAKU_LANE_TOP = ['4%', '12%', '20%', '28%', '36%', '44%', '52%', '60%', '68%', '76%', '84%', '92%'];
-const DANMAKU_LANE_BASE_DURATION_SEC = [9, 11, 8, 10, 12, 9, 11, 8, 10, 12, 9, 11];
-const DANMAKU_SPEED = 3;
 let danmakuLaneCursor = 0;
 
-function danmakuLaneDurationSec(lane) {
-  return DANMAKU_LANE_BASE_DURATION_SEC[lane] / DANMAKU_SPEED;
+function laneCount() {
+  const n = Number(state.currentConfig?.danmakuLanes);
+  if (!Number.isFinite(n)) return DEFAULT_LANE_COUNT;
+  return Math.min(MAX_LANE_COUNT, Math.max(MIN_LANE_COUNT, Math.round(n)));
+}
+
+function speedMultiplier() {
+  const n = Number(state.currentConfig?.danmakuSpeed);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+function marginPct(rawValue) {
+  const n = Number(rawValue);
+  if (!Number.isFinite(n)) return DEFAULT_LANE_EDGE_MARGIN_PCT;
+  return Math.min(Math.max(n, 0), 45);
+}
+
+// Resolves the configured top/bottom margins together, clamping their sum
+// so at least MIN_FLYABLE_BAND_PCT of the screen height stays flyable. If
+// the user's two values leave too little room, both are scaled down
+// proportionally rather than picking one to "win" arbitrarily.
+function laneAreaMargins() {
+  let top = marginPct(state.currentConfig?.danmakuAreaTopPct);
+  let bottom = marginPct(state.currentConfig?.danmakuAreaBottomPct);
+  const maxTotal = 100 - MIN_FLYABLE_BAND_PCT;
+  const total = top + bottom;
+  if (total > maxTotal) {
+    const scale = maxTotal / total;
+    top *= scale;
+    bottom *= scale;
+  }
+  return { top, bottom };
+}
+
+function laneTopPercent(lane, total) {
+  const { top, bottom } = laneAreaMargins();
+  const usable = 100 - top - bottom;
+  const step = total > 1 ? usable / (total - 1) : 0;
+  return `${top + step * lane}%`;
+}
+
+function laneDurationSec(lane) {
+  const base = BASE_LANE_DURATION_SEC[lane % BASE_LANE_DURATION_SEC.length];
+  return base / speedMultiplier();
 }
 
 export function resetDanmaku() {
@@ -27,187 +87,62 @@ export function resetDanmaku() {
 }
 
 function pickDanmakuLane() {
-  const lane = danmakuLaneCursor % DANMAKU_LANE_COUNT;
+  const total = laneCount();
+  const lane = danmakuLaneCursor % total;
   danmakuLaneCursor += 1;
-  return lane;
+  return { lane, total };
 }
 
 function bindDanmakuRemoval(node) {
-  node.addEventListener(
-    'animationend',
-    (ev) => {
-      if (ev.target === node && ev.animationName === 'ovs-danmaku-fly' && node.isConnected) {
-        node.remove();
-      }
-    },
-    { once: true }
-  );
+  // Do NOT use { once: true } here. `animationend` bubbles, so a child
+  // element firing its own animation (e.g. from theme CSS) would consume
+  // the { once: true } listener before `ovs-danmaku-fly` fires — leaving
+  // the bullet in the DOM forever. We instead keep the listener alive and
+  // self-remove it once the correct animation/target pair is matched.
+  const onEnd = (ev) => {
+    if (ev.target === node && ev.animationName === 'ovs-danmaku-fly') {
+      node.removeEventListener('animationend', onEnd);
+      if (node.isConnected) node.remove();
+    }
+  };
+  node.addEventListener('animationend', onEnd);
+}
+
+// Safety net: bullets normally remove themselves on animationend, but if
+// messages arrive faster than they can fly off-screen (or the tab was
+// backgrounded and rAF/animation timers stalled), cap how many concurrent
+// nodes we keep so the DOM can't grow without bound.
+function trimDanmakuOverflow() {
+  const max = state.currentConfig?.maxMessages || 40;
+  while (listEl.children.length > max) {
+    const oldest = listEl.firstElementChild;
+    if (!oldest) break;
+    oldest.remove();
+  }
 }
 
 export function appendDanmakuMessage(msg) {
-  const node = createMessageNode(msg);
-  const lane = pickDanmakuLane();
-  const durationSec = danmakuLaneDurationSec(lane);
+  const node = createMessageNode(msg, { skipEnterAnimation: true });
+  const { lane, total } = pickDanmakuLane();
+  const durationSec = laneDurationSec(lane);
 
   node.dataset.danmakuLane = String(lane);
-  node.style.top = DANMAKU_LANE_TOP[lane];
+  node.style.top = laneTopPercent(lane, total);
   node.style.animationDuration = `${durationSec}s`;
   bindDanmakuRemoval(node);
 
   listEl.appendChild(node);
+  trimDanmakuOverflow();
 }
 
-// ── Ticker ─────────────────────────────────────────────────────────────
-
-const TICKER_SCROLL_PX_PER_SEC = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 100 : 260;
-
-let tickerTrackEl = null;
-let tickerOffset = 0;
-let tickerTargetOffset = 0;
-let tickerRafId = null;
-let tickerLastFrameTs = 0;
-
-export function getTickerTrackEl() {
-  return tickerTrackEl;
-}
-
-export function resetTickerPlayback() {
-  if (tickerRafId) {
-    cancelAnimationFrame(tickerRafId);
-    tickerRafId = null;
-  }
-  tickerLastFrameTs = 0;
-  tickerOffset = 0;
-  tickerTargetOffset = 0;
-  tickerTrackEl = null;
-}
-
-function ensureTickerTrack() {
-  if (!tickerTrackEl || !tickerTrackEl.isConnected) {
-    tickerTrackEl = document.createElement('div');
-    tickerTrackEl.className = 'ovs-ticker-track';
-    tickerTrackEl.setAttribute('aria-live', 'polite');
-    listEl.appendChild(tickerTrackEl);
-  }
-  return tickerTrackEl;
-}
-
-function getTickerViewportWidth() {
-  const style = getComputedStyle(listEl);
-  const paddingLeft = parseFloat(style.paddingLeft) || 0;
-  const paddingRight = parseFloat(style.paddingRight) || 0;
-  return Math.max(0, listEl.clientWidth - paddingLeft - paddingRight);
-}
-
-function recalcTickerTarget() {
-  if (!tickerTrackEl) return 0;
-  const viewportW = getTickerViewportWidth();
-  const trackW = tickerTrackEl.scrollWidth;
-  return Math.max(0, trackW - viewportW);
-}
-
-function measureLeadingTickerItemWidth(first) {
-  if (!first) return 0;
-  const second = first.nextElementSibling;
-  return second ? second.offsetLeft : first.offsetWidth;
-}
-
-function applyTickerTransform() {
-  if (!tickerTrackEl) return;
-  tickerTrackEl.style.transform = `translate3d(${-tickerOffset}px, -50%, 0)`;
-}
-
-function pruneLeftmostTickerMessages() {
-  if (!tickerTrackEl) return;
-  while (tickerTrackEl.firstElementChild) {
-    const first = tickerTrackEl.firstElementChild;
-    const pruneWidth = measureLeadingTickerItemWidth(first);
-    if (pruneWidth <= 0) break;
-    if (tickerOffset < pruneWidth - 0.5) break;
-    first.remove();
-    tickerOffset -= pruneWidth;
-    tickerTargetOffset = Math.max(0, tickerTargetOffset - pruneWidth);
-  }
-}
-
-function trimTickerDom() {
-  if (!tickerTrackEl) return;
-  const max = state.currentConfig.maxMessages || 40;
-  while (tickerTrackEl.children.length > max) {
-    const first = tickerTrackEl.firstElementChild;
-    const pruneWidth = measureLeadingTickerItemWidth(first);
-    first.remove();
-    tickerOffset = Math.max(0, tickerOffset - pruneWidth);
-    tickerTargetOffset = Math.max(0, tickerTargetOffset - pruneWidth);
-  }
-  tickerTargetOffset = recalcTickerTarget();
-  tickerOffset = Math.min(tickerOffset, tickerTargetOffset);
-  applyTickerTransform();
-}
-
-function tickerScrollLoop(ts) {
-  if (!tickerTrackEl) {
-    tickerRafId = null;
-    tickerLastFrameTs = 0;
-    return;
-  }
-
-  if (!tickerLastFrameTs) tickerLastFrameTs = ts;
-  const dt = Math.min((ts - tickerLastFrameTs) / 1000, 0.05);
-  tickerLastFrameTs = ts;
-
-  if (tickerOffset < tickerTargetOffset) {
-    tickerOffset = Math.min(tickerTargetOffset, tickerOffset + TICKER_SCROLL_PX_PER_SEC * dt);
-    pruneLeftmostTickerMessages();
-    applyTickerTransform();
-    tickerRafId = requestAnimationFrame(tickerScrollLoop);
-    return;
-  }
-
-  tickerLastFrameTs = 0;
-  tickerRafId = null;
-}
-
-function startTickerScrollLoop() {
-  tickerTargetOffset = recalcTickerTarget();
-  if (tickerRafId || tickerOffset >= tickerTargetOffset) return;
-  tickerRafId = requestAnimationFrame(tickerScrollLoop);
-}
-
-export function appendTickerMessage(msg) {
-  const track = ensureTickerTrack();
-  track.appendChild(createMessageNode(msg));
-  trimTickerDom();
-  startTickerScrollLoop();
-}
-
-// Rebuilds the ticker track from a full history array (used on initial
-// load and on theme switch). `msg -> node` creation order follows
-// `currentConfig.position` the same way trimToMax()/renderMessage() do
-// for the stack modes.
-export function renderTickerHistory(history) {
-  resetTickerPlayback();
-  listEl.innerHTML = '';
-  const track = ensureTickerTrack();
-  const ordered = state.currentConfig.position === 'top-down' ? [...history].reverse() : history;
-  ordered.forEach((msg) => track.appendChild(createMessageNode(msg)));
-  trimTickerDom();
-  tickerOffset = tickerTargetOffset;
-  applyTickerTransform();
-}
-
+// Rebuilds the danmaku playback from a full history array (used on initial
+// load, on theme switch, and whenever displayMode flips to 'danmaku').
+// Ordered oldest-first so replayed history flies past in the order the
+// messages actually arrived, mirroring how renderHistory() feeds the stack
+// mode's renderMessage() loop.
 export function renderDanmakuHistory(history) {
   resetDanmaku();
   listEl.innerHTML = '';
   const ordered = state.currentConfig.position === 'top-down' ? [...history].reverse() : history;
   ordered.forEach((msg) => appendDanmakuMessage(msg));
-}
-
-// Called from the entry file's window "resize" listener.
-export function handleTickerResize() {
-  if (!TICKER_THEMES.has(state.currentTheme) || !tickerTrackEl) return;
-  tickerTargetOffset = recalcTickerTarget();
-  tickerOffset = Math.min(tickerOffset, tickerTargetOffset);
-  applyTickerTransform();
-  startTickerScrollLoop();
 }

@@ -59,6 +59,9 @@ function createMock() {
     animationMs: 220,
     position: 'bottom-up',
     maxMessages: 40,
+    displayMode: 'stack',
+    danmakuSpeed: 1,
+    danmakuLanes: 12,
   };
   let layoutConfig = {
     messageRow: { direction: 'horizontal', gap: 10, align: 'start', padding: 8, margin: 0 },
