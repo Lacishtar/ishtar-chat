@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useEditorState } from '../state/EditorStateContext.jsx';
 import { Field, inputClass, EnableToggle } from './Customize/shared/fields.jsx';
-import { MASK_TARGETS, VISIBILITY_ROLES, STACK_LAYERS } from '../../../shared/decoration-config.js';
+import { MASK_TARGETS, VISIBILITY_ROLES, STACK_LAYERS, IDLE_ANIMATIONS } from '../../../shared/decoration-config.js';
 
 const ANCHOR_OPTIONS = [
   { value: 'bubble', label: 'Khung chat (bubble)' },
@@ -52,6 +52,15 @@ const STACK_LAYER_OPTIONS = [
   { value: 'background', label: 'Hậu cảnh — trong bubble, dưới chữ' },
 ];
 
+const IDLE_ANIMATION_OPTIONS = [
+  { value: 'none', label: 'None — không chạy idle' },
+  { value: 'float', label: 'Float — trôi lên xuống nhẹ' },
+  { value: 'bounce', label: 'Bounce — nảy lên xuống' },
+  { value: 'wiggle', label: 'Wiggle — lắc ngang nhanh' },
+  { value: 'tilt', label: 'Tilt — nghiêng qua lại chậm' },
+  { value: 'slideX', label: 'SlideX — trượt trái/phải nhẹ' },
+];
+
 const ANCHOR_LABEL = Object.fromEntries(ANCHOR_OPTIONS.map((o) => [o.value, o.label]));
 const PLACEMENT_LABEL = Object.fromEntries(
   PLACEMENT_OPTIONS.map((o) => [o.value, o.label.replace(/\s*\(.*\)$/, '')]),
@@ -88,6 +97,8 @@ function createDefaultLayer() {
     memberMonthsMin: 0,
     // Stack layer default — kept in sync with shared/decoration-config.js#DEFAULT_LAYER.
     stackLayer: 'foreground',
+    // Idle animation default — kept in sync with shared/decoration-config.js#DEFAULT_LAYER.
+    idleAnimation: 'none',
   };
 }
 
@@ -422,6 +433,20 @@ function LayerCard({ layer, index, count, open, onToggleOpen, onChange, onRemove
             )}
           </Field>
 
+          <Field label="Hiệu ứng Idle">
+            <select
+              className={inputClass}
+              value={layer.idleAnimation || 'none'}
+              onChange={(e) => set({ idleAnimation: e.target.value })}
+            >
+              {IDLE_ANIMATION_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+
           <Field label="Vị trí trên khung">
             <select
               className={inputClass}
@@ -446,10 +471,14 @@ function LayerCard({ layer, index, count, open, onToggleOpen, onChange, onRemove
             <RangeField label="z-index" min={-10} max={100} value={layer.zIndex ?? 2} onChange={(v) => set({ zIndex: v })} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <RangeField label="Rộng" unit="px" min={16} max={200} value={layer.width ?? 48} onChange={(v) => set({ width: v })} />
-            <RangeField label="Cao" unit="px" min={16} max={200} value={layer.height ?? 48} onChange={(v) => set({ height: v })} />
-          </div>
+          <RangeField
+            label="Kích thước (Size)"
+            unit="px"
+            min={16}
+            max={200}
+            value={layer.size ?? layer.width ?? 48}
+            onChange={(v) => set({ size: v, width: v, height: v })}
+          />
 
           <RangeField
             label="Độ mờ"

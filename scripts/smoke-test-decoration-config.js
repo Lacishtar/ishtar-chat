@@ -25,31 +25,34 @@ const layer = normalizeLayer({
   translateY: -22,
   rotate: 15,
   zIndex: 5,
-  width: 98,
-  height: 48,
+  size: 98,
   opacity: 0.9,
 });
 
 assert(layer.translateX === 45, 'translateX preserved');
 assert(layer.anchor === 'message', 'anchor preserved');
 assert(layer.zIndex === 5, 'zIndex preserved');
+assert(layer.size === 98, 'size preserved');
+assert(layer.width === 98, 'width == size');
+assert(layer.height === 98, 'height == size');
 
 const presetStyle = compileLayerInlineStyle({
-  ...layer,
   placement: 'bottom-left',
   translateX: -6,
   translateY: 6,
+  size: 48,
 });
-assert(presetStyle.left === '0', 'bottom-left left');
-assert(presetStyle.top === '100%', 'bottom-left top');
-assert(presetStyle.transform.includes('calc(-50%'), 'bottom-left centered offset');
+assert(presetStyle.left === 'calc(0% + -6px)', 'bottom-left left calc');
+assert(presetStyle.top === 'calc(100% + 6px)', 'bottom-left top calc');
+assert(presetStyle.transform.includes('translate(0%, -100%)'), 'bottom-left translate(0%, -100%)');
+assert(presetStyle.transformOrigin === '0% 100%', 'transformOrigin 0% 100%');
 
 const style = compileLayerInlineStyle(layer);
-assert(style.transform.includes('45px'), 'style translateX');
-assert(style.transform.includes('-22px'), 'style translateY');
+assert(style.left.includes('45px'), 'style left includes translateX');
+assert(style.top.includes('-22px'), 'style top includes translateY');
 assert(style.transform.includes('15deg'), 'style rotate');
 assert(style.zIndex === '5', 'style zIndex');
-assert(style.width === '98px', 'style width');
+assert(style.width === '98px', 'style width == size');
 
 const merged = mergeDecorationConfig({ layers: [] }, {
   layers: [createLayer({ imageUrl: 'https://i.ibb.co/a/b.png' })],
@@ -150,5 +153,22 @@ assert(multiLayerConfig.layers[2].maskMode === 'clipOutside', 'sticker C keeps c
 // createLayer default still has masking off out of the box.
 const freshLayer = createLayer({ imageUrl: 'https://i.ibb.co/x/fresh.png' });
 assert(freshLayer.maskEnabled === false, 'createLayer default has mask disabled');
+assert(freshLayer.idleAnimation === 'none', 'createLayer default has idleAnimation none');
+
+// --- Idle Animation tests ---
+const { IDLE_ANIMATIONS, normalizeIdleAnimation } = require('../shared/decoration-config');
+assert(Array.isArray(IDLE_ANIMATIONS), 'IDLE_ANIMATIONS is array');
+assert(IDLE_ANIMATIONS.length === 6, 'IDLE_ANIMATIONS has 6 modes');
+assert(IDLE_ANIMATIONS.includes('float'), 'IDLE_ANIMATIONS has float');
+assert(IDLE_ANIMATIONS.includes('bounce'), 'IDLE_ANIMATIONS has bounce');
+assert(IDLE_ANIMATIONS.includes('wiggle'), 'IDLE_ANIMATIONS has wiggle');
+assert(IDLE_ANIMATIONS.includes('tilt'), 'IDLE_ANIMATIONS has tilt');
+assert(IDLE_ANIMATIONS.includes('slideX'), 'IDLE_ANIMATIONS has slideX');
+
+assert(normalizeIdleAnimation('wiggle') === 'wiggle', 'normalizeIdleAnimation accepts wiggle');
+assert(normalizeIdleAnimation('invalid') === 'none', 'normalizeIdleAnimation falls back to none');
+
+const customIdleLayer = normalizeLayer({ id: 'idle-1', imageUrl: 'https://i.ibb.co/x/idle.png', idleAnimation: 'bounce' });
+assert(customIdleLayer.idleAnimation === 'bounce', 'custom idleAnimation preserved');
 
 console.log('[smoke:decoration] all checks passed');

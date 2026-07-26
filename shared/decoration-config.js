@@ -45,6 +45,43 @@ const STACK_LAYERS = ['foreground', 'background'];
  */
 const VISIBILITY_ROLES = ['moderator', 'member', 'chat'];
 
+/**
+ * Idle animation options for sticker/decoration layers.
+ *   'none'   — không chạy idle (default)
+ *   'float'  — trôi lên xuống nhẹ
+ *   'bounce' — nảy lên xuống
+ *   'wiggle' — lắc ngang nhanh
+ *   'tilt'   — nghiêng qua lại chậm
+ *   'slideX' — trượt trái/phải nhẹ
+ */
+const IDLE_ANIMATIONS = ['none', 'float', 'bounce', 'wiggle', 'tilt', 'slideX'];
+
+const CONTAINER_ANCHOR = {
+  'top-left':      { fx: 0,   fy: 0   },
+  'top-right':     { fx: 1,   fy: 0   },
+  'bottom-left':   { fx: 0,   fy: 1   },
+  'bottom-right':  { fx: 1,   fy: 1   },
+  'top-center':    { fx: 0.5, fy: 0   },
+  'bottom-center': { fx: 0.5, fy: 1   },
+  'center-left':   { fx: 0,   fy: 0.5 },
+  'center-right':  { fx: 1,   fy: 0.5 },
+  'center':        { fx: 0.5, fy: 0.5 },
+  'custom':        { fx: 0,   fy: 0   },
+};
+
+const STICKER_ANCHOR = {
+  'top-left':      { ax: 0,   ay: 0   },
+  'top-right':     { ax: 1,   ay: 0   },
+  'bottom-left':   { ax: 0,   ay: 1   },
+  'bottom-right':  { ax: 1,   ay: 1   },
+  'top-center':    { ax: 0.5, ay: 0   },
+  'bottom-center': { ax: 0.5, ay: 1   },
+  'center-left':   { ax: 0,   ay: 0.5 },
+  'center-right':  { ax: 1,   ay: 0.5 },
+  'center':        { ax: 0.5, ay: 0.5 },
+  'custom':        { ax: 0,   ay: 0   },
+};
+
 const DEFAULT_MASK = {
   maskEnabled: false,
   maskTarget: 'avatar',
@@ -63,6 +100,7 @@ const DEFAULT_LAYER = {
   translateY: 6,
   rotate: 0,
   zIndex: 5,
+  size: 48,
   width: 48,
   height: 48,
   opacity: 1,
@@ -76,6 +114,8 @@ const DEFAULT_LAYER = {
   // 'member' token pairs with memberMonthsMin for month-threshold filtering.
   visibilityRoles: [],
   memberMonthsMin: 0,
+  // Idle animation effect for the sticker layer
+  idleAnimation: 'none',
 };
 
 const DEFAULT_DECORATION_CONFIG = {
@@ -108,6 +148,10 @@ function normalizeStackLayer(val) {
   return STACK_LAYERS.includes(val) ? val : DEFAULT_LAYER.stackLayer;
 }
 
+function normalizeIdleAnimation(val) {
+  return IDLE_ANIMATIONS.includes(val) ? val : DEFAULT_LAYER.idleAnimation;
+}
+
 /** Normalizes the mask sub-properties of a layer; missing values fall back to sensible defaults. */
 function normalizeMask(raw) {
   const m = raw || {};
@@ -129,6 +173,8 @@ function normalizeVisibilityRoles(raw) {
 function normalizeLayer(raw, index = 0) {
   const layer = raw || {};
   const id = typeof layer.id === 'string' && layer.id.trim() ? layer.id.trim() : `deco-${index}`;
+  const rawSize = layer.size ?? layer.width ?? layer.height ?? 48;
+  const size = clampNumber(rawSize, 48, 8, 400);
   return {
     id,
     enabled: layer.enabled !== false,
@@ -139,8 +185,9 @@ function normalizeLayer(raw, index = 0) {
     translateY: clampNumber(layer.translateY, DEFAULT_LAYER.translateY, -500, 500),
     rotate: clampNumber(layer.rotate, 0, -360, 360),
     zIndex: clampNumber(layer.zIndex, DEFAULT_LAYER.zIndex, -100, 500),
-    width: clampNumber(layer.width, 48, 8, 400),
-    height: clampNumber(layer.height, 48, 8, 400),
+    size,
+    width: size,
+    height: size,
     opacity: clampNumber(layer.opacity, 1, 0, 1),
     // Flat-merged so existing saved layers (no mask keys at all) load with
     // maskEnabled: false and render exactly as before this feature existed.
@@ -150,6 +197,8 @@ function normalizeLayer(raw, index = 0) {
     memberMonthsMin: clampNumber(layer.memberMonthsMin, 0, 0, 120),
     // Stack layer — backward-compatible: missing key → 'foreground' (existing behavior).
     stackLayer: normalizeStackLayer(layer.stackLayer),
+    // Idle animation — backward-compatible: missing key → 'none'.
+    idleAnimation: normalizeIdleAnimation(layer.idleAnimation),
   };
 }
 
@@ -170,51 +219,42 @@ function createLayer(overrides = {}) {
   return normalizeLayer({ ...DEFAULT_LAYER, ...overrides }, 0);
 }
 
-const PLACEMENT_CORNERS = {
-  'top-left': { left: '0', top: '0' },
-  'top-right': { left: '100%', top: '0' },
-  'bottom-left': { left: '0', top: '100%' },
-  'bottom-right': { left: '100%', top: '100%' },
-  'top-center': { left: '50%', top: '0' },
-  'bottom-center': { left: '50%', top: '100%' },
-  'center-left': { left: '0', top: '50%' },
-  'center-right': { left: '100%', top: '50%' },
-  center: { left: '50%', top: '50%' },
-};
-
-/** Inline style object for overlay DOM (browser) or smoke tests. */
+/** Inline style object for overlay DOM (browser) or smoke tests.
+ *
+ * Dual-Anchor Positioning Formula:
+ *   left = calc(fx * 100% + translateX)
+ *   top  = calc(fy * 100% + translateY)
+ *   transform = translate(-ax * 100%, -ay * 100%) rotate(rot)
+ *   transformOrigin = (ax * 100)% (ay * 100)%
+ *
+ * The designated sticker corner/edge (ax, ay) lands exactly on the container
+ * anchor point (fx, fy). When `size` changes, the sticker corner (ax, ay)
+ * stays 100% stationary, expanding outward cleanly without top-left drift.
+ */
 function compileLayerInlineStyle(layer) {
   const l = normalizeLayer(layer);
   const base = {
     position: 'absolute',
-    right: 'auto',
-    bottom: 'auto',
     zIndex: String(l.zIndex),
     opacity: String(l.opacity),
-    width: `${l.width}px`,
-    height: `${l.height}px`,
+    width: `${l.size}px`,
+    height: `${l.size}px`,
     objectFit: 'contain',
     pointerEvents: 'none',
   };
   const rot = `${l.rotate}deg`;
+  const placement = CONTAINER_ANCHOR[l.placement] ? l.placement : 'custom';
+  const { fx, fy } = CONTAINER_ANCHOR[placement];
+  const { ax, ay } = STICKER_ANCHOR[placement];
 
-  if (l.placement === 'custom') {
-    return {
-      ...base,
-      left: '0',
-      top: '0',
-      transform: `translate(${l.translateX}px, ${l.translateY}px) rotate(${rot})`,
-      transformOrigin: 'center center',
-    };
-  }
-
-  const corner = PLACEMENT_CORNERS[l.placement] || PLACEMENT_CORNERS['bottom-left'];
   return {
     ...base,
-    left: corner.left,
-    top: corner.top,
-    transform: `translate(calc(-50% + ${l.translateX}px), calc(-50% + ${l.translateY}px)) rotate(${rot})`,
-    transformOrigin: 'center center',
+    left: `calc(${fx * 100}% + ${l.translateX}px)`,
+    top: `calc(${fy * 100}% + ${l.translateY}px)`,
+    right: 'auto',
+    bottom: 'auto',
+    transform: `translate(${-ax * 100}%, ${-ay * 100}%) rotate(${rot})`,
+    transformOrigin: `${ax * 100}% ${ay * 100}%`,
   };
 }
 
@@ -231,6 +271,9 @@ module.exports = {
   MASK_MODES,
   STACK_LAYERS,
   VISIBILITY_ROLES,
+  IDLE_ANIMATIONS,
+  CONTAINER_ANCHOR,
+  STICKER_ANCHOR,
   DEFAULT_MASK,
   DEFAULT_DECORATION_CONFIG,
   DEFAULT_LAYER,
@@ -240,6 +283,7 @@ module.exports = {
   normalizeMaskMode,
   normalizeMask,
   normalizeVisibilityRoles,
+  normalizeIdleAnimation,
   normalizeDecorationConfig,
   mergeDecorationConfig,
   createLayer,

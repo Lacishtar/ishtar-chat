@@ -339,6 +339,17 @@ function messageMatchesLayer(messageNode, layer) {
 export function applyDecorationLayers(messageNode, decorationConfig) {
   if (!messageNode) return;
   const layers = Array.isArray(decorationConfig?.layers) ? decorationConfig.layers : [];
+
+  // Track existing layers in DOM for this messageNode
+  const existingElements = new Map();
+  messageNode.querySelectorAll('.ovs-decoration-layer').forEach((el) => {
+    if (el.dataset.layerId) {
+      existingElements.set(el.dataset.layerId, el);
+    }
+  });
+
+  const activeLayerIds = new Set();
+
   layers.forEach((layer) => {
     if (!layer || layer.enabled === false || !layer.imageUrl) return;
     if (!messageMatchesLayer(messageNode, layer)) return;
@@ -346,35 +357,93 @@ export function applyDecorationLayers(messageNode, decorationConfig) {
     const host = ensureDecorationHost(anchorEl, layer.anchor || 'message', layer.stackLayer);
     if (!host) return;
 
-    const img = document.createElement('img');
-    img.className = 'ovs-decoration-layer';
-    img.alt = '';
-    img.decoding = 'async';
-    img.dataset.layerId = layer.id || '';
-    img.dataset.placement = layer.placement || 'custom';
-    applyInlineStyle(img, compileLayerInlineStyle(layer));
+    const layerId = layer.id || '';
+    activeLayerIds.add(layerId);
 
-    const proxied = toImageProxyUrl(layer.imageUrl);
-    img.referrerPolicy = 'no-referrer';
-    img.onerror = () => img.setAttribute('data-load-error', 'true');
-    img.onload = () => img.removeAttribute('data-load-error');
-    img.src = proxied || layer.imageUrl;
+    let layerWrap = existingElements.get(layerId);
+    let animWrap;
+    let img;
 
-    host.appendChild(img);
+    if (layerWrap) {
+      layerWrap.dataset.placement = layer.placement || 'custom';
+      applyInlineStyle(layerWrap, compileLayerInlineStyle(layer));
 
-    // Mask is applied after the image is in the DOM (layout/position
-    // reads require it) and after src is set, but load timing doesn't
-    // matter here since mask-image is independent of the <img>'s own
-    // decode state.
-    if (layer.maskEnabled) {
+      if (layerWrap.parentNode !== host) {
+        host.appendChild(layerWrap);
+      }
+
+      animWrap = layerWrap.querySelector('.ovs-decoration-anim');
+      if (!animWrap) {
+        animWrap = document.createElement('div');
+        animWrap.className = 'ovs-decoration-anim';
+        layerWrap.appendChild(animWrap);
+      }
+      if (animWrap.dataset.idleAnimation !== (layer.idleAnimation || 'none')) {
+        animWrap.dataset.idleAnimation = layer.idleAnimation || 'none';
+      }
+
+      img = animWrap.querySelector('img');
+      if (!img) {
+        img = document.createElement('img');
+        img.className = 'ovs-decoration-img';
+        img.alt = '';
+        img.decoding = 'async';
+        animWrap.appendChild(img);
+      }
+
+      const proxied = toImageProxyUrl(layer.imageUrl);
+      const expectedSrc = proxied || layer.imageUrl;
+      if (img.getAttribute('data-raw-src') !== layer.imageUrl) {
+        img.setAttribute('data-raw-src', layer.imageUrl);
+        img.src = expectedSrc;
+      }
+    } else {
+      layerWrap = document.createElement('div');
+      layerWrap.className = 'ovs-decoration-layer';
+      layerWrap.dataset.layerId = layerId;
+      layerWrap.dataset.placement = layer.placement || 'custom';
+      applyInlineStyle(layerWrap, compileLayerInlineStyle(layer));
+
+      animWrap = document.createElement('div');
+      animWrap.className = 'ovs-decoration-anim';
+      animWrap.dataset.idleAnimation = layer.idleAnimation || 'none';
+
+      img = document.createElement('img');
+      img.className = 'ovs-decoration-img';
+      img.alt = '';
+      img.decoding = 'async';
+
+      const proxied = toImageProxyUrl(layer.imageUrl);
+      img.setAttribute('data-raw-src', layer.imageUrl);
+      img.referrerPolicy = 'no-referrer';
+      img.onerror = () => img.setAttribute('data-load-error', 'true');
+      img.onload = () => img.removeAttribute('data-load-error');
+      img.src = proxied || layer.imageUrl;
+
+      animWrap.appendChild(img);
+      layerWrap.appendChild(animWrap);
+      host.appendChild(layerWrap);
+    }
+
+    if (layer.maskEnabled && img) {
       applyDecorationMask(img, messageNode, layer);
+    } else if (img) {
+      img.style.maskImage = '';
+      img.style.webkitMaskImage = '';
+      img.removeAttribute('data-mask-applied');
+    }
+  });
+
+  // Clean up any layers that are no longer active
+  existingElements.forEach((el, id) => {
+    if (!activeLayerIds.has(id)) {
+      el.remove();
     }
   });
 }
 
 export function refreshAllDecorations() {
   const applyTo = (node) => {
-    clearDecorationLayers(node);
     applyDecorationLayers(node, state.currentDecoration);
   };
   listEl.querySelectorAll('.ovs-message').forEach(applyTo);
