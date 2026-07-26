@@ -25,19 +25,16 @@ const PLACEMENT_OPTIONS = [
   { value: 'custom', label: 'Tùy chỉnh tự do (Custom X/Y)' },
 ];
 
-// Vietnamese labels for shared/decoration-config.js#MASK_TARGETS. 'avatar',
-// 'bubble', 'username', and 'chatContainer' are wired to real shape sources;
-// the rest are reserved so the UI already reads naturally once those targets
-// are implemented. The *set* of values always comes from MASK_TARGETS itself
-// (imported above), so this can only add a missing label, never drift on values.
+// Vietnamese labels for shared/decoration-config.js#MASK_TARGETS. All of
+// these are wired to real shape sources, resolving to an existing slot's
+// rendered box. The *set* of values always comes from MASK_TARGETS itself
+// (imported above), so this can only add a missing label, never drift on
+// values.
 const MASK_TARGET_LABELS = {
   avatar: 'Avatar',
   bubble: 'Bubble (khung chat)',
   username: 'Username (bubble tên)',
   chatContainer: 'Chat Message (bubble nội dung)',
-  bottomAccentBar: 'Thanh nhấn dưới (Bottom Accent Bar, sắp có)',
-  glowLayer: 'Lớp phát sáng (Glow Layer, sắp có)',
-  customShape: 'Hình tuỳ chỉnh (Custom Shape, sắp có)',
 };
 const MASK_TARGET_OPTIONS = MASK_TARGETS.map((value) => ({
   value,

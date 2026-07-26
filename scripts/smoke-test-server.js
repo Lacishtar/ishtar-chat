@@ -9,7 +9,6 @@ function getState() {
   return {
     themeId: 'classic',
     config: { fontSize: 16, textColor: '#EAECEF', bubbleBg: 'rgba(22,25,31,0.72)' },
-    sessionId: 'test-session',
   };
 }
 
@@ -30,7 +29,7 @@ async function main() {
   const { broadcast } = attachWebSocketServer(server, getState);
   console.log(`[smoke] server listening on ${port}`);
 
-  const overlayRes = await get(`http://127.0.0.1:${port}/overlay?session=test-session`);
+  const overlayRes = await get(`http://127.0.0.1:${port}/overlay`);
   console.log('[smoke] GET /overlay status:', overlayRes.status);
   if (overlayRes.status !== 200) throw new Error('overlay route failed');
   if (!overlayRes.body.includes('window.__OVS_INITIAL_STATE__')) {

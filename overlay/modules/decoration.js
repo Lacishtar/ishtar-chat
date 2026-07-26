@@ -134,10 +134,7 @@ const MASK_CACHE_LIMIT = 200;
 
 /**
  * Maps a maskTarget name to the DOM element that currently renders that
- * target's visible shape. Only targets with a real, always-present
- * element are wired here; the rest (bottomAccentBar, glowLayer,
- * customShape) stay reserved for future work — resolveMaskShapeRect()
- * returns null for those with a console warning explaining why.
+ * target's visible shape.
  *
  * - 'avatar'        -> [data-slot="avatar"] (existing avatar image)
  * - 'bubble'        -> whatever element currently renders the visible
@@ -278,11 +275,11 @@ function buildTargetMaskDataUrl(imgRect, targetShape, mask) {
 function applyDecorationMask(img, messageNode, layer) {
   if (!layer.maskEnabled || layer.maskMode === 'none') return;
 
-  // 'avatar', 'bubble', 'username', and 'chatContainer' are real,
-  // wired-up mask sources. The rest (bottomAccentBar, glowLayer,
-  // customShape) are reserved schema values for future work (see
-  // MASK_TARGETS in shared/decoration-config.js) and are safely ignored
-  // until then — resolveMaskShapeRect() warns and returns null for those.
+  // 'avatar', 'bubble', 'username', and 'chatContainer' are the only
+  // values in MASK_TARGETS (shared/decoration-config.js) — all of them
+  // real, wired-up mask sources. If a shape still can't be resolved
+  // (missing element, zero size, etc.), resolveMaskShapeRect() warns and
+  // returns null rather than crashing.
   const targetShape = resolveMaskShapeRect(messageNode, layer.maskTarget, layer.id);
   if (!targetShape) return; // resolveMaskShapeRect already logged why
 

@@ -20,21 +20,10 @@ const PLACEMENTS = [
 
 /**
  * Mask targets — the shape a decoration layer's clipping mask is derived
- * from. 'avatar', 'bubble', 'username', and 'chatContainer' are wired up to
- * real shape sources (see resolveMaskTargetElement in overlay-client.js);
- * 'bottomAccentBar', 'glowLayer', and 'customShape' remain reserved so
- * future work can add them without touching the schema, normalization, or
- * UI wiring again.
+ * from. All values here are wired up to real shape sources (see
+ * resolveMaskTargetElement in overlay/modules/decoration.js).
  */
-const MASK_TARGETS = [
-  'avatar',
-  'bubble',
-  'username',
-  'chatContainer',
-  'bottomAccentBar',
-  'glowLayer',
-  'customShape',
-];
+const MASK_TARGETS = ['avatar', 'bubble', 'username', 'chatContainer'];
 
 const MASK_MODES = ['none', 'clipInside', 'clipOutside'];
 

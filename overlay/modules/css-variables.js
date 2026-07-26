@@ -9,7 +9,6 @@
 // is now exactly one implementation of each; nothing here needs manual sync.
 
 import { state, listEl } from './state.js';
-import { toImageProxyUrl } from './utils.js';
 import { syncThemeModeClass } from './state.js';
 import { refreshAllSlotVisibility } from './message-renderer.js';
 
@@ -84,12 +83,6 @@ export function applyCssVariables(config, layout, slotStyle, animationConfig, ro
     '--ovs-bubble-opacity': cfg.bubbleOpacity != null ? String(cfg.bubbleOpacity) : undefined,
     '--ovs-avatar-size': cfg.avatarSize != null ? `${cfg.avatarSize}px` : undefined,
     '--ovs-animation-ms': cfg.animationMs != null ? `${cfg.animationMs}ms` : undefined,
-    '--ovs-bubble-texture-url': cfg.bubbleTextureUrl && typeof cfg.bubbleTextureUrl === 'string' && cfg.bubbleTextureUrl.trim()
-      ? `url("${toImageProxyUrl(cfg.bubbleTextureUrl) || cfg.bubbleTextureUrl.trim()}")`
-      : 'none',
-    '--ovs-bubble-texture-repeat': cfg.bubbleTextureRepeat || 'repeat',
-    '--ovs-bubble-texture-size': typeof cfg.bubbleTextureSize === 'number' ? `${cfg.bubbleTextureSize}px` : (cfg.bubbleTextureSize || 'auto'),
-    '--ovs-bubble-texture-opacity': cfg.bubbleTextureOpacity != null ? String(cfg.bubbleTextureOpacity) : undefined,
     '--ovs-bubble-min-width': cfg.bubbleMinWidth != null ? `${cfg.bubbleMinWidth}px` : undefined,
     '--ovs-bubble-max-width': cfg.bubbleMaxWidth > 0 ? `${cfg.bubbleMaxWidth}px` : null,
     '--ovs-bubble-fixed-width': cfg.bubbleFixedWidth > 0 ? `${cfg.bubbleFixedWidth}px` : null,

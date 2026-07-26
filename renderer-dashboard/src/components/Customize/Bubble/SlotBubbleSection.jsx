@@ -38,6 +38,9 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
     bubbleTextureSize: slotBubbleVal(slotLocal, slot, 'bubbleTextureSize', globalConfig, 'auto'),
     bubbleTextureRepeat: slotBubbleVal(slotLocal, slot, 'bubbleTextureRepeat', globalConfig, 'repeat'),
     bubbleTextureOpacity: slotBubbleVal(slotLocal, slot, 'bubbleTextureOpacity', globalConfig, 1),
+    bubbleTexturePositionX: slotBubbleVal(slotLocal, slot, 'bubbleTexturePositionX', globalConfig, 50),
+    bubbleTexturePositionY: slotBubbleVal(slotLocal, slot, 'bubbleTexturePositionY', globalConfig, 50),
+    bubbleTextureBlendMode: slotBubbleVal(slotLocal, slot, 'bubbleTextureBlendMode', globalConfig, 'normal'),
   };
 
   const bunnyTriState =
@@ -69,6 +72,9 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
       bubbleTextureSize: null,
       bubbleTextureRepeat: null,
       bubbleTextureOpacity: null,
+      bubbleTexturePositionX: null,
+      bubbleTexturePositionY: null,
+      bubbleTextureBlendMode: null,
       bubbleMinWidth: null,
       bubbleMaxWidth: null,
       bubbleFixedWidth: null,
@@ -202,6 +208,9 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
                 bubbleTextureSize: null,
                 bubbleTextureRepeat: null,
                 bubbleTextureOpacity: null,
+                bubbleTexturePositionX: null,
+                bubbleTexturePositionY: null,
+                bubbleTextureBlendMode: null,
               })
             }
           />

@@ -122,7 +122,7 @@ function createMock() {
       roleStyleConfig,
       animationConfig,
       lastSessionUrl: '',
-      overlayUrl: 'http://localhost:3000/overlay?session=mock',
+      overlayUrl: 'http://localhost:3000/overlay',
       port: 3000,
     }),
     connect: async (url) => {

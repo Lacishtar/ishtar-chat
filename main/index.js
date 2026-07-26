@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const { app, ipcMain, dialog } = require('electron');
 
 const { createMainWindow } = require('./window-manager');
@@ -18,8 +17,6 @@ const { resolveThemeState } = require('./store/theme-state');
 const { getDirtyFields } = require('./store/theme-baseline');
 const { GetThemeList, ApplyTheme, ResetCategory } = require('../shared/theme-manager');
 const { initializeAutoUpdater } = require('./auto-updater');
-
-const sessionId = crypto.randomUUID();
 
 const MAX_HISTORY = 200;
 
@@ -42,13 +39,16 @@ function getOverlayState() {
     animationConfig: state.animationConfig,
     decorationConfig: state.decorationConfig,
     roleStyleConfig: state.roleStyleConfig,
-    sessionId,
     history: messageHistory,
   };
 }
 
+// Fixed URL: no session id, no query string. As long as the app keeps
+// using the same preferred port (3000, see startServer below), this stays
+// identical across restarts — paste it into the OBS Browser Source once
+// and it keeps working.
 function getOverlayUrl() {
-  return `http://localhost:${httpPort}/overlay?session=${sessionId}`;
+  return `http://localhost:${httpPort}/overlay`;
 }
 
 function safeSend(win, channel, payload) {

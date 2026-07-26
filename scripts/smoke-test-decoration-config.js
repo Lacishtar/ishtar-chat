@@ -126,6 +126,14 @@ assert(normalizeMaskMode('bogus') === DEFAULT_MASK.maskMode, 'normalizeMaskMode 
 assert(MASK_TARGETS.includes('avatar'), 'MASK_TARGETS includes avatar');
 assert(MASK_MODES.length === 3, 'MASK_MODES has three modes');
 
+// glowLayer/bottomAccentBar/customShape were all removed entirely — MASK_TARGETS
+// only contains real, fully-wired targets, no reserved placeholders.
+assert(!MASK_TARGETS.includes('glowLayer'), 'glowLayer removed from MASK_TARGETS');
+assert(!MASK_TARGETS.includes('bottomAccentBar'), 'bottomAccentBar removed from MASK_TARGETS');
+assert(!MASK_TARGETS.includes('customShape'), 'customShape removed from MASK_TARGETS');
+assert(MASK_TARGETS.length === 4, 'MASK_TARGETS only has the 4 real, wired-up targets');
+assert(normalizeMaskTarget('customShape') === DEFAULT_MASK.maskTarget, 'customShape no longer a valid mask target');
+
 // Per-sticker independence: each layer keeps its own mask settings and
 // normalizing one never leaks into another.
 const multiLayerConfig = normalizeDecorationConfig({

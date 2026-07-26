@@ -8,7 +8,7 @@ export const SEARCH_INDEX = [
   { objectId: 'global', sectionId: 'border', label: 'Viền bubble', keywords: ['border', 'viền'] },
   { objectId: 'global', sectionId: 'shadow', label: 'Shadow bubble', keywords: ['shadow', 'đổ bóng', 'bóng'] },
   { objectId: 'global', sectionId: 'glow', label: 'Glow bubble', keywords: ['glow', 'phát sáng', 'neon', 'sáng viền'] },
-  { objectId: 'global', sectionId: 'texture', label: 'Texture nền bubble', keywords: ['texture', 'ảnh nền', 'pattern'] },
+  { objectId: 'global', sectionId: 'texture', label: 'Texture nền bubble', keywords: ['texture', 'ảnh nền', 'pattern', 'kích thước', 'vị trí', 'trục x', 'trục y', 'blend', 'hoà trộn'] },
   { objectId: 'global', sectionId: 'bunny', label: 'Tai thỏ (Bunny Ears)', keywords: ['bunny', 'tai thỏ', 'ears'] },
   { objectId: 'global', sectionId: 'behavior', label: 'Vị trí & tốc độ hiệu ứng', keywords: ['animation', 'hiệu ứng', 'tốc độ', 'vị trí', 'position', 'số tin', 'maxmessages'] },
 

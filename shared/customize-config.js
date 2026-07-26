@@ -31,6 +31,9 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   bubbleTextureSize: 'auto',
   bubbleTextureRepeat: 'repeat',
   bubbleTextureOpacity: 1,
+  bubbleTexturePositionX: 50, // % (0 = left edge, 100 = right edge) — horizontal axis of the texture
+  bubbleTexturePositionY: 50, // % (0 = top edge, 100 = bottom edge) — vertical axis of the texture
+  bubbleTextureBlendMode: 'normal', // CSS mix-blend-mode — how the texture blends with bubbleBg beneath it
   bubbleBunnyEars: false,
   bubbleBunnyEarsWidth: 32, // px
   bubbleBunnyEarsHeight: 30, // px
@@ -121,6 +124,28 @@ function compileBubbleDecorationToCssVariables(config) {
   if (isSet(c.bubbleBunnyEarsRotate)) vars['--ovs-bunny-ears-rotate'] = `${Number(c.bubbleBunnyEarsRotate) || 0}deg`;
   if (isSet(c.bubbleBunnyEarsZIndex)) vars['--ovs-bunny-ears-z'] = String(Math.round(Number(c.bubbleBunnyEarsZIndex) || 0));
 
+  // Bubble texture — single source of truth for the global texture layer.
+  // Previously this exact mapping was hand-duplicated in toCssVariables()
+  // below AND in overlay/modules/css-variables.js (the client-side applier),
+  // which meant any new texture field had to be added in three places to
+  // actually work end-to-end. It's compiled once here now; both call sites
+  // just spread compileBubbleDecorationToCssVariables(cfg) and pick it up.
+  vars['--ovs-bubble-texture-url'] = c.bubbleTextureUrl && typeof c.bubbleTextureUrl === 'string' && c.bubbleTextureUrl.trim()
+    ? `url("${toImageProxyUrl(c.bubbleTextureUrl) || c.bubbleTextureUrl.trim()}")`
+    : 'none';
+  vars['--ovs-bubble-texture-repeat'] = c.bubbleTextureRepeat || 'repeat';
+  vars['--ovs-bubble-texture-size'] = typeof c.bubbleTextureSize === 'number' ? px(c.bubbleTextureSize) : (c.bubbleTextureSize || 'auto');
+  // Opacity is stored as a 0-1 float but the UI now round-trips it through a
+  // whole-percent number field, so snap to 2 decimal places here — without
+  // this, repeated slider/number-field edits could accumulate float noise
+  // like 0.6699999999999999 in the saved config.
+  vars['--ovs-bubble-texture-opacity'] = String(Math.round(clampPct(Number(c.bubbleTextureOpacity ?? 1) * 100, 100)) / 100);
+  // X/Y axis position, each independently clamped to 0-100%.
+  const texPosX = clampPct(c.bubbleTexturePositionX, 50);
+  const texPosY = clampPct(c.bubbleTexturePositionY, 50);
+  vars['--ovs-bubble-texture-position'] = `${texPosX}% ${texPosY}%`;
+  vars['--ovs-bubble-texture-blend'] = c.bubbleTextureBlendMode || 'normal';
+
   return vars;
 }
 
@@ -142,12 +167,6 @@ function toCssVariables(config) {
     '--ovs-bubble-opacity': String(c.bubbleOpacity),
     '--ovs-avatar-size': `${c.avatarSize}px`,
     '--ovs-animation-ms': `${c.animationMs}ms`,
-    '--ovs-bubble-texture-url': c.bubbleTextureUrl && typeof c.bubbleTextureUrl === 'string' && c.bubbleTextureUrl.trim()
-      ? `url("${toImageProxyUrl(c.bubbleTextureUrl) || c.bubbleTextureUrl.trim()}")`
-      : 'none',
-    '--ovs-bubble-texture-repeat': c.bubbleTextureRepeat || 'repeat',
-    '--ovs-bubble-texture-size': typeof c.bubbleTextureSize === 'number' ? px(c.bubbleTextureSize) : (c.bubbleTextureSize || 'auto'),
-    '--ovs-bubble-texture-opacity': String(c.bubbleTextureOpacity ?? 1),
     ...compileBubbleDecorationToCssVariables(c),
   };
 }

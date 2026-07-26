@@ -23,7 +23,6 @@ function createApp(getState, options = {}) {
       themeId,
       config,
       layoutConfig,
-      sessionId,
       history,
       slotStyleConfig,
       animationConfig,
@@ -39,7 +38,6 @@ function createApp(getState, options = {}) {
       animationConfig,
       decorationConfig,
       roleStyleConfig,
-      session: sessionId,
       history,
     };
     const html = OVERLAY_TEMPLATE.replace(

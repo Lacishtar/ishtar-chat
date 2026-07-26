@@ -181,35 +181,49 @@
   border-radius: inherit;
 }
 
-.ovs-message > .ovs-bubble-texture {
+/* Base state: no texture image until the element's own bubble-wrap flag
+   says it's actually rendering as a bubble (see the three rules below).
+   Without this, .ovs-bubble-texture always painted its background-image
+   as soon as ANY bubble-wrap mode was on, regardless of whether THIS
+   element (.ovs-message / .ovs-author / .ovs-text) was the one actually
+   wrapped — e.g. "wrap message only" (bubbleWrapAuthor: false) still let
+   a texture bleed onto the plain (non-bubble) .ovs-author, since the old
+   rule only ever checked the row-wrap flag, never the author/message
+   per-slot flags. */
+.ovs-message > .ovs-bubble-texture,
+.ovs-author > .ovs-bubble-texture,
+.ovs-text > .ovs-bubble-texture {
+  background-image: none;
+}
+
+/* Each rule below mirrors the exact gating used for that element's own
+   bubble background/radius (lines 23, 82, 120 above) — the texture only
+   ever appears on the element that's actually wrapped as a bubble. */
+:root[data-ovs-bubble-wrap-row='true'] .ovs-message > .ovs-bubble-texture {
   background-image: var(--ovs-slot-message-bubble-texture-url, var(--ovs-bubble-texture-url));
   background-repeat: var(--ovs-slot-message-bubble-texture-repeat, var(--ovs-bubble-texture-repeat, repeat));
   background-size: var(--ovs-slot-message-bubble-texture-size, var(--ovs-bubble-texture-size, auto));
+  background-position: var(--ovs-slot-message-bubble-texture-position, var(--ovs-bubble-texture-position, center));
   opacity: var(--ovs-slot-message-bubble-texture-opacity, var(--ovs-bubble-texture-opacity, 1));
+  mix-blend-mode: var(--ovs-slot-message-bubble-texture-blend, var(--ovs-bubble-texture-blend, normal));
 }
 
-.ovs-author > .ovs-bubble-texture {
+:root[data-ovs-bubble-wrap-author='true'] .ovs-author > .ovs-bubble-texture {
   background-image: var(--ovs-slot-author-bubble-texture-url, var(--ovs-bubble-texture-url));
   background-repeat: var(--ovs-slot-author-bubble-texture-repeat, var(--ovs-bubble-texture-repeat, repeat));
   background-size: var(--ovs-slot-author-bubble-texture-size, var(--ovs-bubble-texture-size, auto));
+  background-position: var(--ovs-slot-author-bubble-texture-position, var(--ovs-bubble-texture-position, center));
   opacity: var(--ovs-slot-author-bubble-texture-opacity, var(--ovs-bubble-texture-opacity, 1));
+  mix-blend-mode: var(--ovs-slot-author-bubble-texture-blend, var(--ovs-bubble-texture-blend, normal));
 }
 
-.ovs-text > .ovs-bubble-texture {
+:root[data-ovs-bubble-wrap-message='true'] .ovs-text > .ovs-bubble-texture {
   background-image: var(--ovs-slot-message-bubble-texture-url, var(--ovs-bubble-texture-url));
   background-repeat: var(--ovs-slot-message-bubble-texture-repeat, var(--ovs-bubble-texture-repeat, repeat));
   background-size: var(--ovs-slot-message-bubble-texture-size, var(--ovs-bubble-texture-size, auto));
+  background-position: var(--ovs-slot-message-bubble-texture-position, var(--ovs-bubble-texture-position, center));
   opacity: var(--ovs-slot-message-bubble-texture-opacity, var(--ovs-bubble-texture-opacity, 1));
-}
-
-/* Conditional display of texture layers based on active wrapping mode */
-:root:not([data-ovs-bubble-wrap-row='true']) .ovs-message > .ovs-bubble-texture {
-  background-image: none !important;
-}
-
-:root[data-ovs-bubble-wrap-row='true'] .ovs-author > .ovs-bubble-texture,
-:root[data-ovs-bubble-wrap-row='true'] .ovs-text > .ovs-bubble-texture {
-  background-image: none !important;
+  mix-blend-mode: var(--ovs-slot-message-bubble-texture-blend, var(--ovs-bubble-texture-blend, normal));
 }
 
 /* ============================================================

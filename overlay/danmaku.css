@@ -24,6 +24,19 @@
   top: 0;
   margin: 0;
   max-width: none;
+  /* Without an explicit width, this is a width:auto box that is also
+     position:absolute with `left` set and `right` unset. Per the CSS
+     shrink-to-fit algorithm the browser sizes it against the *available*
+     space to the containing block's right edge — which here is
+     (container width - left), and left:100% makes that ~0. The box then
+     collapses toward its min-content width (the widest unbreakable word),
+     so any text inside wraps after almost every word no matter how much
+     room the bubble/text child itself is allowed (--ovs-bubble-max-width,
+     100%, etc. are all relative to this collapsed parent). Forcing
+     max-content here sizes the row off its own content instead, so the
+     wrap settings inside (row vs "Bọc riêng từng phần") behave the same
+     as they do outside danmaku mode. */
+  width: max-content;
   animation-name: ovs-danmaku-fly;
   animation-timing-function: linear;
   animation-fill-mode: forwards;

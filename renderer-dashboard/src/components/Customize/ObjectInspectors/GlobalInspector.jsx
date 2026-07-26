@@ -127,6 +127,9 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
             bubbleTextureSize: local.bubbleTextureSize,
             bubbleTextureRepeat: local.bubbleTextureRepeat,
             bubbleTextureOpacity: local.bubbleTextureOpacity,
+            bubbleTexturePositionX: local.bubbleTexturePositionX,
+            bubbleTexturePositionY: local.bubbleTexturePositionY,
+            bubbleTextureBlendMode: local.bubbleTextureBlendMode,
           }}
           onChange={pushUpdate}
         />

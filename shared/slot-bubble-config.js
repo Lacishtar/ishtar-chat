@@ -26,6 +26,9 @@ const BUBBLE_KEYS = [
   'bubbleTextureSize',
   'bubbleTextureRepeat',
   'bubbleTextureOpacity',
+  'bubbleTexturePositionX',
+  'bubbleTexturePositionY',
+  'bubbleTextureBlendMode',
   'bubbleBunnyEars',
   'bubbleBunnyEarsWidth',
   'bubbleBunnyEarsHeight',
@@ -95,7 +98,24 @@ function compileSlotBubbleDecoration(prefix, slot, globalConfig) {
     vars[`--ovs-slot-${prefix}-bubble-texture-size`] = typeof texSize === 'number' ? px(texSize) : texSize;
   }
   if (isSet(texOpacity)) {
-    vars[`--ovs-slot-${prefix}-bubble-texture-opacity`] = String(texOpacity);
+    // Snap to 2 decimal places (matches the global compiler) so repeated
+    // percent-field edits at the slot level don't accumulate float noise.
+    vars[`--ovs-slot-${prefix}-bubble-texture-opacity`] = String(Math.round(clampPct(Number(texOpacity) * 100, 100)) / 100);
+  }
+
+  // X/Y axis position — each axis resolves independently (slot override
+  // falls back to the global value for that axis, not the pair as a whole),
+  // so e.g. overriding just the vertical axis on the author bubble doesn't
+  // require re-specifying the horizontal one too.
+  const texPosX = resolveSlotBubbleValue(slot, 'bubbleTexturePositionX', globalConfig);
+  const texPosY = resolveSlotBubbleValue(slot, 'bubbleTexturePositionY', globalConfig);
+  const texBlend = resolveSlotBubbleValue(slot, 'bubbleTextureBlendMode', globalConfig);
+  if (isSet(texPosX) || isSet(texPosY)) {
+    vars[`--ovs-slot-${prefix}-bubble-texture-position`] =
+      `${clampPct(texPosX, 50)}% ${clampPct(texPosY, 50)}%`;
+  }
+  if (isSet(texBlend)) {
+    vars[`--ovs-slot-${prefix}-bubble-texture-blend`] = texBlend;
   }
 
   if (isSet(resolveSlotBubbleValue(slot, 'bubbleBorderWidth', globalConfig))) {
