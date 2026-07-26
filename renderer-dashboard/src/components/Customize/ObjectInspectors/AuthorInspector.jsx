@@ -35,6 +35,9 @@ export default function AuthorInspector({ local, slotLocal, pushSlotUpdate, stat
           color={slotVal(slotLocal, 'author', 'color', local.authorColor)}
           opacity={slotVal(slotLocal, 'author', 'opacity', 1)}
           textAlign={slotVal(slotLocal, 'author', 'textAlign', '')}
+          glow={slotVal(slotLocal, 'author', 'glow', local.textGlow)}
+          strokeWidth={slotVal(slotLocal, 'author', 'strokeWidth', local.textStrokeWidth ?? 0)}
+          strokeColor={slotVal(slotLocal, 'author', 'strokeColor', local.textStrokeColor)}
           sizeRange={[10, 28]}
           onChange={(patch) => pushSlotUpdate('author', patch)}
         />

@@ -38,12 +38,18 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
           showOpacity={false}
           allowDefaultAlign={false}
           sizeRange={[12, 28]}
+          glow={local.textGlow}
+          strokeWidth={local.textStrokeWidth ?? 0}
+          strokeColor={local.textStrokeColor}
           onChange={(patch) =>
             pushUpdate({
               ...(patch.fontFamily !== undefined ? { fontFamily: patch.fontFamily } : {}),
               ...(patch.fontSize !== undefined ? { fontSize: patch.fontSize } : {}),
               ...(patch.color !== undefined ? { textColor: patch.color } : {}),
               ...(patch.textAlign !== undefined ? { textAlign: patch.textAlign } : {}),
+              ...(patch.glow !== undefined ? { textGlow: patch.glow } : {}),
+              ...(patch.strokeWidth !== undefined ? { textStrokeWidth: patch.strokeWidth } : {}),
+              ...(patch.strokeColor !== undefined ? { textStrokeColor: patch.strokeColor } : {}),
             })
           }
         />

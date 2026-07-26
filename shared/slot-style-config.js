@@ -3,7 +3,7 @@
  * Compiled to --ovs-slot-* CSS variables. Slot overrides fall back to CustomizeConfig.
  */
 
-const { DEFAULT_CUSTOMIZE_CONFIG } = require('./customize-config');
+const { DEFAULT_CUSTOMIZE_CONFIG, buildTextShadow } = require('./customize-config');
 const { compileSlotBubblesToCssVariables, createSlotBubbleDefaults } = require('./slot-bubble-config');
 
 function createTransformDefaults(overrides = {}) {
@@ -27,6 +27,9 @@ function createTextSlotDefaults(overrides = {}) {
     opacity: null,
     margin: 0,
     textAlign: null,
+    glow: null,
+    strokeWidth: null,
+    strokeColor: null,
     ...createTransformDefaults(),
     ...overrides,
   };
@@ -120,6 +123,9 @@ function resolveEffectiveSlotStyle(slotStyle, customizeConfig, layoutConfig) {
       opacity: slots.author.opacity ?? 1,
       margin: slots.author.margin ?? 0,
       textAlign: slots.author.textAlign ?? cfg.textAlign ?? null,
+      glow: slots.author.glow ?? cfg.textGlow ?? null,
+      strokeWidth: slots.author.strokeWidth ?? cfg.textStrokeWidth ?? 0,
+      strokeColor: slots.author.strokeColor ?? cfg.textStrokeColor ?? null,
       ...resolveTransform(slots.author, false, isRtl),
     },
     badges: {
@@ -138,6 +144,9 @@ function resolveEffectiveSlotStyle(slotStyle, customizeConfig, layoutConfig) {
       opacity: slots.message.opacity ?? 1,
       margin: slots.message.margin ?? 0,
       textAlign: slots.message.textAlign ?? cfg.textAlign ?? null,
+      glow: slots.message.glow ?? cfg.textGlow ?? null,
+      strokeWidth: slots.message.strokeWidth ?? cfg.textStrokeWidth ?? 0,
+      strokeColor: slots.message.strokeColor ?? cfg.textStrokeColor ?? null,
       ...resolveTransform(slots.message, true, isRtl),
     },
   };
@@ -208,6 +217,7 @@ function compileSlotStyleToCssVariables(slotStyle, customizeConfig, layoutConfig
   if (e.author.opacity != null) vars['--ovs-slot-author-opacity'] = String(e.author.opacity);
   if (e.author.margin != null) vars['--ovs-slot-author-margin'] = px(e.author.margin);
   if (e.author.textAlign) vars['--ovs-slot-author-text-align'] = e.author.textAlign;
+  vars['--ovs-slot-author-text-shadow'] = buildTextShadow(e.author.glow, e.author.strokeWidth, e.author.strokeColor);
   Object.assign(vars, compileTransformVars('author', e.author, isRtl));
 
   if (e.badges.fontSize != null) vars['--ovs-slot-badges-font-size'] = px(e.badges.fontSize);
@@ -222,6 +232,7 @@ function compileSlotStyleToCssVariables(slotStyle, customizeConfig, layoutConfig
   if (e.message.opacity != null) vars['--ovs-slot-message-opacity'] = String(e.message.opacity);
   if (e.message.margin != null) vars['--ovs-slot-message-margin'] = px(e.message.margin);
   if (e.message.textAlign) vars['--ovs-slot-message-text-align'] = e.message.textAlign;
+  vars['--ovs-slot-message-text-shadow'] = buildTextShadow(e.message.glow, e.message.strokeWidth, e.message.strokeColor);
   Object.assign(vars, compileTransformVars('message', e.message, isRtl));
 
   Object.assign(vars, compileSlotBubblesToCssVariables(s, customizeConfig));
@@ -249,6 +260,9 @@ function componentOverridesToSlotStyle(componentOverrides) {
     if (src.visible != null) target.visible = src.visible;
     if (src.margin != null) target.margin = src.margin;
     if (src.textAlign != null) target.textAlign = src.textAlign;
+    if (src.glow != null) target.glow = src.glow;
+    if (src.strokeWidth != null) target.strokeWidth = src.strokeWidth;
+    if (src.strokeColor != null) target.strokeColor = src.strokeColor;
     mapTransform(src, target);
   };
 

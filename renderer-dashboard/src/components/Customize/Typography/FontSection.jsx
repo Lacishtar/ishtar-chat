@@ -1,6 +1,7 @@
-import { Field, inputClass } from '../shared/fields.jsx';
+import { Field, inputClass, EnableToggle } from '../shared/fields.jsx';
 import { FONT_GROUPS } from '../shared/constants.js';
 import ColorPicker from '../shared/ColorPicker.jsx';
+import GlowSection from '../Appearance/GlowSection.jsx';
 
 export default function FontSection({
   fontFamily,
@@ -8,14 +9,21 @@ export default function FontSection({
   color,
   opacity,
   textAlign,
+  glow,
+  strokeWidth,
+  strokeColor,
   onChange,
   showFontFamily = true,
   showColor = true,
   showOpacity = true,
   showTextAlign = true,
+  showGlow = true,
+  showStroke = true,
   allowDefaultAlign = true,
   sizeRange = [10, 32],
 }) {
+  const strokeEnabled = (strokeWidth || 0) > 0;
+
   return (
     <>
       {showFontFamily && (
@@ -76,6 +84,49 @@ export default function FontSection({
             onChange={(e) => onChange({ opacity: Number(e.target.value) })}
           />
         </Field>
+      )}
+
+      {showGlow && (
+        <div className="col-span-2 flex flex-col gap-3 border-t border-line pt-3">
+          <GlowSection value={glow ?? 'none'} onChange={(v) => onChange({ glow: v })} allowCustomCss />
+        </div>
+      )}
+
+      {showStroke && (
+        <div className="col-span-2 flex flex-col gap-3 border-t border-line pt-3">
+          <EnableToggle
+            label="Bật viền chữ (stroke)"
+            checked={strokeEnabled}
+            onChange={(e) => {
+              if (e.target.checked) {
+                onChange({ strokeWidth: 1, strokeColor: strokeColor || '#000000' });
+              } else {
+                onChange({ strokeWidth: 0 });
+              }
+            }}
+          />
+          {strokeEnabled && (
+            <>
+              <Field label={`Độ dày viền — ${strokeWidth}px`}>
+                <input
+                  type="range"
+                  min={0.5}
+                  max={6}
+                  step={0.5}
+                  value={strokeWidth}
+                  onChange={(e) => onChange({ strokeWidth: Number(e.target.value) })}
+                />
+              </Field>
+              <Field label="Màu viền">
+                <ColorPicker
+                  value={strokeColor || '#000000'}
+                  onChange={(v) => onChange({ strokeColor: v })}
+                  allowGradient={false}
+                />
+              </Field>
+            </>
+          )}
+        </div>
       )}
     </>
   );

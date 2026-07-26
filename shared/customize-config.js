@@ -12,6 +12,9 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   textAlign: 'left',
   textColor: '#EAECEF',
   authorColor: '#6E56F0',
+  textGlow: null, // CSS filter: drop-shadow(...) string — glow halo around author/message text
+  textStrokeWidth: 0, // px — outline thickness around the text glyphs
+  textStrokeColor: null, // stroke color; falls back to '#000000' when width > 0 and no color chosen yet
   bubbleBg: 'rgba(22, 25, 31, 0.72)',
   bubbleRadius: 14, // px
   bubbleOpacity: 1,
@@ -88,6 +91,68 @@ function clampPct(value, fallback) {
   return Math.min(Math.max(n, 0), 100);
 }
 
+/**
+ * Builds a combined CSS text-shadow value from glow + stroke config.
+ *
+ * Replaces the old `filter: drop-shadow()` + `-webkit-text-stroke` approach:
+ *  - filter: collides with --ovs-bubble-glow / --ovs-slot-*-bubble-glow in
+ *    wrap-bubble mode (bubble-wrap.css applies `filter` directly on .ovs-author
+ *    and .ovs-text with higher specificity, completely clobbering any text-glow
+ *    filter set by the theme)
+ *  - -webkit-text-stroke: renders inconsistently/jaggedly across fonts and
+ *    eats into the glyph interior rather than extending outward
+ *
+ * Both effects are expressed as text-shadow layers instead — a separate CSS
+ * property that never conflicts with filter.
+ *
+ * Stroke is rendered as an 8-direction offset faux-outline, which extends
+ * outside the glyph (unlike -webkit-text-stroke which cuts inward), so even
+ * thick strokes don't affect letterform readability.
+ *
+ * @param {string|null} glow        - CSS filter drop-shadow() string, e.g.
+ *                                    "drop-shadow(0 0 8px rgba(100,200,255,0.8))"
+ *                                    (same format used by the bubble glow UI)
+ * @param {number}      strokeWidth - outline thickness in px (0 = no stroke)
+ * @param {string|null} strokeColor - outline color; defaults to '#000000'
+ * @returns {string} CSS text-shadow value, or 'none'
+ */
+function buildTextShadow(glow, strokeWidth, strokeColor) {
+  const parts = [];
+
+  // Stroke — 8-direction faux-outline via text-shadow offsets.
+  const w = Number(strokeWidth) || 0;
+  if (w > 0) {
+    const sc = strokeColor || '#000000';
+    [
+      [-w, -w], [ 0, -w], [ w, -w],
+      [-w,  0],            [ w,  0],
+      [-w,  w], [ 0,  w], [ w,  w],
+    ].forEach(([dx, dy]) => parts.push(`${dx}px ${dy}px 0 ${sc}`));
+  }
+
+  // Glow — text-shadow uses the same "x y blur color" syntax as drop-shadow(),
+  // so just strip the function wrapper to reuse the stored filter string.
+  // Walk paren depth manually because the color may itself be rgba(...) or
+  // oklch(...), which would trip up a naive [^)]+ regex.
+  if (glow && typeof glow === 'string') {
+    const prefix = 'drop-shadow(';
+    const start = glow.indexOf(prefix);
+    if (start !== -1) {
+      let depth = 1;
+      let i = start + prefix.length;
+      while (i < glow.length && depth > 0) {
+        if (glow[i] === '(') depth++;
+        else if (glow[i] === ')') { if (--depth === 0) break; }
+        i++;
+      }
+      const inner = glow.slice(start + prefix.length, i).trim();
+      if (inner) parts.push(inner);
+    }
+  }
+
+  return parts.length > 0 ? parts.join(', ') : 'none';
+}
+
 function compileBubbleDecorationToCssVariables(config) {
   const c = { ...DEFAULT_CUSTOMIZE_CONFIG, ...config };
   const vars = {};
@@ -162,6 +227,7 @@ function toCssVariables(config) {
     '--ovs-font-size': `${c.fontSize}px`,
     '--ovs-text-color': c.textColor,
     '--ovs-author-color': c.authorColor,
+    '--ovs-text-shadow': buildTextShadow(c.textGlow, c.textStrokeWidth, c.textStrokeColor),
     '--ovs-bubble-bg': c.bubbleBg,
     '--ovs-bubble-radius': `${c.bubbleRadius}px`,
     '--ovs-bubble-opacity': String(c.bubbleOpacity),
@@ -187,6 +253,7 @@ function sanitizeThemeDefaults(themeDefaults) {
 
 module.exports = {
   DEFAULT_CUSTOMIZE_CONFIG,
+  buildTextShadow,
   toCssVariables,
   compileBubbleDecorationToCssVariables,
   sanitizeThemeDefaults,

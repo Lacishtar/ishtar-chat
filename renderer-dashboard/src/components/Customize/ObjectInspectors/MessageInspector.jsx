@@ -35,6 +35,9 @@ export default function MessageInspector({ local, slotLocal, pushSlotUpdate, sta
           color={slotVal(slotLocal, 'message', 'color', local.textColor)}
           opacity={slotVal(slotLocal, 'message', 'opacity', 1)}
           textAlign={slotVal(slotLocal, 'message', 'textAlign', '')}
+          glow={slotVal(slotLocal, 'message', 'glow', local.textGlow)}
+          strokeWidth={slotVal(slotLocal, 'message', 'strokeWidth', local.textStrokeWidth ?? 0)}
+          strokeColor={slotVal(slotLocal, 'message', 'strokeColor', local.textStrokeColor)}
           sizeRange={[10, 32]}
           onChange={(patch) => pushSlotUpdate('message', patch)}
         />

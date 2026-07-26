@@ -117,7 +117,15 @@ export default function BubbleTextureSection({ value, onChange, onReset }) {
       // it null and let the field below stay empty for the user to fill in.
       if (lastUrlRef.current) onChange({ bubbleTextureUrl: lastUrlRef.current });
     } else {
-      onChange({ bubbleTextureUrl: null });
+      // Write '' (not null) so this explicitly overrides an inherited
+      // texture. At the per-slot level (author/message bubble), null means
+      // "no override — fall back to the shared Bubble config", so a
+      // texture set there would keep reappearing even after switching this
+      // toggle off. '' is a real, resolvable value that always renders as
+      // "no texture" (both globally and per-slot), so it actually turns it
+      // off. Use the separate "Dùng mặc định chung" button to go back to
+      // true inheritance instead.
+      onChange({ bubbleTextureUrl: '' });
     }
   };
 

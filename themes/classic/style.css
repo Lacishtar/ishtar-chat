@@ -94,6 +94,7 @@ body {
   opacity: var(--ovs-slot-author-opacity, 1);
   white-space: nowrap;
   text-align: var(--ovs-slot-author-text-align, var(--ovs-text-align, left));
+  text-shadow: var(--ovs-slot-author-text-shadow, var(--ovs-text-shadow, none));
 }
 
 .ovs-badges {
@@ -124,6 +125,7 @@ body {
   line-height: 1.35;
   word-break: break-word;
   text-align: var(--ovs-slot-message-text-align, var(--ovs-text-align, left));
+  text-shadow: var(--ovs-slot-message-text-shadow, var(--ovs-text-shadow, none));
 }
 
 .ovs-text img {
