@@ -79,6 +79,9 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   tickerSpeed: 1, // speed multiplier for ticker scroll — 1 = default (~120px/s)
   tickerGap: 32, // gap (px) between consecutive ticker message items
   tickerPosition: 'bottom', // 'bottom' | 'top'
+  idleAnimation: 'none', // 'none' | 'float' | 'shimmer' | 'slidex'
+  idleAnimationSpeed: 3, // duration in seconds — smaller = faster
+  idleAnimationIntensity: 5, // amplitude: px for float/slidex, 0-20 opacity% for shimmer
 };
 
 function isSet(value) {
@@ -227,6 +230,11 @@ function compileBubbleDecorationToCssVariables(config) {
  */
 function toCssVariables(config) {
   const c = { ...DEFAULT_CUSTOMIZE_CONFIG, ...config };
+
+  // Idle animation amplitude — px for float/slidex, opacity fraction for shimmer
+  const idleIntensity = Number.isFinite(Number(c.idleAnimationIntensity)) ? Number(c.idleAnimationIntensity) : 5;
+  const idleShimmerOpacity = Math.round(Math.min(Math.max(idleIntensity, 0), 20) * 10) / 1000; // 0–0.2 range
+
   return {
     '--ovs-font-family': c.fontFamily,
     '--ovs-text-align': c.textAlign,
@@ -239,6 +247,10 @@ function toCssVariables(config) {
     '--ovs-bubble-opacity': String(c.bubbleOpacity),
     '--ovs-avatar-size': `${c.avatarSize}px`,
     '--ovs-animation-ms': `${c.animationMs}ms`,
+    '--ovs-idle-animation-duration': `${Number.isFinite(Number(c.idleAnimationSpeed)) ? Number(c.idleAnimationSpeed) : 3}s`,
+    '--ovs-idle-float-amplitude': `-${Math.abs(idleIntensity)}px`,
+    '--ovs-idle-slidex-amplitude': `${Math.abs(idleIntensity)}px`,
+    '--ovs-idle-shimmer-opacity': String(idleShimmerOpacity),
     ...compileBubbleDecorationToCssVariables(c),
   };
 }

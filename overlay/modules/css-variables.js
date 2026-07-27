@@ -94,6 +94,13 @@ export function applyCssVariables(config, layout, slotStyle, animationConfig, ro
     ...compileSlotStyleToCssVariables(slotStyle || state.currentSlotStyle, cfg, layout || state.currentLayout),
     ...compileAnimationToCssVariables(animationConfig || state.currentAnimation, cfg),
     ...roleCompiled.vars,
+    // Idle animation CSS variables
+    '--ovs-idle-animation-duration': cfg.idleAnimationSpeed != null ? `${cfg.idleAnimationSpeed}s` : '3s',
+    '--ovs-idle-float-amplitude': cfg.idleAnimationIntensity != null ? `-${Math.abs(cfg.idleAnimationIntensity)}px` : '-5px',
+    '--ovs-idle-slidex-amplitude': cfg.idleAnimationIntensity != null ? `${Math.abs(cfg.idleAnimationIntensity)}px` : '5px',
+    '--ovs-idle-shimmer-opacity': cfg.idleAnimationIntensity != null
+      ? String(Math.round(Math.min(Math.max(cfg.idleAnimationIntensity, 0), 20) * 10) / 1000)
+      : '0.05',
   };
   Object.entries(map).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== 'undefinedpx') {
@@ -128,6 +135,15 @@ export function applyCssVariables(config, layout, slotStyle, animationConfig, ro
   delete root.dataset.ovsBubbleScope;
 
   listEl.classList.toggle('ovs-position-top-down', config.position === 'top-down');
+
+  // Set idle animation type on list element — CSS selector gates on this attribute
+  const idleAnim = cfg.idleAnimation || 'none';
+  listEl.dataset.ovsIdleAnimation = idleAnim;
+  // Stamp --ovs-idle-index on each existing message for staggered delay
+  Array.from(listEl.children).forEach((el, i) => {
+    el.style.setProperty('--ovs-idle-index', String(i));
+  });
+
   syncThemeModeClass();
   refreshAllSlotVisibility();
 }

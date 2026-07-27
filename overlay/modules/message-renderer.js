@@ -221,6 +221,11 @@ export function renderMessage(msg, options = {}) {
   applyDecorationLayers(node, state.currentDecoration);
 
   trimToMax();
+
+  // Stamp --ovs-idle-index for staggered idle animation delay
+  Array.from(listEl.children).forEach((el, i) => {
+    el.style.setProperty('--ovs-idle-index', String(i));
+  });
 }
 
 export function renderHistory(history) {

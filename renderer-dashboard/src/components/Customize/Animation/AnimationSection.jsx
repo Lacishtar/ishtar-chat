@@ -144,6 +144,51 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
           onChange={(e) => onChange({ animationMs: Number(e.target.value) })}
         />
       </Field>
+
+      {/* Idle animation — only useful in stack mode; danmaku/ticker have their own movement */}
+      <div className="col-span-2">
+        <Field label="Hiệu ứng liên tục (Idle)">
+          <select
+            className={inputClass}
+            value={local.idleAnimation ?? 'none'}
+            onChange={(e) => onChange({ idleAnimation: e.target.value })}
+          >
+            <option value="none">Không có</option>
+            <option value="float">Float / Bob — lên xuống nhẹ nhàng</option>
+            <option value="shimmer">Shimmer — ánh sáng quét qua bubble</option>
+            <option value="slidex">Slide X — lắc trái phải</option>
+          </select>
+        </Field>
+      </div>
+
+      {(local.idleAnimation && local.idleAnimation !== 'none') && (<>
+        <Field label={`Tốc độ — ${local.idleAnimationSpeed ?? 3}s / chu kỳ`}>
+          <input
+            type="range"
+            min={0.5}
+            max={8}
+            step={0.5}
+            value={local.idleAnimationSpeed ?? 3}
+            onChange={(e) => onChange({ idleAnimationSpeed: Number(e.target.value) })}
+          />
+        </Field>
+        <Field
+          label={
+            local.idleAnimation === 'shimmer'
+              ? `Độ sáng — ${local.idleAnimationIntensity ?? 5}%`
+              : `Biên độ — ${local.idleAnimationIntensity ?? 5}px`
+          }
+        >
+          <input
+            type="range"
+            min={1}
+            max={20}
+            step={1}
+            value={local.idleAnimationIntensity ?? 5}
+            onChange={(e) => onChange({ idleAnimationIntensity: Number(e.target.value) })}
+          />
+        </Field>
+      </>)}
     </>
   );
 }

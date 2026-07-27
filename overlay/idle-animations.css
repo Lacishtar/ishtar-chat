@@ -1,0 +1,82 @@
+/* ============================================================
+   Idle animations — continuous CSS animations applied to chat
+   messages regardless of chat activity.
+
+   Animation type is controlled via data-ovs-idle-animation on
+   #ovs-chat-list. In stack mode the animation targets .ovs-message
+   itself. In danmaku/ticker modes, float and slidex target the
+   inner children instead to avoid conflicts with:
+     * Danmaku: CSS animation (ovs-danmaku-fly) on .ovs-message
+     * Ticker: JS-controlled transform: translate3d on .ovs-message
+   Shimmer (::after) is conflict-free in all modes.
+   ============================================================ */
+
+/* -- Float / Bob --------------------------------------------- */
+@keyframes ovs-idle-float {
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(var(--ovs-idle-float-amplitude, -5px)); }
+  100% { transform: translateY(0px); }
+}
+
+/* Stack mode: animate the whole message row */
+#ovs-chat-list[data-ovs-idle-animation='float']:not([data-ovs-theme-mode='danmaku']):not([data-ovs-theme-mode='ticker']) .ovs-message {
+  animation: ovs-idle-float var(--ovs-idle-animation-duration, 3s) ease-in-out infinite;
+  animation-delay: calc(var(--ovs-idle-index, 0) * -0.4s);
+}
+
+/* Danmaku + Ticker: animate inner bubble content only */
+#ovs-chat-list[data-ovs-idle-animation='float'][data-ovs-theme-mode='danmaku'] .ovs-message > *,
+#ovs-chat-list[data-ovs-idle-animation='float'][data-ovs-theme-mode='ticker'] .ovs-message > * {
+  animation: ovs-idle-float var(--ovs-idle-animation-duration, 3s) ease-in-out infinite;
+  animation-delay: calc(var(--ovs-idle-index, 0) * -0.4s);
+}
+
+/* -- Shimmer -------------------------------------------------- */
+@keyframes ovs-idle-shimmer-sweep {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Shimmer uses ::after -- no transform/animation conflict in any mode */
+#ovs-chat-list[data-ovs-idle-animation='shimmer'] .ovs-message {
+  position: relative;
+  overflow: hidden;
+}
+
+#ovs-chat-list[data-ovs-idle-animation='shimmer'] .ovs-message::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, var(--ovs-idle-shimmer-opacity, 0.12)) 50%,
+    transparent 65%
+  );
+  background-size: 200% 100%;
+  animation: ovs-idle-shimmer-sweep var(--ovs-idle-animation-duration, 3s) linear infinite;
+  animation-delay: calc(var(--ovs-idle-index, 0) * -0.5s);
+}
+
+/* -- Slide X -------------------------------------------------- */
+@keyframes ovs-idle-slidex {
+  0%   { transform: translateX(0px); }
+  25%  { transform: translateX(var(--ovs-idle-slidex-amplitude, 6px)); }
+  75%  { transform: translateX(calc(var(--ovs-idle-slidex-amplitude, 6px) * -1)); }
+  100% { transform: translateX(0px); }
+}
+
+/* Stack mode: animate the whole message row */
+#ovs-chat-list[data-ovs-idle-animation='slidex']:not([data-ovs-theme-mode='danmaku']):not([data-ovs-theme-mode='ticker']) .ovs-message {
+  animation: ovs-idle-slidex var(--ovs-idle-animation-duration, 4s) ease-in-out infinite;
+  animation-delay: calc(var(--ovs-idle-index, 0) * -0.35s);
+}
+
+/* Danmaku + Ticker: animate inner bubble content */
+#ovs-chat-list[data-ovs-idle-animation='slidex'][data-ovs-theme-mode='danmaku'] .ovs-message > *,
+#ovs-chat-list[data-ovs-idle-animation='slidex'][data-ovs-theme-mode='ticker'] .ovs-message > * {
+  animation: ovs-idle-slidex var(--ovs-idle-animation-duration, 4s) ease-in-out infinite;
+  animation-delay: calc(var(--ovs-idle-index, 0) * -0.35s);
+}
