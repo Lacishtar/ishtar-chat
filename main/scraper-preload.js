@@ -47,7 +47,8 @@ function extractMessage(node) {
       .map((b) => b.getAttribute(selectors.badgeAccessibilityLabelAttr) || '')
       .filter(Boolean);
 
-    const isSuperchat = node.matches(selectors.superchatRenderer);
+    const isSuperchat = selectors.superchatRenderer ? node.matches(selectors.superchatRenderer) : false;
+    const isMembership = selectors.membershipRenderer ? node.matches(selectors.membershipRenderer) : false;
 
     // Superchat amount display text (e.g. "$5.00") — only queried for paid
     // messages. Currency parsing itself happens in shared/chat-message.js's
@@ -55,18 +56,87 @@ function extractMessage(node) {
     const superchatAmountEl =
       isSuperchat && selectors.superchatAmount ? node.querySelector(selectors.superchatAmount) : null;
 
+    let eventType = 'text';
+
+    if (node.matches('yt-live-chat-paid-sticker-renderer')) {
+      eventType = 'sticker';
+    } else if (node.matches('yt-live-chat-paid-message-renderer')) {
+      eventType = 'superchat';
+    } else if (
+      node.matches(
+        'yt-live-chat-sponsorships-gift-purchase-announcement-renderer, yt-live-chat-sponsorships-gift-redemption-announcement-renderer'
+      )
+    ) {
+      eventType = 'membership_gift';
+    } else if (node.matches('yt-live-chat-membership-item-renderer')) {
+      const headerSub = node.querySelector(
+        '#header-sub-text, #header-primary-text, #header-content-primary-text, #header-title'
+      );
+      const headerText = headerSub ? headerSub.textContent.trim() : '';
+
+      if (node.querySelector('#message') || /member|thành viên|hội viên|month|tháng|year|năm/i.test(headerText)) {
+        eventType = 'membership_milestone';
+      } else if (/gift|tặng/i.test(headerText)) {
+        eventType = 'membership_gift';
+      } else {
+        eventType = 'membership_new';
+      }
+
+      if (headerText && !badges.includes(headerText)) {
+        badges.push(headerText);
+      }
+    }
+
+    if (isMembership && !badges.some((b) => /member|thành viên|hội viên/i.test(b))) {
+      badges.push('Member');
+    }
+
+    let messageHtml = messageEl ? messageEl.innerHTML : '';
+    let messageText = messageEl ? messageEl.textContent.trim() : '';
+
+    if (eventType === 'sticker' && !messageText) {
+      const stickerImg = selectors.stickerImage ? node.querySelector(selectors.stickerImage) : null;
+      if (stickerImg) {
+        const src =
+          stickerImg.src ||
+          stickerImg.getAttribute('src') ||
+          stickerImg.getAttribute('data-src') ||
+          '';
+        const alt = stickerImg.getAttribute('alt') || 'Super Sticker';
+        if (src) {
+          messageHtml = `<img src="${src}" class="ovs-sticker-img" style="max-height:80px;" alt="${alt}" />`;
+          messageText = `[${alt}]`;
+        }
+      }
+    }
+
+    let superchatColor = '';
+    if (isSuperchat) {
+      superchatColor =
+        node.style.getPropertyValue('--yt-live-chat-paid-message-primary-color') ||
+        node.style.getPropertyValue('--yt-live-chat-paid-sticker-chip-background-color') ||
+        (window.getComputedStyle
+          ? window.getComputedStyle(node).getPropertyValue('--yt-live-chat-paid-message-primary-color') ||
+            window.getComputedStyle(node).getPropertyValue('--yt-live-chat-paid-sticker-chip-background-color')
+          : '') ||
+        '';
+      superchatColor = superchatColor.trim();
+    }
+
     return {
       id: node.id || null,
       author: authorEl ? authorEl.textContent.trim() : '',
       avatarUrl: resolveAvatarUrl(node, selectors),
       // innerHTML (not textContent) so YouTube's emoji <img> tags survive.
-      messageHtml: messageEl ? messageEl.innerHTML : '',
+      messageHtml,
       // Plain-text mirror of messageHtml — tag-free, used for language
       // detection and (later) Rule Engine text matching.
-      messageText: messageEl ? messageEl.textContent.trim() : '',
+      messageText,
       badges,
+      eventType,
       isSuperchat,
       superchatAmountRaw: superchatAmountEl ? superchatAmountEl.textContent.trim() : '',
+      superchatColor,
     };
   } catch (err) {
     return null;

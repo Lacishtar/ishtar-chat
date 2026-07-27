@@ -156,7 +156,12 @@
    3. SUPER CHAT STYLES (Highest priority)
    ========================================== */
 :root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-author {
-  color: var(--ovs-role-superchat-author-color, #fde047) !important;
+  color: var(--ovs-superchat-tier-color, var(--ovs-role-superchat-author-color, #fde047)) !important;
+}
+
+:root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-superchat-amount {
+  color: var(--ovs-superchat-tier-color, var(--ovs-role-superchat-author-color, #fde047)) !important;
+  font-weight: 700;
 }
 
 :root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-author-bg='true'] .ovs-message.ovs-superchat .ovs-author {
@@ -169,17 +174,23 @@
 /* If bubble wrap row is false (per-slot mode): style the text bubble */
 :root[data-ovs-role-superchat-enabled='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-superchat .ovs-text {
   background: var(
-    --ovs-role-superchat-message-bg,
-    linear-gradient(135deg, rgba(255, 202, 40, 0.28), var(--ovs-role-fallback-message-bg))
+    --ovs-superchat-tier-bg,
+    var(
+      --ovs-role-superchat-message-bg,
+      linear-gradient(135deg, rgba(255, 202, 40, 0.28), var(--ovs-role-fallback-message-bg))
+    )
   ) !important;
   border-width: var(--ovs-bubble-border-width, 1px) !important;
   border-style: solid !important;
   border-color: var(
-    --ovs-role-superchat-message-border-color,
-    rgba(255, 202, 40, 0.45)
+    --ovs-superchat-tier-border,
+    var(
+      --ovs-role-superchat-message-border-color,
+      rgba(255, 202, 40, 0.45)
+    )
   ) !important;
   color: var(--ovs-role-superchat-message-text-color, inherit) !important;
-  box-shadow: inset 0 0 0 1px var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45));
+  box-shadow: inset 0 0 0 1px var(--ovs-superchat-tier-border, var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45)));
 }
 
 :root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-text {
@@ -195,14 +206,20 @@
 /* If bubble wrap row is true (row mode): style the row */
 :root[data-ovs-role-superchat-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-superchat {
   background: var(
-      --ovs-role-superchat-row-bg,
-      var(--ovs-role-superchat-message-bg, linear-gradient(135deg, rgba(255, 202, 40, 0.22), var(--ovs-role-fallback-row-bg)))
+      --ovs-superchat-tier-bg,
+      var(
+        --ovs-role-superchat-row-bg,
+        var(--ovs-role-superchat-message-bg, linear-gradient(135deg, rgba(255, 202, 40, 0.22), var(--ovs-role-fallback-row-bg)))
+      )
     ) !important;
   border-width: var(--ovs-bubble-border-width, 1px) !important;
   border-style: solid !important;
   border-color: var(
-      --ovs-role-superchat-row-border-color,
-      var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45))
+      --ovs-superchat-tier-border,
+      var(
+        --ovs-role-superchat-row-border-color,
+        var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45))
+      )
     ) !important;
 }
 :root[data-ovs-role-superchat-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-superchat .ovs-text {

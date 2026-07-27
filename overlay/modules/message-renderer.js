@@ -102,7 +102,28 @@ export function createMessageNode(msg, options = {}) {
   // Chat "nuốt mất" hoàn toàn thay vì hoà trộn.
   if (msg.roles?.includes('moderator')) node.classList.add('ovs-moderator');
   if (msg.roles?.includes('member')) node.classList.add('ovs-member');
-  if (msg.isSuperchat) node.classList.add('ovs-superchat');
+  if (msg.isSuperchat) {
+    node.classList.add('ovs-superchat');
+    if (msg.superchatTier) {
+      node.classList.add(`ovs-superchat-tier-${msg.superchatTier}`);
+      node.dataset.ovsSuperchatTier = String(msg.superchatTier);
+    }
+    if (msg.superchatColor) {
+      node.style.setProperty('--ovs-superchat-tier-color', msg.superchatColor);
+    }
+    if (msg.superchatBg) {
+      node.style.setProperty('--ovs-superchat-tier-bg', msg.superchatBg);
+    }
+    if (msg.superchatBorder) {
+      node.style.setProperty('--ovs-superchat-tier-border', msg.superchatBorder);
+    }
+  }
+
+  // Attach eventType class hook (e.g. ovs-event-text, ovs-event-superchat, ovs-event-sticker,
+  // ovs-event-membership-new, ovs-event-membership-gift, ovs-event-membership-milestone)
+  const eventCls = `ovs-event-${msg.eventType || (msg.isSuperchat ? 'superchat' : 'text')}`;
+  node.classList.add(eventCls);
+
   // memberMonths is stored on the node so decoration.js can read it later
   // (including when refreshAllDecorations() re-applies layers without a msg ref).
   node.dataset.ovsMemberMonths = String(msg.memberMonths || 0);
@@ -110,7 +131,7 @@ export function createMessageNode(msg, options = {}) {
   ensureBubbleTexture(node);
   applyMessageBunnyEars(node);
   if (authorEl) {
-    authorEl.textContent = msg.author;
+    authorEl.innerHTML = `<span class="ovs-author-text">${msg.author}</span>`;
     ensureBubbleTexture(authorEl);
     applySlotBunnyEars(authorEl, 'author');
   }
@@ -124,7 +145,7 @@ export function createMessageNode(msg, options = {}) {
   // renderer (plain text + their emoji <img> tags) — that's what lets us
   // safely use innerHTML here instead of losing the emoji.
   if (messageEl) {
-    messageEl.innerHTML = msg.messageHtml;
+    messageEl.innerHTML = `<span class="ovs-text-content">${msg.messageHtml}</span>`;
     ensureBubbleTexture(messageEl);
     applySlotBunnyEars(messageEl, 'message');
   }

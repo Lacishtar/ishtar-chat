@@ -13,7 +13,7 @@ assert(defaults.roles.moderator.badgeBefore === 'MOD', 'moderator default badgeB
 assert(defaults.roles.superchat.showAmount === true, 'superchat showAmount default');
 assert(defaults.roles.moderator.enabled === false, 'moderator disabled by default');
 assert(defaults.roles.member.enabled === false, 'member disabled by default');
-assert(defaults.roles.superchat.enabled === false, 'superchat disabled by default');
+assert(defaults.roles.superchat.enabled === true, 'superchat enabled by default');
 
 const merged = mergeRoleStyleConfig(defaults, {
   roles: {

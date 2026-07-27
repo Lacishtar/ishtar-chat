@@ -15,7 +15,8 @@
     "smoke:slot-style": "node scripts/smoke-test-slot-style.js",
     "smoke:decoration": "node scripts/smoke-test-decoration-config.js",
     "smoke:role-style": "node scripts/smoke-test-role-style-config.js",
-    "smoke:danmaku": "node scripts/smoke-test-danmaku-config.js"
+    "smoke:danmaku": "node scripts/smoke-test-danmaku-config.js",
+    "smoke:chat-message": "node scripts/smoke-test-chat-message.js"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",

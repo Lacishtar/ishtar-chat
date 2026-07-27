@@ -161,16 +161,17 @@
 }
 
 /* Bubble background textures and layer settings */
-/* .ovs-author and .ovs-text keep isolation:isolate for their .ovs-bubble-texture z-index:-1 child.
-   .ovs-message must NOT use isolation:isolate so that bunny-ear ::before/::after
-   with negative z-index can render BEHIND the message bubble background. */
+/* .ovs-bubble-texture is prepended as the first child of the bubble container
+   (.ovs-message, .ovs-author, or .ovs-text). With z-index: 0, it paints directly
+   ON TOP of the parent's background fill, but BELOW subsequent content children
+   (.ovs-meta, .ovs-body, text, avatars). This ensures texture opacity slider edits
+   (from 0.0 to 1.0) function correctly. */
 .ovs-author,
-.ovs-text {
-  position: relative;
-  isolation: isolate;
-}
+.ovs-text,
 .ovs-message {
   position: relative;
+}
+.ovs-message {
   /* #ovs-chat-list is a column flex container; without this, flex-shrink defaults
      to 1 and the browser silently squeezes rows below their configured
      min-height/max-height/fixed-height (below) once the list overflows the
@@ -186,19 +187,20 @@
   right: 0;
   bottom: 0;
   pointer-events: none;
-  z-index: -1;
+  z-index: 0;
   border-radius: inherit;
 }
 
+/* All content inside bubbles must sit at z-index: 1 above .ovs-bubble-texture (z-index: 0) */
+.ovs-message > :not(.ovs-bubble-texture):not(.ovs-bunny-ear),
+.ovs-author > :not(.ovs-bubble-texture):not(.ovs-bunny-ear),
+.ovs-text > :not(.ovs-bubble-texture):not(.ovs-bunny-ear) {
+  position: relative;
+  z-index: 1;
+}
+
 /* Base state: no texture image until the element's own bubble-wrap flag
-   says it's actually rendering as a bubble (see the three rules below).
-   Without this, .ovs-bubble-texture always painted its background-image
-   as soon as ANY bubble-wrap mode was on, regardless of whether THIS
-   element (.ovs-message / .ovs-author / .ovs-text) was the one actually
-   wrapped — e.g. "wrap message only" (bubbleWrapAuthor: false) still let
-   a texture bleed onto the plain (non-bubble) .ovs-author, since the old
-   rule only ever checked the row-wrap flag, never the author/message
-   per-slot flags. */
+   says it's actually rendering as a bubble (see the three rules below). */
 .ovs-message > .ovs-bubble-texture,
 .ovs-author > .ovs-bubble-texture,
 .ovs-text > .ovs-bubble-texture {
@@ -206,15 +208,16 @@
 }
 
 /* Each rule below mirrors the exact gating used for that element's own
-   bubble background/radius (lines 23, 82, 120 above) — the texture only
-   ever appears on the element that's actually wrapped as a bubble. */
+   bubble background/radius — the texture only ever appears on the element
+   that's actually wrapped as a bubble.
+   Row wrap (.ovs-message) reads the global --ovs-bubble-texture-* properties directly. */
 :root[data-ovs-bubble-wrap-row='true'] .ovs-message > .ovs-bubble-texture {
-  background-image: var(--ovs-slot-message-bubble-texture-url, var(--ovs-bubble-texture-url));
-  background-repeat: var(--ovs-slot-message-bubble-texture-repeat, var(--ovs-bubble-texture-repeat, repeat));
-  background-size: var(--ovs-slot-message-bubble-texture-size, var(--ovs-bubble-texture-size, auto));
-  background-position: var(--ovs-slot-message-bubble-texture-position, var(--ovs-bubble-texture-position, center));
-  opacity: var(--ovs-slot-message-bubble-texture-opacity, var(--ovs-bubble-texture-opacity, 1));
-  mix-blend-mode: var(--ovs-slot-message-bubble-texture-blend, var(--ovs-bubble-texture-blend, normal));
+  background-image: var(--ovs-bubble-texture-url);
+  background-repeat: var(--ovs-bubble-texture-repeat, repeat);
+  background-size: var(--ovs-bubble-texture-size, auto);
+  background-position: var(--ovs-bubble-texture-position, center);
+  opacity: var(--ovs-bubble-texture-opacity, 1);
+  mix-blend-mode: var(--ovs-bubble-texture-blend, normal);
 }
 
 :root[data-ovs-bubble-wrap-author='true'] .ovs-author > .ovs-bubble-texture {

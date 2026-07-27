@@ -10,7 +10,9 @@ export function ensureBubbleTexture(parent) {
   if (!tex) {
     tex = document.createElement('div');
     tex.className = 'ovs-bubble-texture';
-    parent.appendChild(tex);
+    parent.insertBefore(tex, parent.firstChild);
+  } else if (parent.firstChild && tex !== parent.firstChild) {
+    parent.insertBefore(tex, parent.firstChild);
   }
 }
 
