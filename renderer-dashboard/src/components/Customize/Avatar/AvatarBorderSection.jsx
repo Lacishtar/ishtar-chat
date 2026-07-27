@@ -1,5 +1,6 @@
 import { PresetButton } from '../shared/fields.jsx';
 import BorderSection from '../Appearance/BorderSection.jsx';
+import { DEFAULT_BORDER_COLOR } from '../shared/constants.js';
 import { slotVal } from '../shared/configHelpers.js';
 
 export default function AvatarBorderSection({ local, slotLocal, pushSlotUpdate }) {
@@ -18,8 +19,8 @@ export default function AvatarBorderSection({ local, slotLocal, pushSlotUpdate }
       <BorderSection
         width={slotVal(slotLocal, 'avatar', 'borderWidth', 0)}
         style={slotVal(slotLocal, 'avatar', 'borderStyle', 'solid')}
-        color={slotVal(slotLocal, 'avatar', 'borderColor', local.authorColor)}
-        defaultColor={local.authorColor}
+        color={slotVal(slotLocal, 'avatar', 'borderColor', DEFAULT_BORDER_COLOR)}
+        defaultColor={DEFAULT_BORDER_COLOR}
         offset={slotVal(slotLocal, 'avatar', 'borderOffset', 0)}
         onChange={(patch) =>
           pushSlotUpdate('avatar', {

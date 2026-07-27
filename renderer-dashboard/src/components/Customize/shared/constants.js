@@ -55,6 +55,14 @@ export const BORDER_STYLE_OPTIONS = [
   { value: 'none', label: 'Không viền' },
 ];
 
+// Fixed fallback color for every border control (Bubble chung, Bubble riêng,
+// Avatar) when the user hasn't picked a border color yet. Previously this
+// fell back to the theme's textColor ("smart" default that tracked theme
+// changes), but that made the picker show a resolved color indistinguishable
+// from an explicitly-chosen one. A fixed white is predictable and matches
+// what people expect "no color chosen yet" to look like.
+export const DEFAULT_BORDER_COLOR = '#FFFFFF';
+
 export const SHADOW_PRESETS = [
   { id: 'none', label: 'Không', value: 'none' },
   { id: 'light', label: 'Nhẹ', value: '0 4px 14px rgba(255, 140, 200, 0.25)' },

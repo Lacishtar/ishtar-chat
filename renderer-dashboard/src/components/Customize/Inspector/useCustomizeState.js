@@ -42,6 +42,7 @@ export default function useCustomizeState() {
     local,
     slotLocal,
     animLocal,
+    layoutLocal,
     pushConfigUpdate,
     pushSlotUpdate,
     pushAnimationUpdate,
@@ -93,10 +94,14 @@ export default function useCustomizeState() {
 
   if (!local) return null;
 
+  const isRowBubbleWrap = layoutLocal?.screen?.bubbleWrapRow === true;
+
   return {
     local,
     slotLocal,
     animLocal,
+    layoutLocal,
+    isRowBubbleWrap,
     pushUpdate: pushConfigUpdate,
     pushSlotUpdate,
     pushAnimationUpdate,

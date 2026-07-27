@@ -9,8 +9,9 @@ import BubbleSizeSection from './BubbleSizeSection.jsx';
 import BubbleTextureSection from './BubbleTextureSection.jsx';
 import BunnySection from './BunnySection.jsx';
 import { PresetBadge } from '../shared/fields.jsx';
+import { DEFAULT_BORDER_COLOR } from '../shared/constants.js';
 
-export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushSlotUpdate }) {
+export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushSlotUpdate, borderDisabledNote }) {
   const [tab, setTab] = useState('shape');
 
   const bg = slotBubbleVal(slotLocal, slot, 'bubbleBg', globalConfig, globalConfig.bubbleBg);
@@ -161,26 +162,34 @@ export default function SlotBubbleSection({ slot, slotLocal, globalConfig, pushS
 
         {tab === 'border' && (
           <>
-            {!isSlotBubbleUserSet(slotLocal, slot, 'bubbleBorderWidth') && (
-              <div className="col-span-2">
-                <PresetBadge />
+            {borderDisabledNote ? (
+              <div className="col-span-2 text-[11px] text-amber-400/90 bg-amber-400/10 border border-amber-400/20 rounded-md px-2.5 py-2 leading-snug">
+                {borderDisabledNote}
               </div>
+            ) : (
+              !isSlotBubbleUserSet(slotLocal, slot, 'bubbleBorderWidth') && (
+                <div className="col-span-2">
+                  <PresetBadge />
+                </div>
+              )
             )}
-            <BorderSection
-              width={slotBubbleVal(slotLocal, slot, 'bubbleBorderWidth', globalConfig, 0)}
-              style={slotBubbleVal(slotLocal, slot, 'bubbleBorderStyle', globalConfig, 'solid')}
-              color={slotBubbleVal(slotLocal, slot, 'bubbleBorderColor', globalConfig, globalConfig.textColor)}
-              defaultColor={globalConfig.textColor}
-              offset={slotBubbleVal(slotLocal, slot, 'bubbleBorderOffset', globalConfig, 0)}
-              onChange={(patch) =>
-                pushSlotUpdate(slot, {
-                  ...(patch.width !== undefined ? { bubbleBorderWidth: patch.width } : {}),
-                  ...(patch.style !== undefined ? { bubbleBorderStyle: patch.style } : {}),
-                  ...(patch.color !== undefined ? { bubbleBorderColor: patch.color } : {}),
-                  ...(patch.offset !== undefined ? { bubbleBorderOffset: patch.offset } : {}),
-                })
-              }
-            />
+            <div className={`col-span-2 grid grid-cols-2 gap-3 ${borderDisabledNote ? 'opacity-40 pointer-events-none' : ''}`}>
+              <BorderSection
+                width={slotBubbleVal(slotLocal, slot, 'bubbleBorderWidth', globalConfig, 0)}
+                style={slotBubbleVal(slotLocal, slot, 'bubbleBorderStyle', globalConfig, 'solid')}
+                color={slotBubbleVal(slotLocal, slot, 'bubbleBorderColor', globalConfig, DEFAULT_BORDER_COLOR)}
+                defaultColor={DEFAULT_BORDER_COLOR}
+                offset={slotBubbleVal(slotLocal, slot, 'bubbleBorderOffset', globalConfig, 0)}
+                onChange={(patch) =>
+                  pushSlotUpdate(slot, {
+                    ...(patch.width !== undefined ? { bubbleBorderWidth: patch.width } : {}),
+                    ...(patch.style !== undefined ? { bubbleBorderStyle: patch.style } : {}),
+                    ...(patch.color !== undefined ? { bubbleBorderColor: patch.color } : {}),
+                    ...(patch.offset !== undefined ? { bubbleBorderOffset: patch.offset } : {}),
+                  })
+                }
+              />
+            </div>
           </>
         )}
 

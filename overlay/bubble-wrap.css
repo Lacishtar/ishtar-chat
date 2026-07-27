@@ -21,6 +21,7 @@
 }
 
 :root[data-ovs-bubble-wrap-row='true'] .ovs-message {
+  box-sizing: border-box;
   padding: var(--ovs-bubble-pad-top, var(--ovs-bubble-pad-y, 8px))
     var(--ovs-bubble-pad-right, var(--ovs-bubble-pad-x, 12px))
     var(--ovs-bubble-pad-bottom, var(--ovs-bubble-pad-y, 8px))
@@ -28,9 +29,17 @@
   border-radius: var(--ovs-bubble-radius, 14px) !important;
   background: var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)) !important;
   opacity: var(--ovs-bubble-opacity, 1) !important;
-  border-width: var(--ovs-bubble-border-width, 0) !important;
-  border-style: var(--ovs-bubble-border-style, solid) !important;
-  border-color: var(--ovs-bubble-border-color, transparent) !important;
+  /* Border rendered via `outline` (not `border`) so thickness never changes
+     this element's box size — same approach as the split-mode slot bubbles
+     (.ovs-author / .ovs-text) below. Previously this used real `border-*`,
+     which grew the bubble's rendered footprint as border width increased. */
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  outline-width: var(--ovs-bubble-border-width, 0) !important;
+  outline-style: var(--ovs-bubble-border-style, solid) !important;
+  outline-color: var(--ovs-bubble-border-color, transparent) !important;
+  outline-offset: var(--ovs-bubble-border-offset, 0px) !important;
   box-shadow: var(--ovs-bubble-box-shadow, none) !important;
   filter: var(--ovs-bubble-glow, none) !important;
   backdrop-filter: var(--ovs-bubble-backdrop, none) !important;

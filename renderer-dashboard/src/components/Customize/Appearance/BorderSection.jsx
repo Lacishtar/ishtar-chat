@@ -1,5 +1,5 @@
 import { Field, inputClass, EnableToggle } from '../shared/fields.jsx';
-import { BORDER_STYLE_OPTIONS } from '../shared/constants.js';
+import { BORDER_STYLE_OPTIONS, DEFAULT_BORDER_COLOR } from '../shared/constants.js';
 import ColorPicker from '../shared/ColorPicker.jsx';
 
 /**
@@ -9,16 +9,21 @@ import ColorPicker from '../shared/ColorPicker.jsx';
  * global "Bubble cả tin nhắn" border, the Avatar border, and the per-slot
  * "Bubble riêng" border without duplicating logic three times.
  *
- * `offset` — CSS outline-offset equivalent (px). Only Avatar border currently
- * needs this, so the offset slider only renders when the caller passes this
- * prop; Bubble border call sites (global + per-slot) don't pass it and won't
- * show the slider.
+ * `offset` — CSS outline-offset equivalent (px). Only rendered when the
+ * caller passes this prop (some border targets don't have an outline-based
+ * box, so the slider is opt-in per call site).
+ *
+ * Turning the toggle on writes BOTH width and color into config in the same
+ * patch (color defaults to DEFAULT_BORDER_COLOR — white). This means the
+ * color field is never silently null right after enabling the border: what
+ * the picker shows is always exactly what's stored, no separate "this is
+ * just a fallback, not a real choice" state to track or explain.
  */
 export default function BorderSection({
   width,
   style,
   color,
-  defaultColor,
+  defaultColor = DEFAULT_BORDER_COLOR,
   offset,
   onChange,
   presets,
@@ -32,7 +37,13 @@ export default function BorderSection({
         <EnableToggle
           label="Bật viền (Border)"
           checked={enabled}
-          onChange={(e) => onChange({ width: e.target.checked ? 2 : 0 })}
+          onChange={(e) =>
+            onChange(
+              e.target.checked
+                ? { width: 2, color: color || defaultColor }
+                : { width: 0 },
+            )
+          }
         />
       </div>
 
@@ -95,9 +106,9 @@ export default function BorderSection({
               </Field>
               <div className="col-span-2 text-[10px] text-inkMuted leading-snug">
                 {effectiveOffset > 0
-                  ? `▲ Viền nằm ngoài avatar (+${effectiveOffset}px)`
+                  ? `▲ Viền nằm ngoài (+${effectiveOffset}px)`
                   : effectiveOffset < 0
-                  ? `▼ Viền nằm trong avatar (${effectiveOffset}px)`
+                  ? `▼ Viền nằm trong (${effectiveOffset}px)`
                   : '→ Viền nằm sát cạnh (0px — mặc định)'}
               </div>
             </>

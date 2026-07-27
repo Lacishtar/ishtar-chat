@@ -48,7 +48,17 @@ export default function MessageInspector({ local, slotLocal, pushSlotUpdate, sta
       </AccordionSection>
 
       <AccordionSection title="Trang trí — Bubble riêng" {...sec('bubble')}>
-        <SlotBubbleSection slot="message" slotLocal={slotLocal} globalConfig={local} pushSlotUpdate={pushSlotUpdate} />
+        <SlotBubbleSection
+          slot="message"
+          slotLocal={slotLocal}
+          globalConfig={local}
+          pushSlotUpdate={pushSlotUpdate}
+          borderDisabledNote={
+            state.isRowBubbleWrap
+              ? 'Đang ở mode "Bọc toàn phần" (bọc cả hàng) nên nội dung không có viền riêng — viền lúc này thuộc về cả bubble chung. Chỉnh viền ở mục Bubble (Chung) hoặc chuyển Layout sang mode "Bọc riêng từng phần" để dùng viền riêng cho nội dung.'
+              : undefined
+          }
+        />
       </AccordionSection>
     </div>
   );

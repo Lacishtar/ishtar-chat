@@ -11,6 +11,7 @@ import BunnySection from '../Bubble/BunnySection.jsx';
 import AnimationSection from '../Animation/AnimationSection.jsx';
 import { Field, PresetButton, PresetBadge } from '../shared/fields.jsx';
 import ColorPicker from '../shared/ColorPicker.jsx';
+import { DEFAULT_BORDER_COLOR } from '../shared/constants.js';
 import { configVal, isUserSet, bubbleSizeConfigPatch } from '../shared/configHelpers.js';
 
 const OBJECT_ID = 'global';
@@ -106,13 +107,15 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
         <BorderSection
           width={configVal(local, 'bubbleBorderWidth', 0)}
           style={configVal(local, 'bubbleBorderStyle', 'solid')}
-          color={configVal(local, 'bubbleBorderColor', local.textColor)}
-          defaultColor={local.textColor}
+          color={configVal(local, 'bubbleBorderColor', DEFAULT_BORDER_COLOR)}
+          defaultColor={DEFAULT_BORDER_COLOR}
+          offset={configVal(local, 'bubbleBorderOffset', 0)}
           onChange={(patch) =>
             pushUpdate({
               ...(patch.width !== undefined ? { bubbleBorderWidth: patch.width } : {}),
               ...(patch.style !== undefined ? { bubbleBorderStyle: patch.style } : {}),
               ...(patch.color !== undefined ? { bubbleBorderColor: patch.color } : {}),
+              ...(patch.offset !== undefined ? { bubbleBorderOffset: patch.offset } : {}),
             })
           }
         />
