@@ -13,7 +13,30 @@ const ALLOWED_IMAGE_HOSTS = [
   'images.unsplash.com',
   'placehold.co',
   'placekitten.com',
+  'drive.google.com',
+  'googleusercontent.com',
+  'lh3.googleusercontent.com',
 ];
+
+/**
+ * Automatically converts Google Drive share/view links into direct Google
+ * UserContent image CDN links. Leaves non-Drive URLs untouched.
+ */
+function normalizeGoogleDriveImageUrl(urlString) {
+  if (!urlString || typeof urlString !== 'string') return urlString;
+  const trimmed = urlString.trim();
+  // Match Google Drive share/view/open URLs:
+  // - https://drive.google.com/file/d/FILE_ID/view...
+  // - https://drive.google.com/open?id=FILE_ID
+  // - https://drive.google.com/uc?id=FILE_ID
+  // - https://drive.google.com/uc?export=view&id=FILE_ID
+  const driveRegex = /(?:drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^&]+&)*id=))([a-zA-Z0-9_-]+)/i;
+  const match = trimmed.match(driveRegex);
+  if (match && match[1]) {
+    return `https://lh3.googleusercontent.com/d/${match[1]}`;
+  }
+  return trimmed;
+}
 
 function isPrivateHost(hostname) {
   const h = hostname.toLowerCase();
@@ -29,7 +52,8 @@ function isPrivateHost(hostname) {
 function isAllowedImageUrl(urlString) {
   if (!urlString || typeof urlString !== 'string') return false;
   try {
-    const u = new URL(urlString);
+    const normalized = normalizeGoogleDriveImageUrl(urlString);
+    const u = new URL(normalized);
     if (u.protocol !== 'https:') return false;
     const host = u.hostname.toLowerCase();
     if (isPrivateHost(host)) return false;
@@ -41,8 +65,16 @@ function isAllowedImageUrl(urlString) {
 
 /** Returns a same-origin proxy path, or '' when the URL is missing/invalid. */
 function toImageProxyUrl(rawUrl) {
-  if (!isAllowedImageUrl(rawUrl)) return '';
-  return `/image/proxy?url=${encodeURIComponent(rawUrl)}`;
+  const normalized = normalizeGoogleDriveImageUrl(rawUrl);
+  if (!isAllowedImageUrl(normalized)) return '';
+  return `/image/proxy?url=${encodeURIComponent(normalized)}`;
 }
 
-module.exports = { ALLOWED_IMAGE_HOSTS, isAllowedImageUrl, toImageProxyUrl, isPrivateHost };
+module.exports = {
+  ALLOWED_IMAGE_HOSTS,
+  normalizeGoogleDriveImageUrl,
+  isAllowedImageUrl,
+  toImageProxyUrl,
+  isPrivateHost,
+};
+

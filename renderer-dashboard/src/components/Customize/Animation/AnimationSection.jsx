@@ -10,8 +10,9 @@ const ANIMATION_STYLE_OPTIONS = Object.entries(ANIMATION_STYLE_PRESETS).map(([va
 }));
 
 export default function AnimationSection({ local, onChange, animLocal, onAnimationChange }) {
-  const displayMode = local.displayMode === 'danmaku' ? 'danmaku' : 'stack';
+  const displayMode = ['danmaku', 'ticker'].includes(local.displayMode) ? local.displayMode : 'stack';
   const isDanmaku = displayMode === 'danmaku';
+  const isTicker = displayMode === 'ticker';
 
   return (
     <>
@@ -19,7 +20,8 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
         <Field label="Kiểu hiển thị chat">
           <select className={inputClass} value={displayMode} onChange={(e) => onChange({ displayMode: e.target.value })}>
             <option value="stack">Xếp chồng (mặc định)</option>
-            <option value="danmaku">Đạn bay (Danmaku) — bay ngang màn hình</option>
+            <option value="danmaku">Đạn bay (Danmaku) — bay tự do trên màn hình</option>
+            <option value="ticker">Chat Ticker — cuộn ngang nối đuôi có hàng đợi (Queue)</option>
           </select>
         </Field>
       </div>
@@ -62,6 +64,41 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
               onChange={(e) => onChange({ danmakuAreaBottomPct: Number(e.target.value) })}
             />
           </Field>
+        </>
+      ) : isTicker ? (
+        <>
+          <Field label={`Tốc độ cuộn Ticker — x${(local.tickerSpeed ?? 1).toFixed(1)}`}>
+            <input
+              type="range"
+              min={0.3}
+              max={3}
+              step={0.1}
+              value={local.tickerSpeed ?? 1}
+              onChange={(e) => onChange({ tickerSpeed: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label={`Khoảng cách tin nhắn — ${local.tickerGap ?? 32}px`}>
+            <input
+              type="range"
+              min={12}
+              max={120}
+              step={4}
+              value={local.tickerGap ?? 32}
+              onChange={(e) => onChange({ tickerGap: Number(e.target.value) })}
+            />
+          </Field>
+          <div className="col-span-2">
+            <Field label="Vị trí thanh Ticker">
+              <select
+                className={inputClass}
+                value={local.tickerPosition ?? 'bottom'}
+                onChange={(e) => onChange({ tickerPosition: e.target.value })}
+              >
+                <option value="bottom">Cạnh dưới màn hình (Bottom)</option>
+                <option value="top">Cạnh trên màn hình (Top)</option>
+              </select>
+            </Field>
+          </div>
         </>
       ) : (
         <div className="col-span-2">

@@ -3,8 +3,8 @@ import { applyCssVariables } from './css-variables.js';
 import { refreshAllDecorations } from './decoration.js';
 import { refreshAllSlotBunnyEars } from './bubble.js';
 import { applyThemePayload } from './theme-loader.js';
-import { enqueueMessage } from './message-queue.js';
-import { renderHistory } from './message-renderer.js';
+import { enqueueMessage, flushQueue } from './message-queue.js';
+import { renderHistory, clearAllMessages } from './message-renderer.js';
 
 export function connectSocket() {
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -20,6 +20,9 @@ export function connectSocket() {
 
     if (payload.type === 'chat:new') {
       enqueueMessage(payload.data);
+    } else if (payload.type === 'chat:cleared') {
+      flushQueue();
+      clearAllMessages();
     } else if (payload.type === 'theme:changed') {
       applyThemePayload(payload.data || {});
     } else if (payload.type === 'config:updated') {

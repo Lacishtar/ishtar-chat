@@ -97,7 +97,12 @@ export function EditorStateProvider({ api, children }) {
     loadInitialState();
 
     const unsubs = [
-      api.onStatusChanged((payload) => setStatus(payload)),
+      api.onStatusChanged((payload) => {
+        setStatus(payload);
+        if (payload.status === 'connected') {
+          setPreviewKey((k) => k + 1);
+        }
+      }),
       // These broadcasts are the backend echoing back the authoritative
       // merged value (our own debounced push resolving, another window's
       // edit, or a theme/category reset) — they replace the buffer outright.

@@ -3,6 +3,8 @@
  * Each layer is anchored to a slot and positioned with translate/rotate/z-index.
  */
 
+const { normalizeGoogleDriveImageUrl } = require('./image-url');
+
 const ANCHORS = ['bubble', 'row', 'body', 'avatar', 'author', 'message'];
 
 const PLACEMENTS = [
@@ -175,10 +177,12 @@ function normalizeLayer(raw, index = 0) {
   const id = typeof layer.id === 'string' && layer.id.trim() ? layer.id.trim() : `deco-${index}`;
   const rawSize = layer.size ?? layer.width ?? layer.height ?? 48;
   const size = clampNumber(rawSize, 48, 8, 400);
+  const rawUrl = typeof layer.imageUrl === 'string' ? layer.imageUrl.trim() : '';
+  const imageUrl = normalizeGoogleDriveImageUrl(rawUrl);
   return {
     id,
     enabled: layer.enabled !== false,
-    imageUrl: typeof layer.imageUrl === 'string' ? layer.imageUrl.trim() : '',
+    imageUrl,
     anchor: normalizeAnchor(layer.anchor),
     placement: normalizePlacement(layer.placement),
     translateX: clampNumber(layer.translateX, DEFAULT_LAYER.translateX, -500, 500),

@@ -33,7 +33,10 @@ export const themeStyleEl = document.getElementById('ovs-theme-style');
 let currentDisplayMode = 'stack';
 
 export function getDisplayMode() {
-  return state.currentConfig?.displayMode === 'danmaku' ? 'danmaku' : 'stack';
+  const mode = state.currentConfig?.displayMode;
+  if (mode === 'danmaku') return 'danmaku';
+  if (mode === 'ticker') return 'ticker';
+  return 'stack';
 }
 
 // Reflects the active display mode onto #ovs-chat-list via a dataset

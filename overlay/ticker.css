@@ -1,0 +1,40 @@
+/* Ticker display mode — continuous horizontal scrolling chat marquee with queueing,
+ * toggled via customize-config's displayMode === 'ticker' and
+ * reflected here through the [data-ovs-theme-mode='ticker'] attribute on
+ * #ovs-chat-list (see overlay/modules/state.js#syncThemeModeClass).
+ */
+
+#ovs-chat-list[data-ovs-theme-mode='ticker'] {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  overflow: hidden;
+  padding: 8px 0;
+  margin: 0;
+  pointer-events: none;
+  transform: none;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+#ovs-chat-list[data-ovs-theme-mode='ticker'][data-ovs-ticker-position='top'] {
+  top: 0;
+  bottom: auto;
+}
+
+#ovs-chat-list[data-ovs-theme-mode='ticker'] .ovs-message {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  margin: 0;
+  max-width: none;
+  width: max-content;
+  display: inline-flex;
+  align-items: center;
+  will-change: transform;
+}

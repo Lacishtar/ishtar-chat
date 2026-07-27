@@ -55,3 +55,14 @@ export function enqueueMessage(msg) {
 export function pendingMessageCount() {
   return queue.length;
 }
+
+// Discards every pending message without rendering — called by
+// clearAllMessages() so a burst of stale messages buffered right
+// before a new connection does not re-appear after the DOM clear.
+export function flushQueue() {
+  queue.length = 0;
+  if (timerId) {
+    clearInterval(timerId);
+    timerId = null;
+  }
+}

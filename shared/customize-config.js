@@ -60,11 +60,12 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   maxMessages: 40,
   // 'stack' = normal chat feed (bubbles stack up/down, see `position`).
   // 'danmaku' = bullet-comment mode: each message flies across the screen
-  // once (Niconico/Bilibili style) instead of stacking. Handled entirely
-  // client-side by overlay/modules/special-modes.js — see
+  // once (Niconico/Bilibili style) instead of stacking.
+  // 'ticker' = continuous horizontal scrolling marquee/ticker with queuing.
+  // Handled client-side by overlay/modules/special-modes.js — see
   // overlay/modules/state.js#getDisplayMode / #syncThemeModeClass for the
   // switch-over logic.
-  displayMode: 'stack', // 'stack' | 'danmaku'
+  displayMode: 'stack', // 'stack' | 'danmaku' | 'ticker'
   danmakuSpeed: 1, // speed multiplier for danmaku flight — 1 = default, >1 faster, <1 slower
   danmakuLanes: 12, // number of horizontal lanes danmaku bullets cycle through
   // How much of the screen height danmaku lanes are allowed to use, as a
@@ -75,6 +76,9 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   // let users protect only the edge that actually overlaps other overlays.
   danmakuAreaTopPct: 4,
   danmakuAreaBottomPct: 4,
+  tickerSpeed: 1, // speed multiplier for ticker scroll — 1 = default (~120px/s)
+  tickerGap: 32, // gap (px) between consecutive ticker message items
+  tickerPosition: 'bottom', // 'bottom' | 'top'
 };
 
 function isSet(value) {

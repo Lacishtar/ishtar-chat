@@ -7,7 +7,14 @@ import { resolveEffectiveSlotStyle } from './css-variables.js';
 import { applyAvatar } from './avatar.js';
 import { ensureBubbleTexture, applyMessageBunnyEars, applySlotBunnyEars } from './bubble.js';
 import { applyDecorationLayers } from './decoration.js';
-import { appendDanmakuMessage, renderDanmakuHistory } from './special-modes.js';
+import {
+  appendDanmakuMessage,
+  renderDanmakuHistory,
+  resetDanmaku,
+  appendTickerMessage,
+  renderTickerHistory,
+  resetTicker,
+} from './special-modes.js';
 
 export function applySlotVisibility(el, slotKey) {
   if (!el) return;
@@ -192,6 +199,10 @@ export function renderMessage(msg, options = {}) {
     appendDanmakuMessage(msg);
     return;
   }
+  if (getDisplayMode() === 'ticker') {
+    appendTickerMessage(msg);
+    return;
+  }
 
   const node = createMessageNode(msg, { skipEnterAnimation: options.skipEnterAnimation });
 
@@ -218,5 +229,19 @@ export function renderHistory(history) {
     renderDanmakuHistory(history);
     return;
   }
+  if (getDisplayMode() === 'ticker') {
+    renderTickerHistory(history);
+    return;
+  }
   history.forEach((msg) => renderMessage(msg, { trackHistory: false }));
+}
+
+// Wipes all rendered chat messages from the DOM and clears the in-memory
+// history. Called when a new stream connection starts so stale messages
+// from the previous session never bleed through in OBS.
+export function clearAllMessages() {
+  resetDanmaku();
+  resetTicker();
+  if (listEl) listEl.innerHTML = '';
+  state.messageHistory = [];
 }

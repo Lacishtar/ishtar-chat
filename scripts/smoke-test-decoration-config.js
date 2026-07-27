@@ -11,7 +11,7 @@ const {
   MASK_TARGETS,
   MASK_MODES,
 } = require('../shared/decoration-config');
-const { isAllowedImageUrl, toImageProxyUrl } = require('../shared/image-url');
+const { isAllowedImageUrl, toImageProxyUrl, normalizeGoogleDriveImageUrl } = require('../shared/image-url');
 
 function assert(condition, message) {
   if (!condition) throw new Error(`[smoke:decoration] ${message}`);
@@ -64,6 +64,31 @@ const capped = normalizeDecorationConfig({
   layers: Array.from({ length: 40 }, (_, i) => createLayer({ id: `x-${i}` })),
 });
 assert(capped.layers.length === 30, 'soft cap 30 layers');
+
+assert(
+  normalizeGoogleDriveImageUrl('https://drive.google.com/file/d/1m7ok_uRFs6Dh4kGMNpNFxhnw3HcYBnMZ/view?usp=drive_link') ===
+    'https://lh3.googleusercontent.com/d/1m7ok_uRFs6Dh4kGMNpNFxhnw3HcYBnMZ',
+  'google drive view URL auto-converted to lh3 direct URL',
+);
+
+assert(
+  isAllowedImageUrl('https://drive.google.com/file/d/1m7ok_uRFs6Dh4kGMNpNFxhnw3HcYBnMZ/view?usp=drive_link'),
+  'google drive URL is allowed',
+);
+
+const driveProxy = toImageProxyUrl('https://drive.google.com/file/d/1m7ok_uRFs6Dh4kGMNpNFxhnw3HcYBnMZ/view?usp=drive_link');
+assert(
+  driveProxy.includes(encodeURIComponent('https://lh3.googleusercontent.com/d/1m7ok_uRFs6Dh4kGMNpNFxhnw3HcYBnMZ')),
+  'google drive proxy path uses normalized direct URL',
+);
+
+const driveLayer = normalizeLayer({
+  imageUrl: 'https://drive.google.com/file/d/1m7ok_uRFs6Dh4kGMNpNFxhnw3HcYBnMZ/view?usp=drive_link',
+});
+assert(
+  driveLayer.imageUrl === 'https://lh3.googleusercontent.com/d/1m7ok_uRFs6Dh4kGMNpNFxhnw3HcYBnMZ',
+  'normalizeLayer automatically converts google drive imageUrl',
+);
 
 assert(isAllowedImageUrl('https://i.ibb.co/abc/sticker.png'), 'ibb.co allowed');
 assert(!isAllowedImageUrl('http://i.ibb.co/x.png'), 'http rejected');

@@ -120,6 +120,7 @@ function registerIpcHandlers() {
   ipcMain.handle('app:connect', async (_event, url) => {
     configStore.set({ lastSessionUrl: url });
     messageHistory = [];
+    if (wsBroadcast) wsBroadcast('chat:cleared', {});
     const result = await captureManager.connect(url);
     return result;
   });
