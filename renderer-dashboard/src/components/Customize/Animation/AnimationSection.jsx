@@ -1,4 +1,4 @@
-import { Field, inputClass } from '../shared/fields.jsx';
+import { Field, inputClass, EnableToggle } from '../shared/fields.jsx';
 import { ANIMATION_STYLE_PRESETS } from '../../../../../shared/animation-config.js';
 
 // Built straight from ANIMATION_STYLE_PRESETS (which already carries a
@@ -145,9 +145,12 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
         />
       </Field>
 
-      {/* Idle animation — only useful in stack mode; danmaku/ticker have their own movement */}
+      {/* Idle animation — only useful in stack mode; danmaku/ticker have their own movement.
+          Shimmer used to be a 3rd option here, but it doesn't touch `transform` (it animates
+          ::after's background-position), so it never actually conflicted with float/slidex —
+          it's now a separate, independently-toggleable control below. */}
       <div className="col-span-2">
-        <Field label="Hiệu ứng liên tục (Idle)">
+        <Field label="Hiệu ứng liên tục (Idle) — Float / Slide X">
           <select
             className={inputClass}
             value={local.idleAnimation ?? 'none'}
@@ -155,7 +158,6 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
           >
             <option value="none">Không có</option>
             <option value="float">Float / Bob — lên xuống nhẹ nhàng</option>
-            <option value="shimmer">Shimmer — ánh sáng quét qua bubble</option>
             <option value="slidex">Slide X — lắc trái phải</option>
           </select>
         </Field>
@@ -172,13 +174,7 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
             onChange={(e) => onChange({ idleAnimationSpeed: Number(e.target.value) })}
           />
         </Field>
-        <Field
-          label={
-            local.idleAnimation === 'shimmer'
-              ? `Độ sáng — ${local.idleAnimationIntensity ?? 5}%`
-              : `Biên độ — ${local.idleAnimationIntensity ?? 5}px`
-          }
-        >
+        <Field label={`Biên độ — ${local.idleAnimationIntensity ?? 5}px`}>
           <input
             type="range"
             min={1}
@@ -186,6 +182,40 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
             step={1}
             value={local.idleAnimationIntensity ?? 5}
             onChange={(e) => onChange({ idleAnimationIntensity: Number(e.target.value) })}
+          />
+        </Field>
+      </>)}
+
+      {/* Shimmer — độc lập hoàn toàn với Float/Slide X ở trên, có thể bật đồng thời
+          vì shimmer chỉ chạy trên ::after (quét background-position), không đụng
+          `transform` nên không giành quyền điều khiển transform với float/slidex. */}
+      <div className="col-span-2">
+        <EnableToggle
+          label="Bật Shimmer — ánh sáng quét qua bubble"
+          checked={!!local.idleShimmerEnabled}
+          onChange={(e) => onChange({ idleShimmerEnabled: e.target.checked })}
+        />
+      </div>
+
+      {local.idleShimmerEnabled && (<>
+        <Field label={`Tốc độ Shimmer — ${local.idleShimmerSpeed ?? 3}s / chu kỳ`}>
+          <input
+            type="range"
+            min={0.5}
+            max={8}
+            step={0.5}
+            value={local.idleShimmerSpeed ?? 3}
+            onChange={(e) => onChange({ idleShimmerSpeed: Number(e.target.value) })}
+          />
+        </Field>
+        <Field label={`Độ sáng Shimmer — ${local.idleShimmerIntensity ?? 5}%`}>
+          <input
+            type="range"
+            min={1}
+            max={20}
+            step={1}
+            value={local.idleShimmerIntensity ?? 5}
+            onChange={(e) => onChange({ idleShimmerIntensity: Number(e.target.value) })}
           />
         </Field>
       </>)}

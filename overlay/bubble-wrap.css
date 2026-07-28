@@ -191,10 +191,18 @@
   border-radius: inherit;
 }
 
-/* All content inside bubbles must sit at z-index: 1 above .ovs-bubble-texture (z-index: 0) */
-.ovs-message > :not(.ovs-bubble-texture):not(.ovs-bunny-ear),
-.ovs-author > :not(.ovs-bubble-texture):not(.ovs-bunny-ear),
-.ovs-text > :not(.ovs-bubble-texture):not(.ovs-bunny-ear) {
+/* All content inside bubbles must sit at z-index: 1 above .ovs-bubble-texture (z-index: 0).
+   .ovs-decoration-host is EXCLUDED here (regression fix): this selector's specificity
+   (0,3,0) beats decoration-layers.css's `.ovs-decoration-host` rules (0,1,0)/(0,2,0), and
+   this file also loads after decoration-layers.css — so without this exclusion,
+   `position: relative` clobbers the host's required `position: absolute; inset: 0`
+   (collapsing its height, which breaks every anchor/placement % calc — sticker position
+   bug) and `z-index: 1` clobbers the host's own `z-index: 50` / `z-index: -1` (foreground/
+   background render order bug). The host manages its own stacking entirely via
+   decoration-layers.css; it must never be touched by this generic rule. */
+.ovs-message > :not(.ovs-bubble-texture):not(.ovs-bunny-ear):not(.ovs-decoration-host),
+.ovs-author > :not(.ovs-bubble-texture):not(.ovs-bunny-ear):not(.ovs-decoration-host),
+.ovs-text > :not(.ovs-bubble-texture):not(.ovs-bunny-ear):not(.ovs-decoration-host) {
   position: relative;
   z-index: 1;
 }

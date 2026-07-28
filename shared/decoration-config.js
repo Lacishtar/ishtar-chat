@@ -175,7 +175,25 @@ function normalizeVisibilityRoles(raw) {
 function normalizeLayer(raw, index = 0) {
   const layer = raw || {};
   const id = typeof layer.id === 'string' && layer.id.trim() ? layer.id.trim() : `deco-${index}`;
-  const rawSize = layer.size ?? layer.width ?? layer.height ?? 48;
+  // Decoration layers are square: `size` mirrors into both `width` and
+  // `height` below, and this is what gets echoed back to the dashboard on
+  // every update. That echoed-back `size` was previously preferred over
+  // `width`/`height` in the fallback chain, which meant that as soon as a
+  // layer had been saved once, dragging the Width or Height slider had no
+  // effect — the stale `size` on the incoming object always won.
+  //
+  // Instead, treat `width`/`height` as the source of truth for a *new*
+  // value only when they actually differ from the incoming `size` (i.e.
+  // the user just changed exactly one of them); otherwise nothing changed
+  // and we fall back to the existing size as before.
+  let rawSize;
+  if (layer.width !== undefined && layer.width !== layer.size) {
+    rawSize = layer.width;
+  } else if (layer.height !== undefined && layer.height !== layer.size) {
+    rawSize = layer.height;
+  } else {
+    rawSize = layer.size ?? layer.width ?? layer.height ?? 48;
+  }
   const size = clampNumber(rawSize, 48, 8, 400);
   const rawUrl = typeof layer.imageUrl === 'string' ? layer.imageUrl.trim() : '';
   const imageUrl = normalizeGoogleDriveImageUrl(rawUrl);

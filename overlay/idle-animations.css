@@ -1,14 +1,21 @@
 /* ============================================================
-   Idle animations � continuous CSS animations applied to chat
+   Idle animations — continuous CSS animations applied to chat
    messages regardless of chat activity.
 
-   Animation type is controlled via data-ovs-idle-animation on
-   #ovs-chat-list. In stack mode the animation targets .ovs-message
-   itself. In danmaku/ticker modes, float and slidex target the
-   inner children instead to avoid conflicts with:
+   Two independent controls on #ovs-chat-list:
+     - data-ovs-idle-animation: 'none' | 'float' | 'slidex' — mutually
+       exclusive with each other (all animate `transform`, so only one
+       of these three can own the transform on an element at a time).
+     - data-ovs-idle-shimmer: 'true' | 'false' — fully independent,
+       can be on at the same time as float or slidex, because it only
+       ever animates ::after's background-position, never `transform`.
+
+   In stack mode, float/slidex target .ovs-message itself. In danmaku/
+   ticker modes, they target the inner children instead to avoid
+   conflicts with:
      * Danmaku: CSS animation (ovs-danmaku-fly) on .ovs-message
      * Ticker: JS-controlled transform: translate3d on .ovs-message
-   Shimmer (::after) is conflict-free in all modes.
+   Shimmer (::after) is conflict-free in all modes regardless.
    ============================================================ */
 
 /* -- Float / Bob --------------------------------------------- */
@@ -31,19 +38,33 @@
   animation-delay: calc(var(--ovs-idle-index, 0) * -0.4s);
 }
 
-/* -- Shimmer -------------------------------------------------- */
+/* -- Shimmer --------------------------------------------------
+   Independent toggle: data-ovs-idle-shimmer (not part of the float/
+   slidex enum above). It animates ::after's background-position, never
+   `transform`, so it never conflicts with float/slidex's transform
+   keyframes running on the exact same .ovs-message at the same time —
+   both can be active together. */
 @keyframes ovs-idle-shimmer-sweep {
   0%   { background-position: -200% center; }
   100% { background-position: 200% center; }
 }
 
-/* Shimmer uses ::after -- no transform/animation conflict in any mode */
-#ovs-chat-list[data-ovs-idle-animation='shimmer'] .ovs-message {
+/* Shimmer uses ::after -- no transform/animation conflict in any mode.
+   The sweep itself is already clipped to the bubble's rounded corners by
+   its own `border-radius: inherit` below, so overflow: hidden here is only
+   a defensive fallback — but left unconditional, it also clipped stickers
+   that are deliberately positioned outside the bubble's box. Skip the clip
+   whenever the message has a decoration layer, same exception already used
+   for height-capped bubbles in bubble-wrap.css. */
+#ovs-chat-list[data-ovs-idle-shimmer='true'] .ovs-message {
   position: relative;
+}
+
+#ovs-chat-list[data-ovs-idle-shimmer='true'] .ovs-message:not([data-has-decoration="true"]) {
   overflow: hidden;
 }
 
-#ovs-chat-list[data-ovs-idle-animation='shimmer'] .ovs-message::after {
+#ovs-chat-list[data-ovs-idle-shimmer='true'] .ovs-message::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -56,7 +77,7 @@
     transparent 65%
   );
   background-size: 200% 100%;
-  animation: ovs-idle-shimmer-sweep var(--ovs-idle-animation-duration, 3s) linear infinite;
+  animation: ovs-idle-shimmer-sweep var(--ovs-idle-shimmer-duration, 3s) linear infinite;
   animation-delay: calc(var(--ovs-idle-index, 0) * -0.5s);
 }
 

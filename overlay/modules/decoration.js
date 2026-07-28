@@ -102,13 +102,25 @@ function ensureDecorationHost(anchorEl, anchorName, stackLayer) {
     host.dataset.stackLayer = sl;
     if (sl === 'background') {
       // For background layers: ensure the anchor creates a stacking context so
-      // z-index: -1 on this host is contained within the bubble and renders
-      // BETWEEN the bubble's own background (step 1 of paint order) and its
+      // z-index: 0 on this host is contained within the bubble and renders
+      // BETWEEN the bubble's own background/texture (step 1) and its
       // block-flow children / text (step 3), not behind the entire ancestor tree.
       anchorEl.style.isolation = 'isolate';
-      // Insert as first child so DOM order matches intent if stacking contexts
-      // are somehow absent (fallback to paint order).
-      anchorEl.insertBefore(host, anchorEl.firstChild);
+      // Insert directly after .ovs-bubble-texture (if present) rather than as
+      // the very first child. Both this host and the texture share z-index: 0,
+      // so at that tie, paint order falls back to DOM order — texture first
+      // (bottom), host right after it (on top of the texture, still below the
+      // z-index: 1 text/content). Inserting the host BEFORE the texture would
+      // put it under the texture instead, which is the "sticker hides behind
+      // texture" bug this fixes. If there's no texture element yet, fall back
+      // to first-child (ensureBubbleTexture forces the texture back in front
+      // on the next render pass regardless, so order self-corrects either way).
+      const texture = anchorEl.querySelector(':scope > .ovs-bubble-texture');
+      if (texture) {
+        texture.insertAdjacentElement('afterend', host);
+      } else {
+        anchorEl.insertBefore(host, anchorEl.firstChild);
+      }
     } else {
       // Foreground: z-index: 50 on the host handles ordering; DOM position is
       // secondary but keeping firstChild insertion preserves existing behavior.

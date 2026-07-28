@@ -183,6 +183,17 @@ export function renderMessage(msg, options = {}) {
   const trackHistory = options.trackHistory !== false;
   if (!state.messageTemplate) return;
 
+  // `trackHistory` is only false during a history replay (renderHistory());
+  // a real *live* message (trackHistory: true) means chat has actually
+  // started, so any leftover mock preview bubbles (see theme-loader.js)
+  // need to go now — otherwise they'd sit in the feed forever, with real
+  // messages just piling up next to them instead of replacing them.
+  if (trackHistory && state.isMockHistory) {
+    listEl.innerHTML = '';
+    state.messageHistory = [];
+    state.isMockHistory = false;
+  }
+
   if (trackHistory) {
     if (state.currentConfig.position === 'top-down') {
       state.messageHistory.unshift(msg);
@@ -238,7 +249,18 @@ export function renderHistory(history) {
     renderTickerHistory(history);
     return;
   }
-  history.forEach((msg) => renderMessage(msg, { trackHistory: false }));
+  // `history` (state.messageHistory) is stored newest-first for top-down
+  // (built via unshift in renderMessage() above) and oldest-first for
+  // bottom-up (built via push). Replaying it must always feed renderMessage()
+  // in chronological (oldest-first) order — exactly like live arrival does —
+  // since renderMessage()'s own prepend/append already places each message
+  // correctly for the current position mode. Skipping this normalization
+  // double-reverses top-down history on every reconnect / theme switch /
+  // display-mode change: replaying newest-first via prepend ends up
+  // prepending the OLDEST message last, flipping the whole stack upside
+  // down. Same fix already applied to the danmaku/ticker replay paths below.
+  const chronological = state.currentConfig.position === 'top-down' ? [...history].reverse() : history;
+  chronological.forEach((msg) => renderMessage(msg, { trackHistory: false }));
 }
 
 // Wipes all rendered chat messages from the DOM and clears the in-memory
@@ -249,4 +271,5 @@ export function clearAllMessages() {
   resetTicker();
   if (listEl) listEl.innerHTML = '';
   state.messageHistory = [];
+  state.isMockHistory = false;
 }

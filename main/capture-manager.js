@@ -256,6 +256,26 @@ class CaptureManager extends EventEmitter {
       this.view.webContents.send('capturer:init', selectorsConfig);
     });
 
+    // The capture BrowserView is 0x0 and never shown, so its devtools
+    // console is otherwise unreachable — any console.warn/error inside
+    // capture-preload.js (e.g. the "membership/sponsorship tag not covered
+    // by selectors.config.json" warning, or an extractMessage failure)
+    // would go completely unseen. Forward it to this process's own
+    // stdout/stderr so it shows up in the terminal `npm start` was run
+    // from, and — only when explicitly debugging via OVS_DEV=1 — also open
+    // a detached devtools window on the capture view itself.
+    this.view.webContents.on('console-message', (_event, level, message) => {
+      const prefix = '[capture-view]';
+      if (level >= 2) {
+        console.warn(prefix, message);
+      } else {
+        console.log(prefix, message);
+      }
+    });
+    if (process.env.OVS_DEV) {
+      this.view.webContents.openDevTools({ mode: 'detach' });
+    }
+
     this.view.webContents.on('did-fail-load', (_e, code, desc) => {
       if (code === -3) return; // aborted by our own disconnect(), ignore
       this._setStatus('error', `Không tải được trang chat (${desc}).`);

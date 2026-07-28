@@ -1,9 +1,9 @@
 {
   "_comment": "Selectors for YouTube's live_chat frame. YouTube can change this DOM at any time — this file is the ONLY place that should need editing when that happens. Ship fixes as a small selectors-pack update instead of a full app rebuild. Values are plain CSS selectors, so comma-separate a few candidate selectors per field to add fallback tolerance for markup variants — querySelector already treats a comma list as 'match any of these', no code changes needed.",
   "chatContainer": "yt-live-chat-item-list-renderer #items, #item-list #items",
-  "messageRenderer": "yt-live-chat-text-message-renderer, yt-live-chat-paid-message-renderer, yt-live-chat-membership-item-renderer, yt-live-chat-paid-sticker-renderer, yt-live-chat-sponsorships-gift-purchase-announcement-renderer, yt-live-chat-sponsorships-gift-redemption-announcement-renderer",
+  "messageRenderer": "yt-live-chat-text-message-renderer, yt-live-chat-paid-message-renderer, yt-live-chat-membership-item-renderer, yt-live-chat-paid-sticker-renderer, yt-live-chat-sponsorships-gift-purchase-announcement-renderer, yt-live-chat-sponsorships-gift-redemption-announcement-renderer, ytd-sponsorships-live-chat-gift-purchase-announcement-renderer, ytd-sponsorships-live-chat-gift-redemption-announcement-renderer",
   "superchatRenderer": "yt-live-chat-paid-message-renderer, yt-live-chat-paid-sticker-renderer",
-  "membershipRenderer": "yt-live-chat-membership-item-renderer, yt-live-chat-sponsorships-gift-purchase-announcement-renderer, yt-live-chat-sponsorships-gift-redemption-announcement-renderer",
+  "membershipRenderer": "yt-live-chat-membership-item-renderer, yt-live-chat-sponsorships-gift-purchase-announcement-renderer, yt-live-chat-sponsorships-gift-redemption-announcement-renderer, ytd-sponsorships-live-chat-gift-purchase-announcement-renderer, ytd-sponsorships-live-chat-gift-redemption-announcement-renderer",
   "author": "#author-name, .yt-live-chat-author-chip #author-name, #header-content-inner #author-name, yt-live-chat-author-chip #author-name",
   "avatar": "#author-photo img, #author-photo yt-img-shadow img, #img.yt-live-chat-author-chip img, yt-img-shadow#author-photo img, yt-live-chat-author-chip img",
   "message": "#message, #header-sub-text, #header-primary-text, #header-content-primary-text, #header-title, #primary-text",

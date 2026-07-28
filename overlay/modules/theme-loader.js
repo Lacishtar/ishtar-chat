@@ -37,7 +37,9 @@ export function applyThemePayload(data, options = {}) {
 
   const isPreview = new URLSearchParams(window.location.search).has('preview');
   let incomingHistory = Array.isArray(data.history) ? data.history : null;
-  if (isPreview && (!incomingHistory || incomingHistory.length === 0)) {
+  const hasRealHistory = incomingHistory !== null && incomingHistory.length > 0;
+  const usingMockFallback = isPreview && !hasRealHistory;
+  if (usingMockFallback) {
     incomingHistory = [
       {
         avatarUrl: 'mock-avatar:A Viewer',
@@ -82,6 +84,7 @@ export function applyThemePayload(data, options = {}) {
     }
     if (incomingHistory && (themeSwitch || modeChanged || options.forceHistory || listEl.children.length === 0)) {
       state.messageHistory = [...incomingHistory];
+      state.isMockHistory = usingMockFallback;
       renderHistory(state.messageHistory);
     }
     refreshAllDecorations();

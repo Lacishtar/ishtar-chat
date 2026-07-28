@@ -94,12 +94,15 @@ export function applyCssVariables(config, layout, slotStyle, animationConfig, ro
     ...compileSlotStyleToCssVariables(slotStyle || state.currentSlotStyle, cfg, layout || state.currentLayout),
     ...compileAnimationToCssVariables(animationConfig || state.currentAnimation, cfg),
     ...roleCompiled.vars,
-    // Idle animation CSS variables
+    // Idle animation CSS variables (float/slidex)
     '--ovs-idle-animation-duration': cfg.idleAnimationSpeed != null ? `${cfg.idleAnimationSpeed}s` : '3s',
     '--ovs-idle-float-amplitude': cfg.idleAnimationIntensity != null ? `-${Math.abs(cfg.idleAnimationIntensity)}px` : '-5px',
     '--ovs-idle-slidex-amplitude': cfg.idleAnimationIntensity != null ? `${Math.abs(cfg.idleAnimationIntensity)}px` : '5px',
-    '--ovs-idle-shimmer-opacity': cfg.idleAnimationIntensity != null
-      ? String(Math.round(Math.min(Math.max(cfg.idleAnimationIntensity, 0), 20) * 10) / 1000)
+    // Shimmer — independent on/off + own speed/intensity, can run alongside float/slidex
+    // (see shared/customize-config.js idleShimmerEnabled comment for why this is safe).
+    '--ovs-idle-shimmer-duration': cfg.idleShimmerSpeed != null ? `${cfg.idleShimmerSpeed}s` : '3s',
+    '--ovs-idle-shimmer-opacity': cfg.idleShimmerIntensity != null
+      ? String(Math.round(Math.min(Math.max(cfg.idleShimmerIntensity, 0), 20) * 10) / 1000)
       : '0.05',
   };
   Object.entries(map).forEach(([key, value]) => {
@@ -139,6 +142,9 @@ export function applyCssVariables(config, layout, slotStyle, animationConfig, ro
   // Set idle animation type on list element — CSS selector gates on this attribute
   const idleAnim = cfg.idleAnimation || 'none';
   listEl.dataset.ovsIdleAnimation = idleAnim;
+  // Shimmer is independent — its own attribute, so it can be 'true' at the
+  // same time data-ovs-idle-animation is 'float' or 'slidex'.
+  listEl.dataset.ovsIdleShimmer = cfg.idleShimmerEnabled ? 'true' : 'false';
   // Stamp --ovs-idle-index on each existing message for staggered delay
   Array.from(listEl.children).forEach((el, i) => {
     el.style.setProperty('--ovs-idle-index', String(i));

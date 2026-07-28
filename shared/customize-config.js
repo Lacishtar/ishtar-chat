@@ -79,9 +79,12 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   tickerSpeed: 1, // speed multiplier for ticker scroll — 1 = default (~120px/s)
   tickerGap: 32, // gap (px) between consecutive ticker message items
   tickerPosition: 'bottom', // 'bottom' | 'top'
-  idleAnimation: 'none', // 'none' | 'float' | 'shimmer' | 'slidex'
-  idleAnimationSpeed: 3, // duration in seconds — smaller = faster
-  idleAnimationIntensity: 5, // amplitude: px for float/slidex, 0-20 opacity% for shimmer
+  idleAnimation: 'none', // 'none' | 'float' | 'slidex' — shimmer is separate now (see idleShimmerEnabled), because unlike this select, shimmer isn't mutually exclusive with float/slidex: it animates via ::after (background-position sweep), never touches `transform`, so it never fights the transform-based float/slidex keyframes on the same element.
+  idleAnimationSpeed: 3, // duration in seconds — smaller = faster (float/slidex only)
+  idleAnimationIntensity: 5, // amplitude in px (float/slidex only)
+  idleShimmerEnabled: false, // independent on/off — can run at the same time as float or slidex
+  idleShimmerSpeed: 3, // duration in seconds — smaller = faster
+  idleShimmerIntensity: 5, // 0-20, mapped to a 0-0.2 opacity range for the sweep highlight
 };
 
 function isSet(value) {
@@ -231,9 +234,11 @@ function compileBubbleDecorationToCssVariables(config) {
 function toCssVariables(config) {
   const c = { ...DEFAULT_CUSTOMIZE_CONFIG, ...config };
 
-  // Idle animation amplitude — px for float/slidex, opacity fraction for shimmer
+  // Idle animation amplitude — px, float/slidex only now.
   const idleIntensity = Number.isFinite(Number(c.idleAnimationIntensity)) ? Number(c.idleAnimationIntensity) : 5;
-  const idleShimmerOpacity = Math.round(Math.min(Math.max(idleIntensity, 0), 20) * 10) / 1000; // 0–0.2 range
+  // Shimmer has its own independent speed/intensity — see idleShimmerEnabled comment above.
+  const idleShimmerIntensity = Number.isFinite(Number(c.idleShimmerIntensity)) ? Number(c.idleShimmerIntensity) : 5;
+  const idleShimmerOpacity = Math.round(Math.min(Math.max(idleShimmerIntensity, 0), 20) * 10) / 1000; // 0–0.2 range
 
   return {
     '--ovs-font-family': c.fontFamily,
@@ -250,6 +255,7 @@ function toCssVariables(config) {
     '--ovs-idle-animation-duration': `${Number.isFinite(Number(c.idleAnimationSpeed)) ? Number(c.idleAnimationSpeed) : 3}s`,
     '--ovs-idle-float-amplitude': `-${Math.abs(idleIntensity)}px`,
     '--ovs-idle-slidex-amplitude': `${Math.abs(idleIntensity)}px`,
+    '--ovs-idle-shimmer-duration': `${Number.isFinite(Number(c.idleShimmerSpeed)) ? Number(c.idleShimmerSpeed) : 3}s`,
     '--ovs-idle-shimmer-opacity': String(idleShimmerOpacity),
     ...compileBubbleDecorationToCssVariables(c),
   };

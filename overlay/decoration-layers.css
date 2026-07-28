@@ -40,14 +40,20 @@
   overflow: visible;
 }
 
-/* Background: renders inside the bubble, UNDER text content.
-   z-index: -1 places this host in paint step 2 (negative stacking contexts),
-   which comes BEFORE block-flow children (step 3) in CSS paint order.
+/* Background: renders inside the bubble, ABOVE the bubble texture (also
+   z-index: 0 — see .ovs-bubble-texture in bubble-wrap.css) but UNDER text
+   content (promoted to z-index: 1 by bubble-wrap.css). At the z-index: 0 tie
+   with the texture, paint order falls back to DOM order: decoration.js
+   inserts this host right after .ovs-bubble-texture, so the texture paints
+   first (bottom) and this host paints on top of it.
+   Previously this used z-index: -1, which put it in an earlier paint step
+   than the texture (z-index: 0) regardless of DOM order — background
+   stickers ended up hidden behind the texture instead of on top of it.
    The anchor element is given isolation: isolate by decoration.js so this
-   negative z-index is contained within the bubble, not the whole page.
+   stacking is contained within the bubble, not the whole page.
    overflow: hidden + border-radius: inherit clip the image to the bubble shape. */
 .ovs-decoration-host[data-stack-layer='background'] {
-  z-index: -1;
+  z-index: 0;
   overflow: hidden;
   border-radius: inherit;
 }
@@ -92,28 +98,37 @@
   mask-mode: luminance;
 }
 
-/* --- Sticker / Decoration Idle Animations (Applied to Tier 2 Wrapper) --- */
+/* --- Sticker / Decoration Idle Animations (Applied to Tier 2 Wrapper) ---
+   Keyframe names are prefixed `ovs-deco-idle-*` (never bare `ovs-idle-*`),
+   deliberately distinct from overlay/idle-animations.css's message-level
+   `ovs-idle-*` keyframes. @keyframes names are global: two rules sharing an
+   identical name silently replace one another (last one loaded wins) rather
+   than erroring or merging — regardless of which selector uses them. Before
+   this rename, `ovs-idle-float` was defined in both files with different
+   motion, and because idle-animations.css loads after this file, the sticker
+   float animation silently played the message-level float body instead of
+   its own. Keep these two keyframe sets namespaced apart. */
 .ovs-decoration-anim[data-idle-animation='float'] {
-  animation: ovs-idle-float 3.2s ease-in-out infinite;
+  animation: ovs-deco-idle-float 3.2s ease-in-out infinite;
 }
 
 .ovs-decoration-anim[data-idle-animation='bounce'] {
-  animation: ovs-idle-bounce 1.2s infinite;
+  animation: ovs-deco-idle-bounce 1.2s infinite;
 }
 
 .ovs-decoration-anim[data-idle-animation='wiggle'] {
-  animation: ovs-idle-wiggle 0.7s ease-in-out infinite;
+  animation: ovs-deco-idle-wiggle 0.7s ease-in-out infinite;
 }
 
 .ovs-decoration-anim[data-idle-animation='tilt'] {
-  animation: ovs-idle-tilt 3.6s ease-in-out infinite;
+  animation: ovs-deco-idle-tilt 3.6s ease-in-out infinite;
 }
 
 .ovs-decoration-anim[data-idle-animation='slideX'] {
-  animation: ovs-idle-slideX 2.8s ease-in-out infinite;
+  animation: ovs-deco-idle-slideX 2.8s ease-in-out infinite;
 }
 
-@keyframes ovs-idle-float {
+@keyframes ovs-deco-idle-float {
   0%, 100% {
     transform: translateY(4px);
   }
@@ -122,7 +137,7 @@
   }
 }
 
-@keyframes ovs-idle-bounce {
+@keyframes ovs-deco-idle-bounce {
   0%, 100% {
     transform: translateY(0);
     animation-timing-function: cubic-bezier(0.25, 0.9, 0.35, 1);
@@ -139,7 +154,7 @@
   }
 }
 
-@keyframes ovs-idle-wiggle {
+@keyframes ovs-deco-idle-wiggle {
   0%, 100% {
     transform: translateX(0) rotate(0deg);
   }
@@ -157,7 +172,7 @@
   }
 }
 
-@keyframes ovs-idle-tilt {
+@keyframes ovs-deco-idle-tilt {
   0%, 100% {
     transform: rotate(0deg);
   }
@@ -169,7 +184,7 @@
   }
 }
 
-@keyframes ovs-idle-slideX {
+@keyframes ovs-deco-idle-slideX {
   0%, 100% {
     transform: translateX(-5px);
   }

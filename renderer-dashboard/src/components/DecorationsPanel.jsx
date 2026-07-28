@@ -25,16 +25,19 @@ const PLACEMENT_OPTIONS = [
   { value: 'custom', label: 'Tùy chỉnh tự do (Custom X/Y)' },
 ];
 
-// Vietnamese labels for shared/decoration-config.js#MASK_TARGETS. All of
-// these are wired to real shape sources, resolving to an existing slot's
-// rendered box. The *set* of values always comes from MASK_TARGETS itself
-// (imported above), so this can only add a missing label, never drift on
-// values.
+// Vietnamese labels for shared/decoration-config.js#MASK_TARGETS. 'avatar',
+// 'bubble', 'username', and 'chatContainer' are wired to real shape sources;
+// the rest are reserved so the UI already reads naturally once those targets
+// are implemented. The *set* of values always comes from MASK_TARGETS itself
+// (imported above), so this can only add a missing label, never drift on values.
 const MASK_TARGET_LABELS = {
   avatar: 'Avatar',
   bubble: 'Bubble (khung chat)',
   username: 'Username (bubble tên)',
   chatContainer: 'Chat Message (bubble nội dung)',
+  bottomAccentBar: 'Thanh nhấn dưới (Bottom Accent Bar, sắp có)',
+  glowLayer: 'Lớp phát sáng (Glow Layer, sắp có)',
+  customShape: 'Hình tuỳ chỉnh (Custom Shape, sắp có)',
 };
 const MASK_TARGET_OPTIONS = MASK_TARGETS.map((value) => ({
   value,
@@ -52,14 +55,21 @@ const STACK_LAYER_OPTIONS = [
   { value: 'background', label: 'Hậu cảnh — trong bubble, dưới chữ' },
 ];
 
-const IDLE_ANIMATION_OPTIONS = [
-  { value: 'none', label: 'None — không chạy idle' },
-  { value: 'float', label: 'Float — trôi lên xuống nhẹ' },
-  { value: 'bounce', label: 'Bounce — nảy lên xuống' },
-  { value: 'wiggle', label: 'Wiggle — lắc ngang nhanh' },
-  { value: 'tilt', label: 'Tilt — nghiêng qua lại chậm' },
-  { value: 'slideX', label: 'SlideX — trượt trái/phải nhẹ' },
-];
+// Vietnamese labels for shared/decoration-config.js#IDLE_ANIMATIONS. The
+// *set* of values always comes from IDLE_ANIMATIONS itself (imported above),
+// so this can only add a missing label, never drift on values.
+const IDLE_ANIMATION_LABELS = {
+  none: 'Không — đứng yên',
+  float: 'Trôi nổi nhẹ (Float)',
+  bounce: 'Nảy (Bounce)',
+  wiggle: 'Lắc ngang (Wiggle)',
+  tilt: 'Nghiêng qua lại (Tilt)',
+  slideX: 'Trượt ngang (Slide X)',
+};
+const IDLE_ANIMATION_OPTIONS = IDLE_ANIMATIONS.map((value) => ({
+  value,
+  label: IDLE_ANIMATION_LABELS[value] || value,
+}));
 
 const ANCHOR_LABEL = Object.fromEntries(ANCHOR_OPTIONS.map((o) => [o.value, o.label]));
 const PLACEMENT_LABEL = Object.fromEntries(
@@ -82,6 +92,7 @@ function createDefaultLayer() {
     translateY: 6,
     rotate: 0,
     zIndex: 5,
+    size: 48,
     width: 48,
     height: 48,
     opacity: 1,
@@ -433,20 +444,6 @@ function LayerCard({ layer, index, count, open, onToggleOpen, onChange, onRemove
             )}
           </Field>
 
-          <Field label="Hiệu ứng Idle">
-            <select
-              className={inputClass}
-              value={layer.idleAnimation || 'none'}
-              onChange={(e) => set({ idleAnimation: e.target.value })}
-            >
-              {IDLE_ANIMATION_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-
           <Field label="Vị trí trên khung">
             <select
               className={inputClass}
@@ -454,6 +451,20 @@ function LayerCard({ layer, index, count, open, onToggleOpen, onChange, onRemove
               onChange={(e) => set({ placement: e.target.value })}
             >
               {PLACEMENT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Hiệu ứng chuyển động (Idle Animation)">
+            <select
+              className={inputClass}
+              value={layer.idleAnimation || 'none'}
+              onChange={(e) => set({ idleAnimation: e.target.value })}
+            >
+              {IDLE_ANIMATION_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -472,11 +483,11 @@ function LayerCard({ layer, index, count, open, onToggleOpen, onChange, onRemove
           </div>
 
           <RangeField
-            label="Kích thước (Size)"
+            label="Kích thước"
             unit="px"
             min={16}
             max={200}
-            value={layer.size ?? layer.width ?? 48}
+            value={layer.size ?? layer.width ?? layer.height ?? 48}
             onChange={(v) => set({ size: v, width: v, height: v })}
           />
 

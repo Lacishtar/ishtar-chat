@@ -18,6 +18,13 @@ export const state = {
   currentRoleStyle: initial.roleStyleConfig || { roles: {} },
   messageTemplate: null,
   messageHistory: Array.isArray(initial.history) ? [...initial.history] : [],
+  // True only while `.ovs-message` nodes on screen are the synthetic
+  // "A Viewer / B Viewer / ..." placeholder that theme-loader.js injects
+  // for the dashboard's disconnected preview (?preview=1) when there's no
+  // real chat history yet. Lets renderMessage() purge that placeholder the
+  // moment a real message arrives, instead of leaving mock bubbles stuck
+  // in the feed permanently once real chat starts flowing in.
+  isMockHistory: false,
 };
 
 // Kept around only so the entry file can seed the very first
