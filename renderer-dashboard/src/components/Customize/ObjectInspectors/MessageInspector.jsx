@@ -2,12 +2,13 @@ import AccordionSection from '../Inspector/AccordionSection.jsx';
 import FontSection from '../Typography/FontSection.jsx';
 import TransformSection from '../Transform/TransformSection.jsx';
 import SlotBubbleSection from '../Bubble/SlotBubbleSection.jsx';
+import EmojiSection from '../Message/EmojiSection.jsx';
 import { SlotToggle } from '../shared/fields.jsx';
-import { slotVal } from '../shared/configHelpers.js';
+import { slotVal, configVal } from '../shared/configHelpers.js';
 
 const OBJECT_ID = 'message';
 
-export default function MessageInspector({ local, slotLocal, pushSlotUpdate, state }) {
+export default function MessageInspector({ local, slotLocal, pushSlotUpdate, pushUpdate, state }) {
   const sec = (id, defaultOpen = false) => ({
     id: `section-${OBJECT_ID}-${id}`,
     open: state.isExpanded(OBJECT_ID, id, defaultOpen),
@@ -40,6 +41,17 @@ export default function MessageInspector({ local, slotLocal, pushSlotUpdate, sta
           strokeColor={slotVal(slotLocal, 'message', 'strokeColor', local.textStrokeColor)}
           sizeRange={[10, 32]}
           onChange={(patch) => pushSlotUpdate('message', patch)}
+        />
+      </AccordionSection>
+
+      <AccordionSection title="Ô emoji (chip vuông)" {...sec('emoji')}>
+        <EmojiSection
+          enabled={configVal(local, 'emojiGlyphEnabled', true)}
+          bg={configVal(local, 'emojiGlyphBg', 'rgba(255, 255, 255, 0.1)')}
+          radius={configVal(local, 'emojiGlyphRadius', 6)}
+          opacity={configVal(local, 'emojiGlyphOpacity', 1)}
+          glow={configVal(local, 'emojiGlyphGlow', 'none')}
+          onChange={pushUpdate}
         />
       </AccordionSection>
 

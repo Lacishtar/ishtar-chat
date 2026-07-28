@@ -9,6 +9,10 @@
     var(--ovs-bubble-border-color, transparent)
   );
   --ovs-role-fallback-row-border: var(--ovs-bubble-border-color, transparent);
+
+  /* Superchat amount defaults */
+  --ovs-role-superchat-amount-font-size: 0.8em;
+  --ovs-role-superchat-amount-font-weight: 700;
 }
 
 :root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-author,
@@ -155,13 +159,26 @@
 /* ==========================================
    3. SUPER CHAT STYLES (Highest priority)
    ========================================== */
-:root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-author {
-  color: var(--ovs-superchat-tier-color, var(--ovs-role-superchat-author-color, #fde047)) !important;
+
+/* --- Author color ---
+   When useTierColor=true (default): tier color takes precedence via --ovs-superchat-tier-color (set inline on node).
+   When useTierColor=false: manual --ovs-role-superchat-author-color is used with no tier override. */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true'] .ovs-message.ovs-superchat .ovs-author {
+  color: var(--ovs-superchat-tier-color, #fde047) !important;
+}
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='false'] .ovs-message.ovs-superchat .ovs-author {
+  color: var(--ovs-role-superchat-author-color, #fde047) !important;
 }
 
 :root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-superchat-amount {
-  color: var(--ovs-superchat-tier-color, var(--ovs-role-superchat-author-color, #fde047)) !important;
-  font-weight: 700;
+  font-weight: var(--ovs-role-superchat-amount-font-weight, 700);
+}
+/* Amount color follows the same tier/manual logic as author */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true'] .ovs-message.ovs-superchat .ovs-superchat-amount {
+  color: var(--ovs-superchat-tier-color, #fde047) !important;
+}
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='false'] .ovs-message.ovs-superchat .ovs-superchat-amount {
+  color: var(--ovs-role-superchat-author-color, #fde047) !important;
 }
 
 :root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-author-bg='true'] .ovs-message.ovs-superchat .ovs-author {
@@ -171,26 +188,30 @@
   border-radius: 999px;
 }
 
+/* ---- BUBBLE MODE (default) ---- */
 /* If bubble wrap row is false (per-slot mode): style the text bubble */
-:root[data-ovs-role-superchat-enabled='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-superchat .ovs-text {
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true']:not([data-ovs-bubble-wrap-row='true']):not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat .ovs-text {
   background: var(
     --ovs-superchat-tier-bg,
-    var(
-      --ovs-role-superchat-message-bg,
-      linear-gradient(135deg, rgba(255, 202, 40, 0.28), var(--ovs-role-fallback-message-bg))
-    )
+    linear-gradient(135deg, rgba(255, 202, 40, 0.28), var(--ovs-role-fallback-message-bg))
   ) !important;
   border-width: var(--ovs-bubble-border-width, 1px) !important;
   border-style: solid !important;
-  border-color: var(
-    --ovs-superchat-tier-border,
-    var(
-      --ovs-role-superchat-message-border-color,
-      rgba(255, 202, 40, 0.45)
-    )
-  ) !important;
+  border-color: var(--ovs-superchat-tier-border, rgba(255, 202, 40, 0.45)) !important;
   color: var(--ovs-role-superchat-message-text-color, inherit) !important;
-  box-shadow: inset 0 0 0 1px var(--ovs-superchat-tier-border, var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45)));
+  box-shadow: inset 0 0 0 1px var(--ovs-superchat-tier-border, rgba(255, 202, 40, 0.45));
+}
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='false']:not([data-ovs-bubble-wrap-row='true']):not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat .ovs-text {
+  background: var(
+    --ovs-role-superchat-message-bg,
+    linear-gradient(135deg, rgba(255, 202, 40, 0.28), var(--ovs-role-fallback-message-bg))
+  ) !important;
+  border-width: var(--ovs-bubble-border-width, 1px) !important;
+  border-style: solid !important;
+  border-color: var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45)) !important;
+  color: var(--ovs-role-superchat-message-text-color, inherit) !important;
+  box-shadow: inset 0 0 0 1px var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45));
 }
 
 :root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-text {
@@ -204,42 +225,265 @@
 }
 
 /* If bubble wrap row is true (row mode): style the row */
-:root[data-ovs-role-superchat-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-superchat {
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true'][data-ovs-bubble-wrap-row='true']:not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat {
   background: var(
       --ovs-superchat-tier-bg,
-      var(
-        --ovs-role-superchat-row-bg,
-        var(--ovs-role-superchat-message-bg, linear-gradient(135deg, rgba(255, 202, 40, 0.22), var(--ovs-role-fallback-row-bg)))
-      )
+      linear-gradient(135deg, rgba(255, 202, 40, 0.22), var(--ovs-role-fallback-row-bg))
+    ) !important;
+  border-width: var(--ovs-bubble-border-width, 1px) !important;
+  border-style: solid !important;
+  border-color: var(--ovs-superchat-tier-border, rgba(255, 202, 40, 0.45)) !important;
+}
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='false'][data-ovs-bubble-wrap-row='true']:not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat {
+  background: var(
+      --ovs-role-superchat-row-bg,
+      var(--ovs-role-superchat-message-bg, linear-gradient(135deg, rgba(255, 202, 40, 0.22), var(--ovs-role-fallback-row-bg)))
     ) !important;
   border-width: var(--ovs-bubble-border-width, 1px) !important;
   border-style: solid !important;
   border-color: var(
-      --ovs-superchat-tier-border,
-      var(
-        --ovs-role-superchat-row-border-color,
-        var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45))
-      )
+      --ovs-role-superchat-row-border-color,
+      var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45))
     ) !important;
 }
+
 :root[data-ovs-role-superchat-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-superchat .ovs-text {
   color: var(--ovs-role-superchat-message-text-color, inherit) !important;
 }
 
-/* Superchat Amount Badge */
+/* ==========================================
+   SUPERCHAT AMOUNT BADGE
+   ========================================== */
 .ovs-superchat-amount {
   display: none;
-  margin-left: 0.35em;
-  padding: 0.1em 0.45em;
-  border-radius: 999px;
-  font-size: 0.72em;
-  font-weight: 700;
-  line-height: 1.2;
-  color: #1a1400;
-  background: rgba(255, 202, 40, 0.92);
   white-space: nowrap;
 }
 
-:root[data-ovs-role-superchat-show-amount='true'] .ovs-message.ovs-superchat .ovs-superchat-amount {
-  display: inline-block;
+/* Inline mode: amount appears next to the author name */
+:root[data-ovs-role-superchat-show-amount='true'][data-ovs-role-superchat-amount-position='inline'] .ovs-message.ovs-superchat .ovs-superchat-amount,
+:root[data-ovs-role-superchat-show-amount='true']:not([data-ovs-role-superchat-amount-position]) .ovs-message.ovs-superchat .ovs-superchat-amount {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.35em;
+  padding: 0.12em 0.5em;
+  border-radius: 999px;
+  font-size: var(--ovs-role-superchat-amount-font-size, 0.8em);
+  font-weight: var(--ovs-role-superchat-amount-font-weight, 700);
+  line-height: 1.2;
+  vertical-align: middle;
+}
+
+/* Block mode: amount appears on its own line below the author */
+:root[data-ovs-role-superchat-show-amount='true'][data-ovs-role-superchat-amount-position='block'] .ovs-message.ovs-superchat .ovs-superchat-amount {
+  display: block;
+  margin-top: 0.2em;
+  margin-left: 0;
+  padding: 0.15em 0.55em;
+  border-radius: 8px;
+  font-size: var(--ovs-role-superchat-amount-font-size, 1em);
+  font-weight: var(--ovs-role-superchat-amount-font-weight, 700);
+  line-height: 1.3;
+}
+
+/* Amount background — tier color with transparency */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true'] .ovs-message.ovs-superchat .ovs-superchat-amount {
+  background: var(--ovs-superchat-tier-bg, rgba(255, 202, 40, 0.25));
+  border: 1px solid var(--ovs-superchat-tier-border, rgba(255, 202, 40, 0.5));
+}
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='false'] .ovs-message.ovs-superchat .ovs-superchat-amount {
+  background: rgba(255, 202, 40, 0.2);
+  border: 1px solid rgba(255, 202, 40, 0.45);
+}
+
+/* ==========================================
+   SUPERCHAT BANNER LAYOUT
+   ========================================== */
+
+/* Banner mode restructures the header area: author + amount stacked prominently */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'] .ovs-message.ovs-superchat .ovs-author-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+}
+
+/* In banner mode, amount is displayed prominently */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'][data-ovs-role-superchat-show-amount='true'] .ovs-message.ovs-superchat .ovs-superchat-amount {
+  display: block;
+  order: -1; /* Amount appears ABOVE the author name */
+  margin-left: 0;
+  padding: 0.1em 0.4em;
+  border-radius: 6px;
+  font-size: var(--ovs-role-superchat-amount-font-size, 1.1em);
+  font-weight: var(--ovs-role-superchat-amount-font-weight, 700);
+  line-height: 1.25;
+  align-self: flex-start;
+}
+
+/* Banner: scale up the author name */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'] .ovs-message.ovs-superchat .ovs-author {
+  font-size: var(--ovs-role-superchat-author-font-size, 1.05em) !important;
+  font-weight: 600;
+}
+
+/* Banner: add a top accent line using tier color */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'][data-ovs-role-superchat-use-tier-color='true'] .ovs-message.ovs-superchat .ovs-text,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'][data-ovs-role-superchat-use-tier-color='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-superchat .ovs-text {
+  border-top: 3px solid var(--ovs-superchat-tier-color, rgba(255, 202, 40, 0.8)) !important;
+  padding-top: 0.3em !important;
+}
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'][data-ovs-role-superchat-use-tier-color='false'] .ovs-message.ovs-superchat .ovs-text,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'][data-ovs-role-superchat-use-tier-color='false']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-superchat .ovs-text {
+  border-top: 3px solid var(--ovs-role-superchat-author-color, rgba(255, 202, 40, 0.8)) !important;
+  padding-top: 0.3em !important;
+}
+
+/* Banner: message text slightly smaller/muted */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'] .ovs-message.ovs-superchat .ovs-text-content {
+  opacity: 0.9;
+}
+
+/* ==========================================
+   SUPERCHAT — "YOUTUBE" CARD LAYOUT
+   Rebuilds the card to match YouTube's own Super Chat: a solid
+   full-opacity tier-color header (avatar + name + amount) on top, and a
+   tinted body with the message text underneath — one rounded card, no
+   gradient border, no separate bubble outline. Ignores amountPosition
+   (always header-right) and the bubble-wrap-row toggle (always draws its
+   own two-tone card) so it looks the same no matter what the rest of the
+   theme's bubble settings are set to.
+   ========================================== */
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'] .ovs-message.ovs-superchat {
+  display: grid !important;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: var(--ovs-layout-message-gap, 10px);
+  row-gap: 0;
+  align-items: stretch;
+  padding: 0 !important;
+  margin: var(--ovs-layout-message-margin, 0);
+  border-width: 0 !important;
+  border-style: none !important;
+  outline: none !important;
+  box-shadow: var(--ovs-bubble-box-shadow, none) !important;
+  filter: var(--ovs-bubble-glow, none) !important;
+  border-radius: var(--ovs-bubble-radius, 12px) !important;
+  background: transparent !important;
+  overflow: hidden;
+}
+
+/* Header fill — a full-bleed pseudo-element behind the avatar + meta row,
+   so the solid tier color spans the entire card width (including behind
+   the avatar), exactly like YouTube's own header bar. */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'][data-ovs-role-superchat-use-tier-color='true'] .ovs-message.ovs-superchat::before {
+  content: '';
+  grid-column: 1 / -1;
+  grid-row: 1;
+  background: var(--ovs-superchat-tier-color, #ffca28) !important;
+}
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'][data-ovs-role-superchat-use-tier-color='false'] .ovs-message.ovs-superchat::before {
+  content: '';
+  grid-column: 1 / -1;
+  grid-row: 1;
+  background: var(--ovs-role-superchat-author-color, #ffca28) !important;
+}
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'] .ovs-message.ovs-superchat .ovs-body {
+  display: contents;
+}
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'] .ovs-message.ovs-superchat .ovs-avatar {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  margin: 7px 0 7px 10px !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+}
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'] .ovs-message.ovs-superchat .ovs-meta {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 6px;
+  margin: 0 !important;
+  padding: 8px 10px 8px 0 !important;
+  min-width: 0;
+}
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'] .ovs-message.ovs-superchat .ovs-author-area {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'] .ovs-message.ovs-superchat .ovs-author {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'] .ovs-message.ovs-superchat .ovs-badges {
+  flex-shrink: 0;
+}
+
+/* Header text always renders in high-contrast white/black over the solid
+   tier fill, rather than the role's own author-color var (which is meant
+   for text sitting on a transparent/dark background, not on itself). Tiers
+   1-2 (blue/cyan) are light enough to need dark text; 3-7 get white text —
+   same split YouTube itself uses. */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'] .ovs-message.ovs-superchat .ovs-author,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'][data-ovs-role-superchat-show-amount='true'] .ovs-message.ovs-superchat .ovs-superchat-amount {
+  color: #ffffff !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'] .ovs-message.ovs-superchat[data-ovs-superchat-tier='1'] .ovs-author,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'][data-ovs-role-superchat-show-amount='true'] .ovs-message.ovs-superchat[data-ovs-superchat-tier='1'] .ovs-superchat-amount,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'] .ovs-message.ovs-superchat[data-ovs-superchat-tier='2'] .ovs-author,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'][data-ovs-role-superchat-show-amount='true'] .ovs-message.ovs-superchat[data-ovs-superchat-tier='2'] .ovs-superchat-amount {
+  color: #0a0a0a !important;
+  text-shadow: none;
+}
+
+/* Amount always sits pinned to the header's right edge, ignoring the
+   inline/block amountPosition setting (that toggle only makes sense for
+   the bubble/banner layouts). */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'][data-ovs-role-superchat-show-amount='true'] .ovs-message.ovs-superchat .ovs-superchat-amount {
+  display: inline-flex !important;
+  margin-left: auto !important;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.16) !important;
+  border: none !important;
+  padding: 0.12em 0.55em !important;
+  border-radius: 999px;
+}
+
+/* Body — tinted continuation of the header color underneath the message
+   text, same as YouTube's card. */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'][data-ovs-role-superchat-use-tier-color='true'] .ovs-message.ovs-superchat .ovs-text {
+  background: var(--ovs-superchat-tier-bg, rgba(255, 202, 40, 0.35)) !important;
+  color: var(--ovs-role-superchat-message-text-color, inherit) !important;
+}
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'][data-ovs-role-superchat-use-tier-color='false'] .ovs-message.ovs-superchat .ovs-text {
+  background: var(--ovs-role-superchat-message-bg, rgba(255, 202, 40, 0.28)) !important;
+  color: var(--ovs-role-superchat-message-text-color, inherit) !important;
+}
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'] .ovs-message.ovs-superchat .ovs-text {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: block !important;
+  width: auto !important;
+  max-width: none !important;
+  border-width: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  padding: 6px 12px 10px 12px !important;
+  align-self: stretch !important;
 }

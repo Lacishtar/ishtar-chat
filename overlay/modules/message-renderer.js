@@ -7,6 +7,7 @@ import { resolveEffectiveSlotStyle } from './css-variables.js';
 import { applyAvatar } from './avatar.js';
 import { ensureBubbleTexture, applyMessageBunnyEars, applySlotBunnyEars } from './bubble.js';
 import { applyDecorationLayers } from './decoration.js';
+import { applyEmojiOnlyStyling } from './emoji.js';
 import {
   appendDanmakuMessage,
   renderDanmakuHistory,
@@ -124,6 +125,14 @@ export function createMessageNode(msg, options = {}) {
     if (msg.superchatBorder) {
       node.style.setProperty('--ovs-superchat-tier-border', msg.superchatBorder);
     }
+    // Apply layout class based on root attribute set by role-style-config
+    const rootEl = document.documentElement;
+    const superchatLayoutAttr = rootEl.getAttribute('data-ovs-role-superchat-layout');
+    if (superchatLayoutAttr === 'banner') {
+      node.classList.add('ovs-superchat-banner');
+    } else if (superchatLayoutAttr === 'youtube') {
+      node.classList.add('ovs-superchat-youtube');
+    }
   }
 
   // Attach eventType class hook (e.g. ovs-event-text, ovs-event-superchat, ovs-event-sticker,
@@ -153,15 +162,33 @@ export function createMessageNode(msg, options = {}) {
   // safely use innerHTML here instead of losing the emoji.
   if (messageEl) {
     messageEl.innerHTML = `<span class="ovs-text-content">${msg.messageHtml}</span>`;
+    // If the message is nothing but emoji (unicode chars and/or YouTube's
+    // own custom emoji <img> tags), mark the row and wrap each glyph so
+    // layout-text.css can scale the text up a touch and give every emoji
+    // its own square backdrop chip.
+    applyEmojiOnlyStyling(node, messageEl.querySelector('.ovs-text-content'));
     ensureBubbleTexture(messageEl);
     applySlotBunnyEars(messageEl, 'message');
   }
 
-  if (msg.isSuperchat && msg.superchatCurrencyRaw && authorEl?.parentElement) {
+  if (msg.isSuperchat && msg.superchatCurrencyRaw && authorEl) {
     const amountEl = document.createElement('span');
     amountEl.className = 'ovs-superchat-amount';
     amountEl.textContent = msg.superchatCurrencyRaw;
-    authorEl.parentElement.insertBefore(amountEl, authorEl.nextSibling);
+
+    // Wrap author + amount in a flex container for banner/block layout support.
+    // The wrapper (.ovs-author-area) is the flex parent that CSS banner rules target.
+    const areaWrapper = document.createElement('div');
+    areaWrapper.className = 'ovs-author-area';
+    const parentEl = authorEl.parentElement;
+    if (parentEl) {
+      parentEl.insertBefore(areaWrapper, authorEl);
+      areaWrapper.appendChild(authorEl);
+      areaWrapper.appendChild(amountEl);
+    } else {
+      // Fallback: no parent yet — just append sibling (legacy path)
+      authorEl.parentElement?.insertBefore(amountEl, authorEl.nextSibling);
+    }
   }
 
   applySlotEnterAnimation(node, options.skipEnterAnimation);

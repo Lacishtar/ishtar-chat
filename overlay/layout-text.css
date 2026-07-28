@@ -7,3 +7,42 @@
   direction: ltr;
   unicode-bidi: isolate;
 }
+
+/* Emoji-only messages (marked by overlay/modules/emoji.js): scale the text
+   up a bit so the message doesn't read as "small" next to normal chat, and
+   give every individual glyph its own square backdrop chip — unicode emoji
+   and YouTube's custom emoji <img> tags both go through .ovs-emoji-glyph so
+   they end up sized/spaced consistently with each other. */
+.ovs-message[data-emoji-only='true'] .ovs-text-content {
+  font-size: var(--ovs-emoji-only-scale, 1.35em);
+  line-height: 1.25;
+}
+
+.ovs-text-content .ovs-emoji-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  margin: 0.05em 0.03em;
+  vertical-align: -0.32em;
+  background: var(--ovs-emoji-glyph-bg, rgba(255, 255, 255, 0.1));
+  border-radius: var(--ovs-emoji-glyph-radius, 6px);
+  opacity: var(--ovs-emoji-glyph-opacity, 1);
+  filter: var(--ovs-emoji-glyph-glow, none);
+  font-size: 1em;
+  line-height: 1;
+}
+
+/* Custom emoji <img> tags reuse the same square chip, but need their own
+   sizing so the icon sits centered/padded inside the chip instead of
+   filling it edge-to-edge. Higher specificity than themes' plain
+   ".ovs-text img" rule (which loads *after* this file) so the chip sizing
+   always wins regardless of theme. */
+.ovs-text-content img.ovs-emoji-glyph {
+  width: 1.5em;
+  height: 1.5em;
+  padding: 0.18em;
+  box-sizing: border-box;
+  vertical-align: -0.32em;
+}

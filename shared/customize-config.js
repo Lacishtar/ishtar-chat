@@ -54,7 +54,7 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   bubbleFixedHeight: 0, // 0 = auto
   avatarSize: 32, // px
   showAvatar: true,
-  showBadges: true,
+  showBadges: false,
   animationMs: 220,
   position: 'bottom-up', // 'bottom-up' | 'top-down'
   maxMessages: 40,
@@ -85,6 +85,17 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   idleShimmerEnabled: false, // independent on/off — can run at the same time as float or slidex
   idleShimmerSpeed: 3, // duration in seconds — smaller = faster
   idleShimmerIntensity: 5, // 0-20, mapped to a 0-0.2 opacity range for the sweep highlight
+  // Emoji-only messages get each glyph wrapped in its own square "chip"
+  // (see overlay/modules/emoji.js + overlay/layout-text.css .ovs-emoji-glyph).
+  // These four fields are the chip's full customizable surface: background
+  // (color/gradient via the same rgba/gradient string bubbleBg uses),
+  // corner rounding, overall opacity, and an optional glow halo (same
+  // `filter: drop-shadow(...)` string shape as bubbleGlow/textGlow).
+  emojiGlyphEnabled: true, // master on/off for the chip decoration — false strips bg/radius/opacity/glow but never touches the emoji glyph itself (size/position/content are set directly in CSS, not via these vars)
+  emojiGlyphBg: 'rgba(255, 255, 255, 0.1)',
+  emojiGlyphRadius: 6, // px
+  emojiGlyphOpacity: 1,
+  emojiGlyphGlow: null, // CSS filter: drop-shadow(...) string, or null = no glow
 };
 
 function isSet(value) {
@@ -174,6 +185,28 @@ function compileBubbleDecorationToCssVariables(config) {
   if (isSet(c.bubbleBorderOffset)) vars['--ovs-bubble-border-offset'] = px(c.bubbleBorderOffset);
   if (isSet(c.bubbleBoxShadow)) vars['--ovs-bubble-box-shadow'] = c.bubbleBoxShadow;
   if (isSet(c.bubbleGlow)) vars['--ovs-bubble-glow'] = c.bubbleGlow;
+
+  // Emoji chip (.ovs-emoji-glyph) — bg/radius/opacity/glow are ALWAYS emitted
+  // (never conditionally omitted) so that toggling any of them off actually
+  // resets the live CSS variable on :root. The applier (css-variables.js)
+  // only calls setProperty for keys present in the compiled vars object; a
+  // key that's skipped here just leaves whatever value was set on a
+  // *previous* render sitting on :root forever — e.g. turning "glow" off
+  // used to leave the old drop-shadow() filter applied indefinitely because
+  // this used to only emit the key when emojiGlyphGlow was non-null.
+  //
+  // emojiGlyphEnabled is the master switch for the chip's *decoration* only
+  // — it never touches the emoji glyph itself (the glyph's size/position/
+  // content come from fixed rules in layout-text.css, not from these vars),
+  // so flipping it off just strips the chip's background/radius/opacity/glow
+  // back to neutral values while the emoji stays exactly where it was.
+  const emojiChipEnabled = c.emojiGlyphEnabled !== false;
+  vars['--ovs-emoji-glyph-bg'] = emojiChipEnabled ? (isSet(c.emojiGlyphBg) ? c.emojiGlyphBg : 'rgba(255, 255, 255, 0.1)') : 'transparent';
+  vars['--ovs-emoji-glyph-radius'] = emojiChipEnabled ? px(isSet(c.emojiGlyphRadius) ? c.emojiGlyphRadius : 6) : '0px';
+  vars['--ovs-emoji-glyph-opacity'] = emojiChipEnabled
+    ? String(clampPct(Number(c.emojiGlyphOpacity ?? 1) * 100, 100) / 100)
+    : '1';
+  vars['--ovs-emoji-glyph-glow'] = emojiChipEnabled && isSet(c.emojiGlyphGlow) ? c.emojiGlyphGlow : 'none';
 
   const padX = isSet(c.bubblePaddingX) ? c.bubblePaddingX : (isSet(c.bubblePadding) ? c.bubblePadding : null);
   const padY = isSet(c.bubblePaddingY) ? c.bubblePaddingY : (isSet(c.bubblePadding) ? c.bubblePadding : null);

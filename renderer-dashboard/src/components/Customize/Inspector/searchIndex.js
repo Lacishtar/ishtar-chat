@@ -21,6 +21,7 @@ export const SEARCH_INDEX = [
   { objectId: 'author', sectionId: 'bubble', label: 'Tên — Bubble riêng', keywords: ['tên', 'bubble', 'radius', 'viền', 'border', 'offset', 'shadow', 'glow', 'texture', 'tai thỏ'] },
 
   { objectId: 'message', sectionId: 'typography', label: 'Nội dung — Font & màu', keywords: ['nội dung', 'message', 'font', 'màu', 'color'] },
+  { objectId: 'message', sectionId: 'emoji', label: 'Ô emoji (chip vuông)', keywords: ['emoji', 'ô vuông', 'chip', 'bo góc', 'radius', 'màu', 'color', 'opacity', 'độ mờ', 'glow', 'phát sáng'] },
   { objectId: 'message', sectionId: 'transform', label: 'Nội dung — Transform', keywords: ['nội dung', 'message', 'xoay', 'rotate', 'offset', 'z-index'] },
   { objectId: 'message', sectionId: 'bubble', label: 'Nội dung — Bubble riêng', keywords: ['nội dung', 'message', 'bubble', 'radius', 'viền', 'border', 'offset', 'shadow', 'glow', 'texture', 'tai thỏ'] },
 

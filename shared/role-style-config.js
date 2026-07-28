@@ -31,34 +31,47 @@ function createRoleDefaults(overrides = {}) {
   };
 }
 
+function createSuperchatDefaults(overrides = {}) {
+  return {
+    ...createRoleDefaults({
+      enabled: true,
+      authorColor: '#fde047',
+      authorBorderColor: 'rgba(255, 202, 40, 0.55)',
+      messageBg: 'rgba(104, 87, 34, 0.8)',
+      messageBorderColor: 'rgba(255, 202, 40, 0.45)',
+      rowBg: 'rgba(88, 75, 34, 0.78)',
+      rowBorderColor: 'rgba(255, 202, 40, 0.45)',
+      badgeBefore: '✦',
+      showAmount: true,
+    }),
+    // Superchat-specific fields
+    useTierColor: true,        // When true: YouTube tier color overrides manual color settings
+    superchatLayout: 'bubble', // 'bubble' | 'banner' | 'youtube'
+    amountFontSize: null,      // number (px) or null = inherit from fontSize
+    amountFontWeight: 'bold',  // 'normal' | 'bold' | 'extrabold'
+    amountPosition: 'inline',  // 'inline' (next to name) | 'block' (own line below name)
+    ...overrides,
+  };
+}
+
 const DEFAULT_ROLE_STYLE_CONFIG = {
   roles: {
     moderator: createRoleDefaults({
-      enabled: false,
+      enabled: true,
       authorColor: '#fca5a5',
       authorBorderColor: 'rgba(248, 113, 113, 0.7)',
-      messageBg: 'linear-gradient(135deg, rgba(248, 113, 113, 0.22), rgba(22, 25, 31, 0.72))',
+      messageBg: 'rgba(86, 50, 54, 0.78)',
       messageBorderColor: 'rgba(248, 113, 113, 0.45)',
       badgeBefore: 'MOD',
     }),
     member: createRoleDefaults({
-      enabled: false,
+      enabled: true,
       authorColor: '#93c5fd',
       authorBorderColor: 'rgba(96, 165, 250, 0.55)',
       messageBorderColor: 'rgba(96, 165, 250, 0.45)',
       badgeBefore: '★',
     }),
-    superchat: createRoleDefaults({
-      enabled: true,
-      authorColor: '#fde047',
-      authorBorderColor: 'rgba(255, 202, 40, 0.55)',
-      messageBg: 'linear-gradient(135deg, rgba(255, 202, 40, 0.28), rgba(22, 25, 31, 0.72))',
-      messageBorderColor: 'rgba(255, 202, 40, 0.45)',
-      rowBg: 'linear-gradient(135deg, rgba(255, 202, 40, 0.22), rgba(22, 25, 31, 0.72))',
-      rowBorderColor: 'rgba(255, 202, 40, 0.45)',
-      badgeBefore: '✦',
-      showAmount: true,
-    }),
+    superchat: createSuperchatDefaults(),
   },
 };
 
@@ -100,6 +113,25 @@ function normalizeRole(raw, fallback) {
   };
 }
 
+function normalizeSuperchatRole(raw, fallback) {
+  const baseShape = normalizeRole(raw, fallback);
+  const role = raw || {};
+  const base = fallback || createSuperchatDefaults();
+
+  return {
+    ...baseShape,
+    useTierColor: typeof role.useTierColor === 'boolean' ? role.useTierColor : (base.useTierColor !== false),
+    superchatLayout: ['banner', 'youtube'].includes(role.superchatLayout)
+      ? role.superchatLayout
+      : (base.superchatLayout || 'bubble'),
+    amountFontSize: typeof role.amountFontSize === 'number' && role.amountFontSize > 0 ? role.amountFontSize : (base.amountFontSize || null),
+    amountFontWeight: ['normal', 'bold', 'extrabold'].includes(role.amountFontWeight)
+      ? role.amountFontWeight
+      : (base.amountFontWeight || 'bold'),
+    amountPosition: role.amountPosition === 'block' ? 'block' : (base.amountPosition || 'inline'),
+  };
+}
+
 function normalizeRoleStyleConfig(config) {
   const defaults = DEFAULT_ROLE_STYLE_CONFIG.roles;
   const roles = config?.roles || {};
@@ -107,7 +139,7 @@ function normalizeRoleStyleConfig(config) {
     roles: {
       moderator: normalizeRole(roles.moderator, defaults.moderator),
       member: normalizeRole(roles.member, defaults.member),
-      superchat: normalizeRole(roles.superchat, defaults.superchat),
+      superchat: normalizeSuperchatRole(roles.superchat, defaults.superchat),
     },
   };
 }
@@ -150,6 +182,12 @@ function quoteCssContent(value) {
   return `"${String(value).replace(/"/g, '\\"')}"`;
 }
 
+const AMOUNT_FONT_WEIGHT_MAP = {
+  normal: '400',
+  bold: '700',
+  extrabold: '900',
+};
+
 function compileRoleStyleToCssVariables(roleStyle) {
   const cfg = normalizeRoleStyleConfig(roleStyle);
   const vars = {};
@@ -162,23 +200,40 @@ function compileRoleStyleToCssVariables(roleStyle) {
     rootFlags[`data-ovs-role-${prefix}-enabled`] = enabled ? 'true' : 'false';
 
     if (roleKey === 'superchat') {
-      if (role.showAmount === false) {
-        rootFlags['data-ovs-role-superchat-show-amount'] = 'false';
-      } else {
-        rootFlags['data-ovs-role-superchat-show-amount'] = 'true';
-      }
+      rootFlags['data-ovs-role-superchat-show-amount'] =
+        role.showAmount === false ? 'false' : 'true';
+
+      // Layout: bubble (default), banner, or youtube (mirrors YouTube's own card)
+      rootFlags['data-ovs-role-superchat-layout'] = ['banner', 'youtube'].includes(role.superchatLayout)
+        ? role.superchatLayout
+        : 'bubble';
+
+      // Amount position: inline (default) or block
+      rootFlags['data-ovs-role-superchat-amount-position'] =
+        role.amountPosition === 'block' ? 'block' : 'inline';
+
+      // useTierColor: when false, user's manual colors take precedence over tier vars
+      rootFlags['data-ovs-role-superchat-use-tier-color'] =
+        role.useTierColor === false ? 'false' : 'true';
     }
 
     if (!enabled) return;
 
-    if (role.authorColor) vars[`--ovs-role-${prefix}-author-color`] = role.authorColor;
+    // When superchat useTierColor is true, skip emitting manual color vars
+    // so that --ovs-superchat-tier-* (set inline per-message) wins cleanly.
+    const skipManualColors = roleKey === 'superchat' && role.useTierColor !== false;
+
+    if (!skipManualColors) {
+      if (role.authorColor) vars[`--ovs-role-${prefix}-author-color`] = role.authorColor;
+      if (role.messageBg) vars[`--ovs-role-${prefix}-message-bg`] = role.messageBg;
+      if (role.messageBorderColor) vars[`--ovs-role-${prefix}-message-border-color`] = role.messageBorderColor;
+    }
+
     if (role.authorBorderColor) vars[`--ovs-role-${prefix}-author-border-color`] = role.authorBorderColor;
     if (role.authorBg) {
       vars[`--ovs-role-${prefix}-author-bg`] = role.authorBg;
       rootFlags[`data-ovs-role-${prefix}-author-bg`] = 'true';
     }
-    if (role.messageBg) vars[`--ovs-role-${prefix}-message-bg`] = role.messageBg;
-    if (role.messageBorderColor) vars[`--ovs-role-${prefix}-message-border-color`] = role.messageBorderColor;
     if (role.messageTextColor) vars[`--ovs-role-${prefix}-message-text-color`] = role.messageTextColor;
     if (role.rowBg) vars[`--ovs-role-${prefix}-row-bg`] = role.rowBg;
     if (role.rowBorderColor) vars[`--ovs-role-${prefix}-row-border-color`] = role.rowBorderColor;
@@ -191,6 +246,16 @@ function compileRoleStyleToCssVariables(roleStyle) {
       vars[`--ovs-role-${prefix}-author-font-size`] = `${Math.round(role.fontSize * 0.9)}px`;
       vars[`--ovs-role-${prefix}-badges-font-size`] = `${Math.round(role.fontSize * 0.65)}px`;
     }
+
+    // Superchat-specific amount styling
+    if (roleKey === 'superchat') {
+      const amountSize = role.amountFontSize || role.fontSize;
+      if (typeof amountSize === 'number' && amountSize > 0) {
+        vars[`--ovs-role-superchat-amount-font-size`] = `${amountSize}px`;
+      }
+      const weightValue = AMOUNT_FONT_WEIGHT_MAP[role.amountFontWeight] || '700';
+      vars[`--ovs-role-superchat-amount-font-weight`] = weightValue;
+    }
   });
 
   return { vars, rootFlags };
@@ -201,6 +266,7 @@ module.exports = {
   ROLE_CSS_PREFIX,
   DEFAULT_ROLE_STYLE_CONFIG,
   createRoleDefaults,
+  createSuperchatDefaults,
   normalizeRoleStyleConfig,
   mergeRoleStyleConfig,
   compileRoleStyleToCssVariables,

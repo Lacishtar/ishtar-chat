@@ -22,6 +22,22 @@ const BLEND_MODES = [
 
 const SIZE_UNITS = ['px', '%', 'auto'];
 
+// Quick square-tile presets — the common case for a repeating texture is
+// "one small/medium/large square", not an asymmetric width×height. Stored
+// as an explicit two-value size ("16px 16px") rather than the width-only
+// shorthand so it reads unambiguously as "square", independent of the
+// source image's own aspect ratio.
+const SQUARE_SIZE_PRESETS = [
+  { label: 'Nhỏ', px: 16 },
+  { label: 'Vừa', px: 32 },
+  { label: 'Lớn', px: 64 },
+  { label: 'Rất lớn', px: 128 },
+];
+
+function squarePresetValue(px) {
+  return `${px}px ${px}px`;
+}
+
 // A CSS background-size value is 1 or 2 components ("32px", "50% 50%",
 // "auto 100%"...). We store bubbleTextureSize as that raw string (so old
 // configs / the auto|contain|cover presets keep working untouched), but the
@@ -54,6 +70,47 @@ function serializeCustomSize(width, height) {
   // background-size is normally authored (width set, height follows ratio).
   if (height.unit === 'auto') return formatSizeComponent(width);
   return `${formatSizeComponent(width)} ${formatSizeComponent(height)}`;
+}
+
+// One axis (width or height) of the "advanced" custom-size editor: a
+// segmented px/%/Auto picker plus a slider — replaces the old bare number
+// input, which had no sense of range and made "how big is this really"
+// hard to judge at a glance.
+function SizeAxisControl({ label, comp, onUpdate }) {
+  const max = comp.unit === '%' ? 100 : 300;
+  const numValue = comp.value === '' ? 0 : Number(comp.value);
+  return (
+    <Field label={comp.unit === 'auto' ? `${label} — Auto` : `${label} — ${numValue}${comp.unit}`}>
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-1.5">
+          {SIZE_UNITS.map((u) => (
+            <button
+              key={u}
+              type="button"
+              onClick={() => onUpdate({ value: u === 'auto' ? '' : (comp.value || '32'), unit: u })}
+              className={`flex-1 px-2 py-1 rounded-md text-xs border transition-colors ${
+                comp.unit === u
+                  ? 'bg-focusAccent text-white border-focusAccent'
+                  : 'bg-panelAlt text-inkMuted hover:bg-line border-line'
+              }`}
+            >
+              {u === 'auto' ? 'Auto' : u}
+            </button>
+          ))}
+        </div>
+        {comp.unit !== 'auto' && (
+          <input
+            type="range"
+            min={0}
+            max={max}
+            step={1}
+            value={numValue}
+            onChange={(e) => onUpdate({ ...comp, value: e.target.value })}
+          />
+        )}
+      </div>
+    </Field>
+  );
 }
 
 export default function BubbleTextureSection({ value, onChange, onReset }) {
@@ -101,6 +158,19 @@ export default function BubbleTextureSection({ value, onChange, onReset }) {
   const updateCustomSize = (patch) => {
     const next = { ...customSize, ...patch };
     onChange({ bubbleTextureSize: serializeCustomSize(next.width, next.height) });
+  };
+
+  // Which quick preset (if any) the current size matches, so its chip can
+  // show as active. `null` when the size is asymmetric / a value the chips
+  // don't cover — that's when the advanced editor should default open.
+  const activeSquarePreset = SQUARE_SIZE_PRESETS.find((p) => bubbleTextureSize === squarePresetValue(p.px)) || null;
+  const [advancedOpen, setAdvancedOpen] = useState(!isPreset && bubbleTextureSize && !activeSquarePreset);
+  // If a preset chip gets clicked while the advanced editor is open, close it
+  // again — otherwise the sliders below would keep showing a now-stale
+  // asymmetric value instead of reflecting the chip that was just picked.
+  const selectSquarePreset = (px) => {
+    setAdvancedOpen(false);
+    onChange({ bubbleTextureSize: squarePresetValue(px) });
   };
 
   // If the URL gets cleared from outside (e.g. "Dùng mặc định chung"), make
@@ -188,47 +258,55 @@ export default function BubbleTextureSection({ value, onChange, onReset }) {
           </Field>
 
           {!isPreset && (
-            <div className="col-span-2 grid grid-cols-2 gap-3">
-              <Field label="Chiều rộng">
-                <div className="flex gap-1.5">
-                  <input
-                    type="number"
-                    className={inputClass}
-                    disabled={customSize.width.unit === 'auto'}
-                    value={customSize.width.value}
-                    onChange={(e) => updateCustomSize({ width: { ...customSize.width, value: e.target.value } })}
-                  />
-                  <select
-                    className={`${inputClass} w-20 shrink-0`}
-                    value={customSize.width.unit}
-                    onChange={(e) => updateCustomSize({ width: { value: customSize.width.value || '32', unit: e.target.value } })}
+            <div className="col-span-2 flex flex-col gap-3">
+              <div>
+                <span className="text-xs text-inkMuted block mb-1.5">Kích thước nhanh (ô vuông)</span>
+                <div className="flex flex-wrap gap-2">
+                  {SQUARE_SIZE_PRESETS.map((p) => {
+                    const active = !advancedOpen && activeSquarePreset?.px === p.px;
+                    return (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => selectSquarePreset(p.px)}
+                        className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${
+                          active
+                            ? 'bg-focusAccent text-white border-focusAccent'
+                            : 'bg-panelAlt text-inkMuted hover:bg-line border-line'
+                        }`}
+                      >
+                        {p.label} · {p.px}px
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setAdvancedOpen((v) => !v)}
+                    className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${
+                      advancedOpen
+                        ? 'bg-focusAccent text-white border-focusAccent'
+                        : 'bg-panelAlt text-inkMuted hover:bg-line border-line'
+                    }`}
                   >
-                    {SIZE_UNITS.map((u) => (
-                      <option key={u} value={u}>{u === 'auto' ? 'Auto' : u}</option>
-                    ))}
-                  </select>
+                    Rộng/cao riêng…
+                  </button>
                 </div>
-              </Field>
-              <Field label="Chiều cao">
-                <div className="flex gap-1.5">
-                  <input
-                    type="number"
-                    className={inputClass}
-                    disabled={customSize.height.unit === 'auto'}
-                    value={customSize.height.value}
-                    onChange={(e) => updateCustomSize({ height: { ...customSize.height, value: e.target.value } })}
+              </div>
+
+              {advancedOpen && (
+                <div className="grid grid-cols-1 gap-3">
+                  <SizeAxisControl
+                    label="Chiều rộng"
+                    comp={customSize.width}
+                    onUpdate={(comp) => updateCustomSize({ width: comp })}
                   />
-                  <select
-                    className={`${inputClass} w-20 shrink-0`}
-                    value={customSize.height.unit}
-                    onChange={(e) => updateCustomSize({ height: { value: customSize.height.value || '32', unit: e.target.value } })}
-                  >
-                    {SIZE_UNITS.map((u) => (
-                      <option key={u} value={u}>{u === 'auto' ? 'Auto' : u}</option>
-                    ))}
-                  </select>
+                  <SizeAxisControl
+                    label="Chiều cao"
+                    comp={customSize.height}
+                    onUpdate={(comp) => updateCustomSize({ height: comp })}
+                  />
                 </div>
-              </Field>
+              )}
             </div>
           )}
 

@@ -55,7 +55,7 @@ function createMock() {
     bubbleOpacity: 1,
     avatarSize: 32,
     showAvatar: true,
-    showBadges: true,
+    showBadges: false,
     animationMs: 220,
     position: 'bottom-up',
     maxMessages: 40,
@@ -78,9 +78,9 @@ function createMock() {
   let decorationConfig = { layers: [] };
   let roleStyleConfig = {
     roles: {
-      moderator: { enabled: false, authorColor: '#fca5a5', badge: 'MOD', fontSize: null },
-      member: { enabled: false, authorColor: '#93c5fd', badge: '★', fontSize: null },
-      superchat: { enabled: false, authorColor: '#fde047', badge: '✦', showAmount: true, fontSize: null },
+      moderator: { enabled: true, authorColor: '#fca5a5', badge: 'MOD', fontSize: null },
+      member: { enabled: true, authorColor: '#93c5fd', badge: '★', fontSize: null },
+      superchat: { enabled: true, authorColor: '#fde047', badge: '✦', showAmount: true, fontSize: null },
     },
   };
   let animationConfig = {
