@@ -171,11 +171,14 @@
 .ovs-message {
   position: relative;
 }
-.ovs-message {
-  /* #ovs-chat-list is a column flex container; without this, flex-shrink defaults
-     to 1 and the browser silently squeezes rows below their configured
-     min-height/max-height/fixed-height (below) once the list overflows the
-     viewport height. The row's own height rules should be the only thing
+.ovs-slot {
+  /* #ovs-chat-list is a column flex container, and .ovs-slot (the movement
+     layer) is its direct flex item — flex-shrink only has an effect on an
+     actual flex item, so it must live here rather than on .ovs-message.
+     Without it, flex-shrink defaults to 1 and the browser silently
+     squeezes rows below their configured min-height/max-height/fixed-height
+     (on .ovs-message, see above) once the list overflows the viewport
+     height. The row's own height rules should be the only thing
      controlling its size. */
   flex-shrink: 0;
 }

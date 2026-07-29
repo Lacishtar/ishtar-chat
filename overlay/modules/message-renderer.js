@@ -83,7 +83,15 @@ function applySlotEnterAnimation(node, skip) {
 }
 
 export function createMessageNode(msg, options = {}) {
+  // `node` is the root returned to callers: the MOVEMENT layer (.ovs-slot).
+  // It's the element ticker/danmaku/stack actually append and position.
+  // `rowEl` is the RENDER layer (.ovs-message) nested two levels inside —
+  // every class/attribute/texture/decoration that visually belongs to the
+  // bubble itself must be applied there, not on the outer wrapper, or it
+  // would silently detach from the idle-wobble + bubble box (see the
+  // architecture doc: each DOM layer has exactly one job).
   const node = state.messageTemplate.content.firstElementChild.cloneNode(true);
+  const rowEl = node.querySelector('.ovs-message') || node;
 
   const avatarEl = node.querySelector('[data-slot="avatar"]');
   const authorEl = node.querySelector('[data-slot="author"]');
@@ -108,44 +116,44 @@ export function createMessageNode(msg, options = {}) {
   // node chỉ nhận đúng 1 class (ưu tiên superchat > mod > member) nên các
   // khối CSS đó không bao giờ khớp — badge/màu của mod hoặc member bị Super
   // Chat "nuốt mất" hoàn toàn thay vì hoà trộn.
-  if (msg.roles?.includes('moderator')) node.classList.add('ovs-moderator');
-  if (msg.roles?.includes('member')) node.classList.add('ovs-member');
+  if (msg.roles?.includes('moderator')) rowEl.classList.add('ovs-moderator');
+  if (msg.roles?.includes('member')) rowEl.classList.add('ovs-member');
   if (msg.isSuperchat) {
-    node.classList.add('ovs-superchat');
+    rowEl.classList.add('ovs-superchat');
     if (msg.superchatTier) {
-      node.classList.add(`ovs-superchat-tier-${msg.superchatTier}`);
-      node.dataset.ovsSuperchatTier = String(msg.superchatTier);
+      rowEl.classList.add(`ovs-superchat-tier-${msg.superchatTier}`);
+      rowEl.dataset.ovsSuperchatTier = String(msg.superchatTier);
     }
     if (msg.superchatColor) {
-      node.style.setProperty('--ovs-superchat-tier-color', msg.superchatColor);
+      rowEl.style.setProperty('--ovs-superchat-tier-color', msg.superchatColor);
     }
     if (msg.superchatBg) {
-      node.style.setProperty('--ovs-superchat-tier-bg', msg.superchatBg);
+      rowEl.style.setProperty('--ovs-superchat-tier-bg', msg.superchatBg);
     }
     if (msg.superchatBorder) {
-      node.style.setProperty('--ovs-superchat-tier-border', msg.superchatBorder);
+      rowEl.style.setProperty('--ovs-superchat-tier-border', msg.superchatBorder);
     }
     // Apply layout class based on root attribute set by role-style-config
     const rootEl = document.documentElement;
     const superchatLayoutAttr = rootEl.getAttribute('data-ovs-role-superchat-layout');
     if (superchatLayoutAttr === 'banner') {
-      node.classList.add('ovs-superchat-banner');
+      rowEl.classList.add('ovs-superchat-banner');
     } else if (superchatLayoutAttr === 'youtube') {
-      node.classList.add('ovs-superchat-youtube');
+      rowEl.classList.add('ovs-superchat-youtube');
     }
   }
 
   // Attach eventType class hook (e.g. ovs-event-text, ovs-event-superchat, ovs-event-sticker,
   // ovs-event-membership-new, ovs-event-membership-gift, ovs-event-membership-milestone)
   const eventCls = `ovs-event-${msg.eventType || (msg.isSuperchat ? 'superchat' : 'text')}`;
-  node.classList.add(eventCls);
+  rowEl.classList.add(eventCls);
 
-  // memberMonths is stored on the node so decoration.js can read it later
+  // memberMonths is stored on the row so decoration.js can read it later
   // (including when refreshAllDecorations() re-applies layers without a msg ref).
-  node.dataset.ovsMemberMonths = String(msg.memberMonths || 0);
+  rowEl.dataset.ovsMemberMonths = String(msg.memberMonths || 0);
 
-  ensureBubbleTexture(node);
-  applyMessageBunnyEars(node);
+  ensureBubbleTexture(rowEl);
+  applyMessageBunnyEars(rowEl);
   if (authorEl) {
     authorEl.innerHTML = `<span class="ovs-author-text">${msg.author}</span>`;
     ensureBubbleTexture(authorEl);
@@ -166,7 +174,7 @@ export function createMessageNode(msg, options = {}) {
     // own custom emoji <img> tags), mark the row and wrap each glyph so
     // layout-text.css can scale the text up a touch and give every emoji
     // its own square backdrop chip.
-    applyEmojiOnlyStyling(node, messageEl.querySelector('.ovs-text-content'));
+    applyEmojiOnlyStyling(rowEl, messageEl.querySelector('.ovs-text-content'));
     ensureBubbleTexture(messageEl);
     applySlotBunnyEars(messageEl, 'message');
   }
@@ -256,7 +264,13 @@ export function renderMessage(msg, options = {}) {
   // actually attached to the document — every rect reads as 0x0 on a
   // detached node, which silently no-ops the whole masking step. Must
   // run after insertion, not inside createMessageNode().
-  applyDecorationLayers(node, state.currentDecoration);
+  //
+  // Pass the .ovs-message row itself (not the outer .ovs-slot movement
+  // wrapper) — decoration.js's anchor/mask resolution falls back to
+  // whatever node it's handed, and that fallback must land on the render
+  // layer, never the movement layer, or a "row"-anchored sticker would
+  // stop moving with the idle wobble and the bubble.
+  applyDecorationLayers(node.querySelector('.ovs-message') || node, state.currentDecoration);
 
   trimToMax();
 

@@ -30,7 +30,7 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
           <Field label={`Tốc độ bay — x${(local.danmakuSpeed ?? 1).toFixed(1)}`}>
             <input
               type="range"
-              min={0.3}
+              min={0.1}
               max={3}
               step={0.1}
               value={local.danmakuSpeed ?? 1}
@@ -70,7 +70,7 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
           <Field label={`Tốc độ cuộn Ticker — x${(local.tickerSpeed ?? 1).toFixed(1)}`}>
             <input
               type="range"
-              min={0.3}
+              min={0.1}
               max={3}
               step={0.1}
               value={local.tickerSpeed ?? 1}

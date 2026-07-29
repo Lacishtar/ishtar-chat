@@ -27,7 +27,7 @@
   bottom: auto;
 }
 
-#ovs-chat-list[data-ovs-theme-mode='ticker'] .ovs-message {
+#ovs-chat-list[data-ovs-theme-mode='ticker'] .ovs-slot {
   position: absolute;
   left: 0;
   top: 50%;

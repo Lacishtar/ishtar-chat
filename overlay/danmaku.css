@@ -18,7 +18,7 @@
   transform: none;
 }
 
-#ovs-chat-list[data-ovs-theme-mode='danmaku'] .ovs-message {
+#ovs-chat-list[data-ovs-theme-mode='danmaku'] .ovs-slot {
   position: absolute;
   left: 100%;
   top: 0;

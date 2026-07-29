@@ -2,21 +2,35 @@
    Idle animations — continuous CSS animations applied to chat
    messages regardless of chat activity.
 
+   DOM layering (see architecture doc): each message is
+     .ovs-slot (movement: JS ticker translate3d / CSS danmaku fly / none)
+       > .ovs-idle (idle: THIS file, always and only)
+         > .ovs-message (render: bubble background/padding/radius + slots)
+
+   Because idle always targets .ovs-idle — one dedicated element, in every
+   display mode — it can never contend for `transform` with the movement
+   layer's translate3d/keyframe (those live one level up, on .ovs-slot) or
+   with any static per-slot transform inside .ovs-message. No mode
+   branching is needed here anymore.
+
    Two independent controls on #ovs-chat-list:
      - data-ovs-idle-animation: 'none' | 'float' | 'slidex' — mutually
-       exclusive with each other (all animate `transform`, so only one
-       of these three can own the transform on an element at a time).
-     - data-ovs-idle-shimmer: 'true' | 'false' — fully independent,
-       can be on at the same time as float or slidex, because it only
-       ever animates ::after's background-position, never `transform`.
-
-   In stack mode, float/slidex target .ovs-message itself. In danmaku/
-   ticker modes, they target the inner children instead to avoid
-   conflicts with:
-     * Danmaku: CSS animation (ovs-danmaku-fly) on .ovs-message
-     * Ticker: JS-controlled transform: translate3d on .ovs-message
-   Shimmer (::after) is conflict-free in all modes regardless.
+       exclusive with each other (both animate `transform`, so only one
+       of the two can own .ovs-idle's transform at a time).
+     - data-ovs-idle-shimmer: 'true' | 'false' — fully independent, can be
+       on at the same time as float or slidex. It targets .ovs-message's
+       own ::after and only ever animates background-position, never
+       `transform`, so it never competes with float/slidex on .ovs-idle.
    ============================================================ */
+
+/* .ovs-slot and .ovs-idle are "silent" structural wrappers — no class role,
+   no background/border of their own (see architecture doc §4). Plain block
+   boxes so their size always passes through to .ovs-message's own layout
+   (max-width, flex row, etc.) unchanged in every display mode. */
+.ovs-slot,
+.ovs-idle {
+  display: block;
+}
 
 /* -- Float / Bob --------------------------------------------- */
 @keyframes ovs-idle-float {
@@ -25,15 +39,10 @@
   100% { transform: translateY(0px); }
 }
 
-/* Stack mode: animate the whole message row */
-#ovs-chat-list[data-ovs-idle-animation='float']:not([data-ovs-theme-mode='danmaku']):not([data-ovs-theme-mode='ticker']) .ovs-message {
-  animation: ovs-idle-float var(--ovs-idle-animation-duration, 3s) ease-in-out infinite;
-  animation-delay: calc(var(--ovs-idle-index, 0) * -0.4s);
-}
-
-/* Danmaku + Ticker: animate inner bubble content only */
-#ovs-chat-list[data-ovs-idle-animation='float'][data-ovs-theme-mode='danmaku'] .ovs-message > *,
-#ovs-chat-list[data-ovs-idle-animation='float'][data-ovs-theme-mode='ticker'] .ovs-message > * {
+/* Wobbling the .ovs-idle box wobbles the whole bubble as one rigid unit —
+   background, padding, border-radius, and every slot inside .ovs-message
+   move together, in every display mode. */
+#ovs-chat-list[data-ovs-idle-animation='float'] .ovs-idle {
   animation: ovs-idle-float var(--ovs-idle-animation-duration, 3s) ease-in-out infinite;
   animation-delay: calc(var(--ovs-idle-index, 0) * -0.4s);
 }
@@ -89,15 +98,7 @@
   100% { transform: translateX(0px); }
 }
 
-/* Stack mode: animate the whole message row */
-#ovs-chat-list[data-ovs-idle-animation='slidex']:not([data-ovs-theme-mode='danmaku']):not([data-ovs-theme-mode='ticker']) .ovs-message {
-  animation: ovs-idle-slidex var(--ovs-idle-animation-duration, 4s) ease-in-out infinite;
-  animation-delay: calc(var(--ovs-idle-index, 0) * -0.35s);
-}
-
-/* Danmaku + Ticker: animate inner bubble content */
-#ovs-chat-list[data-ovs-idle-animation='slidex'][data-ovs-theme-mode='danmaku'] .ovs-message > *,
-#ovs-chat-list[data-ovs-idle-animation='slidex'][data-ovs-theme-mode='ticker'] .ovs-message > * {
+#ovs-chat-list[data-ovs-idle-animation='slidex'] .ovs-idle {
   animation: ovs-idle-slidex var(--ovs-idle-animation-duration, 4s) ease-in-out infinite;
   animation-delay: calc(var(--ovs-idle-index, 0) * -0.35s);
 }
