@@ -3,15 +3,20 @@
 // .ovs-author — see the original inline comment below).
 
 import { state, listEl } from './state.js';
+import { texturePoolManager } from './pool/TexturePool.js';
 
 export function ensureBubbleTexture(parent) {
   if (!parent) return;
   let tex = parent.querySelector(`:scope > .ovs-bubble-texture`);
   if (!tex) {
-    tex = document.createElement('div');
-    tex.className = 'ovs-bubble-texture';
+    // Lấy Texture node từ TexturePool thay vì tự document.createElement.
+    // acquire() tự ưu tiên trả về node IDLE đã reset sẵn — chỉ thật sự
+    // tạo mới khi Pool không còn object rảnh.
+    tex = texturePoolManager.acquire();
     parent.insertBefore(tex, parent.firstChild);
   } else if (parent.firstChild && tex !== parent.firstChild) {
+    // Texture đã tồn tại đúng chỗ (hoặc chỉ cần dời vị trí) — không đụng
+    // tới Pool, không tạo/hủy gì cả, tránh reload không cần thiết.
     parent.insertBefore(tex, parent.firstChild);
   }
 }

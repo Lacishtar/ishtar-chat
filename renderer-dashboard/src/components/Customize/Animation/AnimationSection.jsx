@@ -134,6 +134,15 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
           onChange={(e) => onChange({ maxMessages: Number(e.target.value) })}
         />
       </Field>
+      <Field label={`Pool Size (Warmup) — ${local.poolWarmupSize ?? 20} bubble`}>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={local.poolWarmupSize ?? 20}
+          onChange={(e) => onChange({ poolWarmupSize: Number(e.target.value) })}
+        />
+      </Field>
       <Field label={`Tốc độ hiệu ứng — ${local.animationMs ?? 220}ms`}>
         <input
           type="range"

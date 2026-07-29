@@ -12,6 +12,7 @@
 
 import { state, listEl } from './state.js';
 import { applyInlineStyle, compileLayerInlineStyle, toImageProxyUrl } from './utils.js';
+import { stickerPoolManager } from './pool/StickerPool.js';
 
 function ensurePositionedAnchor(el) {
   if (!el) return null;
@@ -410,20 +411,20 @@ export function applyDecorationLayers(messageNode, decorationConfig) {
         img.src = expectedSrc;
       }
     } else {
-      layerWrap = document.createElement('div');
-      layerWrap.className = 'ovs-decoration-layer';
+      // Lấy Sticker node từ StickerPool thay vì tự document.createElement.
+      // acquire() tự ưu tiên trả về node IDLE đã reset sẵn — chỉ thật sự
+      // tạo mới khi Pool không còn object rảnh. Cấu trúc DOM trả về
+      // (layerWrap > animWrap > img, cùng className) giống hệt như trước
+      // đây tự tay dựng, nên giao diện/CSS/animation không đổi.
+      layerWrap = stickerPoolManager.acquire(layerId);
       layerWrap.dataset.layerId = layerId;
       layerWrap.dataset.placement = layer.placement || 'custom';
       applyInlineStyle(layerWrap, compileLayerInlineStyle(layer));
 
-      animWrap = document.createElement('div');
-      animWrap.className = 'ovs-decoration-anim';
+      animWrap = layerWrap.querySelector(':scope > .ovs-decoration-anim');
       animWrap.dataset.idleAnimation = layer.idleAnimation || 'none';
 
-      img = document.createElement('img');
-      img.className = 'ovs-decoration-img';
-      img.alt = '';
-      img.decoding = 'async';
+      img = animWrap.querySelector(':scope > img');
 
       const proxied = toImageProxyUrl(layer.imageUrl);
       img.setAttribute('data-raw-src', layer.imageUrl);
@@ -432,8 +433,6 @@ export function applyDecorationLayers(messageNode, decorationConfig) {
       img.onload = () => img.removeAttribute('data-load-error');
       img.src = proxied || layer.imageUrl;
 
-      animWrap.appendChild(img);
-      layerWrap.appendChild(animWrap);
       host.appendChild(layerWrap);
     }
 
@@ -446,10 +445,12 @@ export function applyDecorationLayers(messageNode, decorationConfig) {
     }
   });
 
-  // Clean up any layers that are no longer active
+  // Clean up any layers that are no longer active — trả về StickerPool
+  // (reset toàn bộ state + detach) thay vì hủy hẳn bằng .remove(), để
+  // lần tạo layer tiếp theo có thể tái sử dụng thay vì tạo mới.
   existingElements.forEach((el, id) => {
     if (!activeLayerIds.has(id)) {
-      el.remove();
+      stickerPoolManager.release(el);
     }
   });
 }

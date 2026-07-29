@@ -1,12 +1,21 @@
-// Builds/updates individual message DOM nodes, and owns the top-level
-// render dispatch (stack) plus max-message trimming and slot visibility
-// refresh.
+// Builds individual message DOM nodes (createMessageNode, used by both
+// this module's stack-mode path AND special-modes.js's danmaku/ticker
+// paths) and owns history tracking + top-level mode dispatch.
+//
+// IMPORTANT (post-refactor): this module no longer appends/removes stack-
+// mode nodes itself. renderMessage() decides history tracking + which
+// mode a message belongs to, but for stack mode it now hands the message
+// off to render-queue.js's enqueueStackMessage() instead of touching
+// listEl directly — render-queue.js is the only place stack-mode
+// appendChild/prepend/removeChild happens, batched on requestAnimationFrame.
+// Danmaku/ticker are unaffected by this refactor: appendDanmakuMessage()/
+// appendTickerMessage() (special-modes.js) already own their own
+// timing/queueing model and were out of scope for this pass.
 
 import { state, listEl, getDisplayMode, syncThemeModeClass } from './state.js';
 import { resolveEffectiveSlotStyle } from './css-variables.js';
 import { applyAvatar } from './avatar.js';
 import { ensureBubbleTexture, applyMessageBunnyEars, applySlotBunnyEars } from './bubble.js';
-import { applyDecorationLayers } from './decoration.js';
 import { applyEmojiOnlyStyling } from './emoji.js';
 import {
   appendDanmakuMessage,
@@ -16,6 +25,7 @@ import {
   renderTickerHistory,
   resetTicker,
 } from './special-modes.js';
+import { enqueueStackMessage, clearStackList } from './render-queue.js';
 
 export function applySlotVisibility(el, slotKey) {
   if (!el) return;
@@ -90,7 +100,15 @@ export function createMessageNode(msg, options = {}) {
   // bubble itself must be applied there, not on the outer wrapper, or it
   // would silently detach from the idle-wobble + bubble box (see the
   // architecture doc: each DOM layer has exactly one job).
-  const node = state.messageTemplate.content.firstElementChild.cloneNode(true);
+  // `options.node`, if given, is an already-neutral node handed to us by
+  // BubblePoolManager (overlay/modules/pool/PoolManager.js) via
+  // acquire() — reused instead of cloning a fresh one from the template.
+  // This function doesn't need to know whether that node is pooled or
+  // brand-new; it just builds onto whatever root it's given, exactly the
+  // way it always built onto a fresh clone. Callers that don't pass
+  // options.node (danmaku/ticker — see special-modes.js) keep the
+  // original clone-every-time behavior unchanged.
+  const node = options.node || state.messageTemplate.content.firstElementChild.cloneNode(true);
   const rowEl = node.querySelector('.ovs-message') || node;
 
   const avatarEl = node.querySelector('[data-slot="avatar"]');
@@ -203,15 +221,38 @@ export function createMessageNode(msg, options = {}) {
   return node;
 }
 
-export function trimToMax() {
+// `onEvict(node)`, if given, is called with each overflowing node INSTEAD
+// of this function detaching it itself — e.g. render-queue.js passes
+// bubblePoolManager.release() so an evicted stack-mode bubble goes back to
+// the pool (detached + reset) rather than being destroyed outright.
+// Without an onEvict callback, falls back to the original behavior
+// (target.remove()) — used by nothing in this app anymore but kept as a
+// safe default for any other caller.
+export function trimToMax(onEvict) {
   const max = state.currentConfig.maxMessages || 40;
   while (listEl.children.length > max) {
     // bottom-up: oldest is first child; top-down: oldest is last child.
     const removeFromStart = state.currentConfig.position !== 'top-down';
     const target = removeFromStart ? listEl.firstElementChild : listEl.lastElementChild;
     if (!target) break;
-    target.remove();
+    if (typeof onEvict === 'function') {
+      onEvict(target);
+    } else {
+      target.remove();
+    }
   }
+}
+
+// Stamps --ovs-idle-index on every current child, for staggered idle
+// animation delay. Pulled out of renderMessage() so render-queue.js can
+// call it exactly once per animation frame for however many messages
+// landed that frame, instead of the old behavior of re-stamping the
+// entire list once per individual message (O(n) per message, O(n^2)
+// over a burst of n messages).
+export function stampIdleIndexes() {
+  Array.from(listEl.children).forEach((el, i) => {
+    el.style.setProperty('--ovs-idle-index', String(i));
+  });
 }
 
 export function renderMessage(msg, options = {}) {
@@ -224,7 +265,7 @@ export function renderMessage(msg, options = {}) {
   // need to go now — otherwise they'd sit in the feed forever, with real
   // messages just piling up next to them instead of replacing them.
   if (trackHistory && state.isMockHistory) {
-    listEl.innerHTML = '';
+    clearStackList();
     state.messageHistory = [];
     state.isMockHistory = false;
   }
@@ -250,34 +291,13 @@ export function renderMessage(msg, options = {}) {
     return;
   }
 
-  const node = createMessageNode(msg, { skipEnterAnimation: options.skipEnterAnimation });
-
-  if (state.currentConfig.position === 'top-down') {
-    listEl.prepend(node);
-  } else {
-    listEl.appendChild(node);
-  }
-
-  // Decoration masks are built from live layout (getBoundingClientRect on
-  // the mask target — avatar/bubble/username/chatContainer — and on the
-  // decoration <img>), so they can only be computed once `node` is
-  // actually attached to the document — every rect reads as 0x0 on a
-  // detached node, which silently no-ops the whole masking step. Must
-  // run after insertion, not inside createMessageNode().
-  //
-  // Pass the .ovs-message row itself (not the outer .ovs-slot movement
-  // wrapper) — decoration.js's anchor/mask resolution falls back to
-  // whatever node it's handed, and that fallback must land on the render
-  // layer, never the movement layer, or a "row"-anchored sticker would
-  // stop moving with the idle wobble and the bubble.
-  applyDecorationLayers(node.querySelector('.ovs-message') || node, state.currentDecoration);
-
-  trimToMax();
-
-  // Stamp --ovs-idle-index for staggered idle animation delay
-  Array.from(listEl.children).forEach((el, i) => {
-    el.style.setProperty('--ovs-idle-index', String(i));
-  });
+  // Node creation, insertion, decoration masking, trimming, and the
+  // idle-index stamp all used to happen right here, synchronously, for
+  // every single message. They now happen together, batched, inside
+  // render-queue.js's flush() on the next animation frame — see that
+  // file for the full read/write-batching rationale. This function's
+  // job for stack mode ends at handing the message off to the queue.
+  enqueueStackMessage(msg, { skipEnterAnimation: options.skipEnterAnimation });
 }
 
 export function renderHistory(history) {
@@ -310,7 +330,11 @@ export function renderHistory(history) {
 export function clearAllMessages() {
   resetDanmaku();
   resetTicker();
-  if (listEl) listEl.innerHTML = '';
+  // clearStackList() drops any stack-mode messages already handed to
+  // render-queue.js but not yet flushed (still waiting on the next
+  // requestAnimationFrame) before wiping the DOM — otherwise they'd still
+  // get appended right after the list is cleared, silently undoing this.
+  clearStackList();
   state.messageHistory = [];
   state.isMockHistory = false;
 }

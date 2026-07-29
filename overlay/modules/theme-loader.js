@@ -2,6 +2,8 @@ import { state, listEl, themeStyleEl, syncThemeModeClass } from './state.js';
 import { applyCssVariables } from './css-variables.js';
 import { refreshAllDecorations } from './decoration.js';
 import { renderHistory } from './message-renderer.js';
+import { hardResetStackPool } from './render-queue.js';
+import { bubblePoolManager } from './pool/PoolManager.js';
 
 export async function loadTheme(themeId) {
   const id = themeId || state.currentTheme || 'classic';
@@ -80,7 +82,19 @@ export function applyThemePayload(data, options = {}) {
     applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);
     const modeChanged = syncThemeModeClass();
     if (themeSwitch) {
-      listEl.innerHTML = '';
+      // Every node the stack-mode Pool is currently holding (visible or
+      // IDLE) was cloned from the PREVIOUS theme's template — a plain
+      // listEl.innerHTML = '' would drop the visible ones but leave any
+      // IDLE-pooled nodes sitting around to be handed out, stale, by a
+      // future acquire(). hardResetStackPool() clears both.
+      hardResetStackPool();
+      // The pool is now completely empty (see above) and the new
+      // template is already in place (state.messageTemplate was set by
+      // the loadTheme() call that led here) — re-warm immediately so the
+      // first messages rendered under the new theme (the history replay
+      // just below, or the next live one) still get a pre-built node
+      // instead of the pool building one on demand right after a switch.
+      bubblePoolManager.warmup();
     }
     if (incomingHistory && (themeSwitch || modeChanged || options.forceHistory || listEl.children.length === 0)) {
       state.messageHistory = [...incomingHistory];

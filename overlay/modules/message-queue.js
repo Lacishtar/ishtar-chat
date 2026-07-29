@@ -16,6 +16,15 @@
 // the queue backs up further than BACKLOG_SKIP_ANIM_THRESHOLD, we stop
 // entry animations to fast-forward through the backlog rather than
 // falling further behind.
+//
+// This is a WHEN-to-render throttle, separate from render-queue.js's
+// WHEN/HOW-to-write-DOM batching. renderMessage() (called below) no
+// longer writes to the DOM itself for stack-mode messages — it hands off
+// to render-queue.js, which batches the actual DOM writes for whatever
+// lands within the same animation frame. This module still controls the
+// overall pacing (how many messages become visible per DRAIN_INTERVAL_MS);
+// render-queue.js only controls how the messages due in a given moment
+// get written to the DOM without interleaved reads/writes.
 
 import { renderMessage } from './message-renderer.js';
 

@@ -17,6 +17,8 @@
     "smoke:role-style": "node scripts/smoke-test-role-style-config.js",
     "smoke:danmaku": "node scripts/smoke-test-danmaku-config.js",
     "smoke:chat-message": "node scripts/smoke-test-chat-message.js",
+    "smoke:pool-warmup": "node scripts/smoke-test-pool-warmup.mjs",
+    "smoke:pool-dynamic": "node scripts/smoke-test-pool-dynamic.mjs",
     "verify:decoration-cascade": "node scripts/verify-decoration-cascade.js",
     "verify:layer-split": "node scripts/verify-layer-split.js"
   },

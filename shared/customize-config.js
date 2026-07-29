@@ -58,6 +58,17 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   animationMs: 220,
   position: 'bottom-up', // 'bottom-up' | 'top-down'
   maxMessages: 40,
+  // Pool Warmup — how many Bubble DOM nodes overlay/modules/pool/PoolManager.js
+  // pre-builds into the Object Pool right after the app boots, so the very
+  // first messages (and the very first messages after a theme switch) reuse
+  // an already-built, hidden bubble node instead of paying factory() cost
+  // inline once the stream starts. This is a floor, not a ceiling: if the
+  // Pool ever runs dry mid-stream it's still allowed to grow past this by
+  // building new nodes on demand (see BubblePool#acquire) — there's no hard
+  // cap on live growth, only on how much stays IDLE long-term. See
+  // overlay/modules/pool/PoolConfig.js#DEFAULT_WARMUP_SIZE for the
+  // engine-level fallback used when this is unset.
+  poolWarmupSize: 20,
   // 'stack' = normal chat feed (bubbles stack up/down, see `position`).
   // 'danmaku' = bullet-comment mode: each message flies across the screen
   // once (Niconico/Bilibili style) instead of stacking.
