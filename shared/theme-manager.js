@@ -183,6 +183,7 @@ function ApplyTheme(themeId, store) {
   } = theme;
 
   store.set({
+    selectedTheme: themeId,
     customizeConfig,
     layoutConfig,
     slotStyleConfig,

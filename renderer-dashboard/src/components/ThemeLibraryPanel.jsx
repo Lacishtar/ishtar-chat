@@ -19,7 +19,7 @@ import { useEffect, useRef, useState } from 'react';
  *
  * The picker itself is a thumbnail grid rather than a text <select> — each
  * card renders a tiny mock chat bubble using the theme's own preview colors
- * (shared/theme-registry.js → { bubbleBg, authorColor, textColor }) so users
+ * (shared/theme-presets/ (index.js + themes/*.js) → { bubbleBg, authorColor, textColor }) so users
  * can recognize a theme by how it looks, not just by name.
  */
 

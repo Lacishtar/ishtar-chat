@@ -26,6 +26,8 @@
 // animation, no avatar <img> re-pointed at the same URL, etc.
 
 import { state } from './state.js';
+import { resolveMemberTier, quoteCssContent } from '/shared/role-style-config.mjs';
+import { composeMessageBodyHtml } from './message-body.js';
 import { applyAvatar } from './avatar.js';
 import { applyMessageBunnyEars, applySlotBunnyEars } from './bubble.js';
 import { applyEmojiOnlyStyling } from './emoji.js';
@@ -60,14 +62,21 @@ function applyTextUpdate(node, msg) {
   }
 
   const messageEl = node.querySelector('[data-slot="message"]');
-  const textContentEl = messageEl?.querySelector('.ovs-text-content');
-  if (textContentEl) {
-    const wrote = diffHTML(textContentEl, msg.messageHtml);
+  if (messageEl) {
+    // Diffed as one blob (chat text span + milestone text span) rather than
+    // just the .ovs-text-content sub-span, since the milestone span may
+    // need to be added/removed/changed entirely between two messages this
+    // pooled node renders — composeMessageBodyHtml() is the single place
+    // (shared with message-renderer.js's full-build path) that decides
+    // what that combined HTML should be, so the diff-update path can never
+    // drift out of sync with what a fresh build would have produced.
+    const memberRole = msg.roles?.includes('member') ? state.currentRoleStyle?.roles?.member : null;
+    const wrote = diffHTML(messageEl, composeMessageBodyHtml(msg, memberRole));
     // applyEmojiOnlyStyling() re-walks childNodes and re-wraps glyphs — a
     // real (not cosmetic) DOM operation, so only re-run it when the text
     // content actually changed (text giống -> không update propagates to
     // this derived pass too, not just the raw HTML write).
-    if (wrote) applyEmojiOnlyStyling(rowElOf(node), textContentEl);
+    if (wrote) applyEmojiOnlyStyling(rowElOf(node), messageEl.querySelector('.ovs-text-content'));
   }
 }
 
@@ -100,6 +109,27 @@ function applyStyleUpdate(node, msg) {
 
   diffExclusiveClass(rowEl, 'ovs-event-', msg.eventType || (msg.isSuperchat ? 'superchat' : 'text'));
   diffDataset(rowEl, 'ovsMemberMonths', msg.memberMonths || 0);
+
+  // Member Tiers — mirrors the Super Chat tier block above. Resolved via
+  // rowEl.dataset.ovsMemberMonths (just diffed into place on the line
+  // above), reusing the exact same resolveMemberTier() helper
+  // message-renderer.js's full-build path uses, so tier resolution never
+  // drifts between the create-path and the diff-update path.
+  if (msg.roles?.includes('member')) {
+    const memberRole = state.currentRoleStyle?.roles?.member;
+    const memberTiers = memberRole?.memberTiers;
+    const months = Number(rowEl.dataset.ovsMemberMonths) || 0;
+    const tier = resolveMemberTier(memberTiers, months, memberRole?.memberTiersEnabled !== false);
+    diffExclusiveClass(rowEl, 'ovs-member-tier-', tier ? String(tier.index) : null);
+    diffDataset(rowEl, 'ovsMemberTier', tier ? tier.index : null);
+    diffStyleProp(rowEl, '--ovs-member-tier-color', tier?.color || null);
+    diffStyleProp(rowEl, '--ovs-member-tier-badge-before-content', tier ? quoteCssContent(tier.badge) : null);
+  } else {
+    diffExclusiveClass(rowEl, 'ovs-member-tier-', null);
+    diffDataset(rowEl, 'ovsMemberTier', null);
+    diffStyleProp(rowEl, '--ovs-member-tier-color', null);
+    diffStyleProp(rowEl, '--ovs-member-tier-badge-before-content', null);
+  }
 
   // Bunny ears read role/earColor config off the DOM classes just written
   // above, so they still need to be (re-)evaluated whenever style is

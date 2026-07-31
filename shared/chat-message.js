@@ -8,7 +8,13 @@
  *   badges: string[],              // raw badge labels as captured, e.g. ["Moderator", "Member (6 months)"]
  *   roles: string[],                // derived from badges: subset of "moderator" | "member" | "verified"
  *   memberMonths: number,           // parsed from a "Member (N months|years)" badge, 0 if not a member / not parseable
- *   eventType: 'text' | 'superchat' | 'sticker' | 'membership_new' | 'membership_gift' | 'membership_milestone',
+ *   eventType: 'text' | 'superchat' | 'sticker' | 'membership_new' | 'membership_gift' | 'membership_gift_sent' | 'membership_gift_received' | 'membership_milestone',
+ *     // 'membership_gift' is retained only for backward compatibility with
+ *     // any already-captured/stored data — capture-preload.js no longer
+ *     // emits it. New Gift Membership captures are always one of the two
+ *     // more specific events: 'membership_gift_sent' (the gifter buying
+ *     // memberships for the community) or 'membership_gift_received' (a
+ *     // viewer redeeming one of those gifted memberships).
  *   messageText: string,            // plain-text mirror of messageHtml (emoji alt text lost, tags stripped)
  *   messageHtml: string,            // message text, emoji already resolved to <img> tags
  *   language: string | null,        // best-effort script hint, e.g. "ja" | "zh" | "ko" | "ar" | "he" | null
@@ -32,7 +38,12 @@ const VALID_EVENT_TYPES = new Set([
   'superchat',
   'sticker',
   'membership_new',
+  // 'membership_gift' kept for backward compatibility (older captures /
+  // anything already persisted with this value); capture-preload.js now
+  // emits the two more specific events below instead.
   'membership_gift',
+  'membership_gift_sent',
+  'membership_gift_received',
   'membership_milestone',
 ]);
 

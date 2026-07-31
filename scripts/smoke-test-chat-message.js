@@ -77,7 +77,8 @@ const newMemberMsg = normalizeMessage({
 assert(newMemberMsg.eventType === 'membership_new', 'eventType membership_new');
 assert(newMemberMsg.roles.includes('member'), 'role includes member');
 
-// 6. Gift Membership
+// 6. Gift Membership (legacy combined event — kept for backward compatibility
+// with older/already-persisted captures; capture-preload.js no longer emits it)
 const giftMsg = normalizeMessage({
   author: 'Eve',
   messageHtml: 'Gifted 5 channel memberships to the community',
@@ -85,8 +86,30 @@ const giftMsg = normalizeMessage({
   badges: ['Member'],
   eventType: 'membership_gift',
 });
-assert(giftMsg.eventType === 'membership_gift', 'eventType membership_gift');
+assert(giftMsg.eventType === 'membership_gift', 'eventType membership_gift (legacy, backward compat)');
 assert(giftMsg.roles.includes('member'), 'gift assigned member role');
+
+// 6a. Gift Membership Sent — the gifter purchasing memberships
+const giftSentMsg = normalizeMessage({
+  author: 'Eve',
+  messageHtml: 'Gifted 5 channel memberships to the community',
+  messageText: 'Gifted 5 channel memberships to the community',
+  badges: ['Member'],
+  eventType: 'membership_gift_sent',
+});
+assert(giftSentMsg.eventType === 'membership_gift_sent', 'eventType membership_gift_sent');
+assert(giftSentMsg.roles.includes('member'), 'gift sent assigned member role');
+
+// 6b. Gift Membership Received — a viewer redeeming a gifted membership
+const giftReceivedMsg = normalizeMessage({
+  author: 'Frankie',
+  messageHtml: 'Was gifted a membership by Eve',
+  messageText: 'Was gifted a membership by Eve',
+  badges: ['Member'],
+  eventType: 'membership_gift_received',
+});
+assert(giftReceivedMsg.eventType === 'membership_gift_received', 'eventType membership_gift_received');
+assert(giftReceivedMsg.roles.includes('member'), 'gift received assigned member role');
 
 // 7. Member Milestone Chat — "Member for 12 months"
 const milestone1 = normalizeMessage({

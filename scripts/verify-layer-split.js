@@ -20,6 +20,7 @@ const { JSDOM } = require('jsdom');
 const OVERLAY_DIR = path.join(__dirname, '..', 'overlay');
 // Same order as overlay/index.html <link> tags.
 const CSS_FILES = [
+  'base-layout.css',
   'layout-text.css',
   'slot-layout.css',
   'slot-visibility.css',
@@ -36,7 +37,13 @@ const CSS_FILES = [
 ];
 
 const css = CSS_FILES.map((f) => fs.readFileSync(path.join(OVERLAY_DIR, f), 'utf8')).join('\n');
-const templateHtml = fs.readFileSync(path.join(__dirname, '..', 'themes', 'classic', 'template.html'), 'utf8');
+// The message template is now inlined directly in overlay/index.html
+// (#ovs-message-template) rather than living in a separate per-theme
+// template.html — extract it from there.
+const overlayHtml = fs.readFileSync(path.join(OVERLAY_DIR, 'index.html'), 'utf8');
+const templateMatch = overlayHtml.match(/<template id="ovs-message-template">[\s\S]*?<\/template>/);
+if (!templateMatch) throw new Error('could not find #ovs-message-template in overlay/index.html');
+const templateHtml = templateMatch[0];
 
 let failures = 0;
 function assertEqual(label, actual, expected) {

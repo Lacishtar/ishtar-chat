@@ -18,6 +18,7 @@
         background: transparent;
       }
     </style>
+    <link rel="stylesheet" href="/overlay/base-layout.css" />
     <link rel="stylesheet" href="/overlay/layout-text.css" />
     <link rel="stylesheet" href="/overlay/slot-layout.css" />
     <link rel="stylesheet" href="/overlay/slot-visibility.css" />
@@ -31,10 +32,25 @@
     <link rel="stylesheet" href="/overlay/danmaku.css" />
     <link rel="stylesheet" href="/overlay/ticker.css" />
     <link rel="stylesheet" href="/overlay/idle-animations.css" />
-    <link id="ovs-theme-style" rel="stylesheet" href="" />
   </head>
   <body>
     <div id="ovs-chat-list"></div>
+    <template id="ovs-message-template">
+      <div class="ovs-slot">
+        <div class="ovs-idle">
+          <div class="ovs-message">
+            <img class="ovs-avatar" data-slot="avatar" alt="" />
+            <div class="ovs-body">
+              <div class="ovs-meta">
+                <span class="ovs-author" data-slot="author"></span>
+                <span class="ovs-badges" data-slot="badges"></span>
+              </div>
+              <div class="ovs-text" data-slot="message"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
     <script>
       window.__OVS_INITIAL_STATE__ = /*OVS_INITIAL_STATE*/ {};
     </script>

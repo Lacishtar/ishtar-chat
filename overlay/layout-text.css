@@ -46,3 +46,25 @@
   box-sizing: border-box;
   vertical-align: -0.32em;
 }
+
+/* Milestone text — the always-on "đã đồng hành N tháng" line composed by
+   overlay/modules/message-body.js for a member's registration/renewal
+   events (see MEMBER_MILESTONE_EVENT_TYPES, shared/role-style-config.js).
+   Renders as its own line below the chat text (if any); when the event
+   itself carried no message text, .ovs-text-content is just an empty
+   span and this ends up being the only visible line. Sits at 0.85em and
+   slightly muted so it reads as a caption under the message rather than
+   competing with it — themes/roles are still free to override this via
+   the --ovs-role-member-* text-color/font vars already applied to the
+   whole bubble. */
+.ovs-milestone-text {
+  display: block;
+  margin-top: 0.2em;
+  font-size: 0.85em;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.ovs-text-content:empty + .ovs-milestone-text {
+  margin-top: 0;
+}

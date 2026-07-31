@@ -1,6 +1,7 @@
 const path = require('path');
+const fs = require('fs');
 const { EventEmitter } = require('events');
-const { BrowserView, ipcMain } = require('electron');
+const { app, BrowserView, ipcMain } = require('electron');
 const selectorsConfig = require('./selectors.config.json');
 const { normalizeMessage } = require('../shared/chat-message');
 
@@ -97,6 +98,37 @@ class CaptureManager extends EventEmitter {
     ipcMain.on('capturer:stale', (event) => {
       if (!this.view || event.sender !== this.view.webContents) return;
       if (this.status === 'connected') this._setStatus('stale');
+    });
+
+    // Membership debug snapshots (see logMembershipStructureOnce() in
+    // capture-preload.js). Written to disk as UTF-8 rather than surfaced
+    // only via console.warn/'console-message', because on Windows the
+    // default cmd.exe console codepage is usually NOT UTF-8 — Node still
+    // writes correct UTF-8 bytes to stdout, but the terminal decodes them
+    // with the wrong codepage and displays mojibake (e.g. Vietnamese "đã
+    // tặng" renders as "Ä‘Ă£ táº·ng"). The underlying captured DOM text
+    // itself is correct Unicode the whole way through (Chromium parses the
+    // page's real charset); it's purely a terminal-display artifact. A
+    // plain UTF-8 file opened in VS Code/Notepad++ sidesteps that codepage
+    // entirely and always renders correctly regardless of the OS console.
+    ipcMain.on('capturer:membership-debug', (event, snapshot) => {
+      if (!this.view || event.sender !== this.view.webContents) return;
+      const logPath = path.join(app.getPath('userData'), 'membership-debug.log');
+      const block =
+        `\n===== ${snapshot.capturedAt}  signature="${snapshot.signature}" =====\n` +
+        JSON.stringify(snapshot, null, 2) +
+        '\n';
+      fs.appendFile(logPath, block, 'utf8', (err) => {
+        // ASCII-only console line (path + signature never contain
+        // Vietnamese/Japanese text), so this one line is always safe to
+        // read on any terminal codepage even though the file content
+        // itself needs a UTF-8-aware editor to view correctly.
+        if (err) {
+          console.warn('[membership-debug] failed to write log file:', err.message);
+        } else {
+          console.log(`[membership-debug] new event shape "${snapshot.signature}" written to ${logPath}`);
+        }
+      });
     });
   }
 

@@ -6,9 +6,9 @@ function fail(message) {
   throw new Error(`[smoke:theme-baseline] ${message}`);
 }
 
-const baseline = resolveThemeState('classic');
+const baseline = resolveThemeState('default');
 
-if (isProfileDirty(baseline, 'classic')) {
+if (isProfileDirty(baseline, 'default')) {
   fail('fresh theme state should not be dirty');
 }
 
@@ -17,7 +17,7 @@ const customized = {
   customizeConfig: { ...baseline.customizeConfig, textColor: '#FF0000' },
 };
 
-if (!isProfileDirty(customized, 'classic')) {
+if (!isProfileDirty(customized, 'default')) {
   fail('changed textColor should be dirty');
 }
 
@@ -29,7 +29,7 @@ if (!profile.layoutConfig || !profile.slotStyleConfig) {
   fail('buildUserOverlayProfile should include layout and slot style');
 }
 
-const otherBaseline = getThemeBaseline('classic');
+const otherBaseline = getThemeBaseline('default');
 if (otherBaseline.customizeConfig.textColor !== baseline.customizeConfig.textColor) {
   fail('getThemeBaseline should match resolveThemeState');
 }

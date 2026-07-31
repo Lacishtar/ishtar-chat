@@ -14,6 +14,8 @@
 
 import { state, listEl, getDisplayMode, syncThemeModeClass } from './state.js';
 import { resolveEffectiveSlotStyle } from './css-variables.js';
+import { resolveMemberTier, quoteCssContent } from '/shared/role-style-config.mjs';
+import { composeMessageBodyHtml } from './message-body.js';
 import { applyAvatar } from './avatar.js';
 import { ensureBubbleTexture, applyMessageBunnyEars, applySlotBunnyEars } from './bubble.js';
 import { applyEmojiOnlyStyling } from './emoji.js';
@@ -154,21 +156,43 @@ export function createMessageNode(msg, options = {}) {
     // Apply layout class based on root attribute set by role-style-config
     const rootEl = document.documentElement;
     const superchatLayoutAttr = rootEl.getAttribute('data-ovs-role-superchat-layout');
-    if (superchatLayoutAttr === 'banner') {
-      rowEl.classList.add('ovs-superchat-banner');
-    } else if (superchatLayoutAttr === 'youtube') {
+    if (superchatLayoutAttr === 'youtube') {
       rowEl.classList.add('ovs-superchat-youtube');
     }
   }
 
   // Attach eventType class hook (e.g. ovs-event-text, ovs-event-superchat, ovs-event-sticker,
-  // ovs-event-membership-new, ovs-event-membership-gift, ovs-event-membership-milestone)
+  // ovs-event-membership_new, ovs-event-membership_gift_sent, ovs-event-membership_gift_received,
+  // ovs-event-membership_milestone) — driven entirely by msg.eventType, no event names hardcoded here.
   const eventCls = `ovs-event-${msg.eventType || (msg.isSuperchat ? 'superchat' : 'text')}`;
   rowEl.classList.add(eventCls);
 
   // memberMonths is stored on the row so decoration.js can read it later
   // (including when refreshAllDecorations() re-applies layers without a msg ref).
   rowEl.dataset.ovsMemberMonths = String(msg.memberMonths || 0);
+
+  // Member Tiers — same pattern as the Super Chat tier block above: resolve
+  // which configured tier (if any) this row qualifies for, then stamp an
+  // exclusive class + inline CSS vars onto the row. The lookup is keyed off
+  // rowEl.dataset.ovsMemberMonths (just set above), not off msg.badges/text
+  // again — deriveMemberMonths() (shared/chat-message.js) already did that
+  // parsing once, and resolveMemberTier() is the single shared helper for
+  // "which tier does this months value qualify for" (also used by
+  // bubble-updater.js's diff-update path, so there is exactly one
+  // resolution algorithm for the whole app).
+  const memberRole = msg.roles?.includes('member') ? state.currentRoleStyle?.roles?.member : null;
+
+  if (memberRole) {
+    const memberTiers = memberRole.memberTiers;
+    const months = Number(rowEl.dataset.ovsMemberMonths) || 0;
+    const tier = resolveMemberTier(memberTiers, months, memberRole.memberTiersEnabled !== false);
+    if (tier) {
+      rowEl.classList.add(`ovs-member-tier-${tier.index}`);
+      rowEl.dataset.ovsMemberTier = String(tier.index);
+      if (tier.color) rowEl.style.setProperty('--ovs-member-tier-color', tier.color);
+      rowEl.style.setProperty('--ovs-member-tier-badge-before-content', quoteCssContent(tier.badge));
+    }
+  }
 
   ensureBubbleTexture(rowEl);
   applyMessageBunnyEars(rowEl);
@@ -187,7 +211,7 @@ export function createMessageNode(msg, options = {}) {
   // renderer (plain text + their emoji <img> tags) — that's what lets us
   // safely use innerHTML here instead of losing the emoji.
   if (messageEl) {
-    messageEl.innerHTML = `<span class="ovs-text-content">${msg.messageHtml}</span>`;
+    messageEl.innerHTML = composeMessageBodyHtml(msg, memberRole);
     // If the message is nothing but emoji (unicode chars and/or YouTube's
     // own custom emoji <img> tags), mark the row and wrap each glyph so
     // layout-text.css can scale the text up a touch and give every emoji

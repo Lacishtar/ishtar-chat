@@ -7,7 +7,6 @@ const { createImageProxyRouter } = require('./image-proxy');
 const { createSharedEsmRouter } = require('./shared-esm-bridge');
 
 const OVERLAY_DIR = path.join(__dirname, '..', '..', 'overlay');
-const THEMES_DIR = path.join(__dirname, '..', '..', 'themes');
 const OVERLAY_TEMPLATE = fs.readFileSync(path.join(OVERLAY_DIR, 'index.html'), 'utf-8');
 
 const NO_CACHE_STATIC = {
@@ -58,7 +57,6 @@ function createApp(getState, options = {}) {
   // Serves overlay-client.js (and anything else dropped in /overlay) as
   // static files — this is what actually answers GET /overlay/overlay-client.js.
   app.use('/overlay', express.static(OVERLAY_DIR, NO_CACHE_STATIC));
-  app.use('/themes', express.static(THEMES_DIR, NO_CACHE_STATIC));
   app.use('/shared', createSharedEsmRouter());
   app.use('/avatar', createAvatarProxyRouter());
   app.use('/image', createImageProxyRouter());

@@ -1,4 +1,8 @@
-/* Classic theme. Slot + layout vars from Customize / Layout / SlotStyle engines. */
+/* Base message skeleton. Previously themes/classic/style.css — there is
+   only ever one structural skeleton now (appearance comes entirely from
+   shared/theme-presets.js via CSS variables), so this is just a normal
+   overlay stylesheet, loaded unconditionally like the others in this
+   folder instead of being swapped per "theme". */
 
 html,
 body {
@@ -133,4 +137,3 @@ body {
   height: 1.15em;
   vertical-align: -0.2em;
 }
-

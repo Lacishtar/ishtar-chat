@@ -23,7 +23,7 @@ function stripStaleRoleRowDefaults(roleStyleConfig) {
 
 const DEFAULT_STATE = {
   lastSessionUrl: '',
-  selectedTheme: 'classic',
+  selectedTheme: 'default',
   windowBounds: { width: 1180, height: 760 },
 };
 

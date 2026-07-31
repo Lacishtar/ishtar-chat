@@ -114,7 +114,7 @@ function createMock() {
   return {
     getInitialState: async () => ({
       status,
-      selectedTheme: 'classic',
+      selectedTheme: 'default',
       customizeConfig: config,
       layoutConfig,
       slotStyleConfig,
@@ -154,7 +154,6 @@ function createMock() {
       { id: 'minimal-white', name: 'Minimal White',  description: 'Clean white bubble with dark text — minimal and highly readable.', preview: { bubbleBg: 'rgba(255, 255, 255, 0.92)', authorColor: '#2563EB', textColor: '#1E293B' } },
       { id: 'minimal-dark',  name: 'Minimal Dark',   description: 'Clean dark bubble with light text — minimal, modern, and readable.', preview: { bubbleBg: 'rgba(15, 17, 23, 0.72)', authorColor: '#818CF8', textColor: '#EAECEF' } },
       { id: 'discord',       name: 'Discord',        description: 'Discord dark with Blurple accents.', preview: { bubbleBg: 'rgba(49, 51, 56, 0.9)', authorColor: '#5865F2', textColor: '#DBDEE1' } },
-      { id: 'cyber-neon',    name: 'Cyber Neon',     description: 'Electric-cyan cyberpunk.', preview: { bubbleBg: 'rgba(6, 10, 20, 0.85)', authorColor: '#00F0FF', textColor: '#B9FBFF' } },
       { id: 'pastel-pink',   name: 'Pastel Pink',    description: 'Soft pink bubbles.', preview: { bubbleBg: 'rgba(255, 228, 240, 0.9)', authorColor: '#E85D9E', textColor: '#6B3A52' } },
       { id: 'glassmorphism', name: 'Glassmorphism',  description: 'Frosted-glass panel.', preview: { bubbleBg: 'rgba(255, 255, 255, 0.14)', authorColor: '#7DD3FC', textColor: '#F1F5F9' } },
       { id: 'cute-bubble',   name: 'Cute Bubble',    description: 'Round, colourful speech bubbles with a playful bounce entrance.', preview: { bubbleBg: 'rgba(110, 60, 220, 0.72)', authorColor: '#FF6FA5', textColor: '#FFFFFF' } },
@@ -162,16 +161,18 @@ function createMock() {
       { id: 'vtuber-cute',   name: 'VTuber Cute',    description: 'Colourful idol-style bubbles with bright gradients and bunny-ear accents.', preview: { bubbleBg: 'rgba(80, 30, 120, 0.78)', authorColor: '#FF94CC', textColor: '#FFF0F8' } },
       { id: 'night-sky',     name: 'Night Sky',      description: 'Deep navy with aurora glow.', preview: { bubbleBg: 'rgba(8, 12, 28, 0.85)', authorColor: '#A78BFA', textColor: '#E0E7FF' } },
       { id: 'cute',          name: 'Cute',           description: 'Warm pink bubbles with round edges and bunny ears — a cosy, kawaii look.', preview: { bubbleBg: 'rgba(255, 235, 246, 0.92)', authorColor: '#FF5FA8', textColor: '#3A2233' } },
-      { id: 'dreamcore',     name: 'Dreamcore',      description: 'Deep purple semi-transparent bubble with a dashed lilac border and bunny ears.', preview: { bubbleBg: 'rgba(88, 61, 138, 0.55)', authorColor: '#C7A7FF', textColor: '#F1E9FF' } },
       { id: 'retro',         name: 'Retro',          description: 'Warm parchment bubbles with a monospace font and hard ink border — vintage terminal vibes.', preview: { bubbleBg: 'rgba(245, 224, 178, 0.95)', authorColor: '#B8410C', textColor: '#2B1B0E' } },
       { id: 'neon',          name: 'Neon',           description: 'Dark terminal bubble with teal-green neon border and double drop-shadow glow.', preview: { bubbleBg: 'rgba(14, 16, 19, 0.85)', authorColor: '#35E6B0', textColor: '#EAECEF' } },
       { id: 'maid',          name: 'Maid',           description: 'Maid café style — crisp white bubble, black lace trim, and a cherry-red bow accent.', preview: { bubbleBg: 'rgba(255, 250, 250, 0.92)', authorColor: '#C81E3A', textColor: '#3A2E2E' } },
       { id: 'ca-phe',        name: 'Cà Phê',         description: 'Warm coffee-shop tones — cream bubble, espresso-brown border, cinnamon accents.', preview: { bubbleBg: 'rgba(245, 232, 216, 0.88)', authorColor: '#8B4513', textColor: '#4B3324' } },
+      { id: 'karaoke',       name: 'Karaoke Night',  description: 'Danmaku bullet comments with neon pink/purple karaoke-room lighting (idle animation off).', preview: { bubbleBg: 'rgba(58, 12, 82, 0.9)', authorColor: '#FF3DAE', textColor: '#FFF3FB' } },
+      { id: 'ticker-news',   name: 'Ticker News',    description: 'Scrolling breaking-news ticker with crisp white-and-red styling.', preview: { bubbleBg: 'rgba(255, 255, 255, 0.97)', authorColor: '#E4001B', textColor: '#1A1414' } },
+      { id: 'edgy',          name: 'Edgy',           description: 'Saint gold halo meets demon crimson glow on jet black — sharp, dramatic, edgy.', preview: { bubbleBg: 'rgba(10, 8, 10, 0.94)', authorColor: '#D4AF37', textColor: '#EDE6DA' } },
     ],
     applyTheme: async (themeId) => {
       // In the mock we just echo the current config back — real apply
       // happens in the Electron main process via ThemeManager.ApplyTheme.
-      const payload = { themeId: 'classic', config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig };
+      const payload = { themeId: 'default', config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig };
       themeChangedListeners.forEach((cb) => cb(payload));
       return { ok: true, customizeConfig: config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig };
     },
@@ -302,7 +303,7 @@ function createMock() {
       animationConfig = preset.animationConfig || animationConfig;
       decorationConfig = preset.decorationConfig || decorationConfig;
       roleStyleConfig = preset.roleStyleConfig || roleStyleConfig;
-      const payload = { themeId: 'classic', config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig };
+      const payload = { themeId: 'default', config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig };
       themeChangedListeners.forEach((cb) => cb(payload));
       return { ok: true, customizeConfig: config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig };
     },

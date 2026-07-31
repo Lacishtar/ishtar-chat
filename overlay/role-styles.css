@@ -21,9 +21,15 @@
   position: relative;
 }
 
-/* --- Member Badges --- */
+/* --- Member Badges ---
+   Member Tiers: --ovs-member-tier-badge-before-content is set inline, per
+   row, by message-renderer.js/bubble-updater.js whenever resolveMemberTier()
+   (shared/role-style-config.js) finds a matching tier for that row's
+   dataset.ovsMemberMonths — same "row-level var wins, falls back to the
+   role's own value" precedence Super Chat's --ovs-superchat-tier-* vars
+   use above the role's own --ovs-role-superchat-* vars. */
 :root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-author::before {
-  content: var(--ovs-role-member-badge-before-content, none);
+  content: var(--ovs-member-tier-badge-before-content, var(--ovs-role-member-badge-before-content, none));
   margin-right: 0.35em;
   font-size: 0.82em;
   opacity: 0.92;
@@ -69,8 +75,12 @@
 /* ==========================================
    1. MEMBER STYLES (Lowest priority)
    ========================================== */
+/* Member Tiers: --ovs-member-tier-color (row-level, set by
+   resolveMemberTier()) takes precedence over the role's own manual
+   --ovs-role-member-author-color, same precedence order Super Chat uses
+   for --ovs-superchat-tier-color over --ovs-role-superchat-author-color. */
 :root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-author {
-  color: var(--ovs-role-member-author-color, inherit) !important;
+  color: var(--ovs-member-tier-color, var(--ovs-role-member-author-color, inherit)) !important;
 }
 
 :root[data-ovs-role-member-author-bg='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-author {
@@ -82,19 +92,27 @@
 
 :root[data-ovs-role-member-enabled='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-text {
   background: var(--ovs-role-member-message-bg, var(--ovs-role-fallback-message-bg)) !important;
-  border-color: var(--ovs-role-member-message-border-color, var(--ovs-role-fallback-message-border)) !important;
+  border-width: var(--ovs-role-member-message-border-width, var(--ovs-bubble-border-width, 1px));
+  border-style: solid;
+  border-radius: var(--ovs-bubble-radius, 12px);
+  border-color: var(--ovs-member-tier-color, var(--ovs-role-member-message-border-color, var(--ovs-role-fallback-message-border))) !important;
   color: var(--ovs-role-member-message-text-color, inherit) !important;
-  box-shadow: inset 0 0 0 1px var(--ovs-role-member-message-border-color, transparent);
+  opacity: 1;
+  box-shadow: inset 0 0 0 1px var(--ovs-member-tier-color, var(--ovs-role-member-message-border-color, transparent));
 }
 
+/* Text Scale multiplies whatever font-size would otherwise apply — `1em`
+   here resolves to the inherited size (same effect the old `inherit`
+   fallback had), so leaving Text Scale at its 1 default changes nothing. */
 :root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-text {
-  font-size: var(--ovs-role-member-message-font-size, inherit) !important;
+  font-size: calc(var(--ovs-role-member-message-font-size, 1em) * var(--ovs-role-member-text-scale, 1)) !important;
 }
 :root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-author {
-  font-size: var(--ovs-role-member-author-font-size, inherit) !important;
+  font-size: calc(var(--ovs-role-member-author-font-size, 1em) * var(--ovs-role-member-text-scale, 1)) !important;
+  font-weight: var(--ovs-role-member-author-font-weight, inherit);
 }
 :root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-badges {
-  font-size: var(--ovs-role-member-badges-font-size, inherit) !important;
+  font-size: calc(var(--ovs-role-member-badges-font-size, 1em) * var(--ovs-role-member-text-scale, 1)) !important;
 }
 
 :root[data-ovs-role-member-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) {
@@ -102,13 +120,249 @@
       --ovs-role-member-row-bg,
       var(--ovs-role-member-message-bg, var(--ovs-role-fallback-row-bg))
     ) !important;
+  border-width: var(--ovs-role-member-message-border-width, var(--ovs-bubble-border-width, 1px));
+  border-style: solid;
+  border-radius: var(--ovs-bubble-radius, 12px);
   border-color: var(
-      --ovs-role-member-row-border-color,
-      var(--ovs-role-member-message-border-color, var(--ovs-role-fallback-row-border))
+      --ovs-member-tier-color,
+      var(
+        --ovs-role-member-row-border-color,
+        var(--ovs-role-member-message-border-color, var(--ovs-role-fallback-row-border))
+      )
     ) !important;
+  opacity: 1;
 }
 :root[data-ovs-role-member-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-member:not(.ovs-moderator):not(.ovs-superchat) .ovs-text {
   color: var(--ovs-role-member-message-text-color, inherit) !important;
+}
+
+/* ==========================================
+   MEMBER — MILESTONE ("Gia hạn") CARD
+   Selectable via role.milestoneLayout (Mốc tháng section — "Kiểu hiển
+   thị khi gia hạn"): 'bubble' (default, renders like a normal member
+   message) or 'youtube' (this block). Off-by-default in the sense that
+   'bubble' is the default value, so existing configs render exactly as
+   before. Scoped to just .ovs-event-membership_milestone (the renewal
+   notification) rather than every member message, since this is meant to
+   call out a one-off event. Rebuilds the row into the same two-tier
+   YouTube-card shape as Super Chat's 'youtube' superchatLayout below
+   (solid tier-color header with avatar + name + month pill, tinted body
+   with the message text underneath) instead of a bespoke banner shape of
+   its own, so a milestone stands out with the exact same visual language
+   the rest of the overlay's "stand out" messages already use. Color
+   follows whichever Mốc tháng tier the renewing viewer's month count
+   resolves to (--ovs-member-tier-color, set inline per-row by
+   resolveMemberTier() — see message-renderer.js/bubble-updater.js),
+   falling back to the role's own author color when Mốc tháng is off or
+   no tier matches yet.
+
+   SPECIFICITY, not just !important, is why this block previously did
+   nothing visible: a membership_milestone row carries BOTH .ovs-member
+   AND .ovs-event-membership_milestone (capture-preload.js always adds a
+   'Member' badge to every membership-related node, so deriveRoles() —
+   shared/chat-message.js — always includes 'member'). That means the
+   generic MEMBER STYLES rules just above — written with
+   ":not(.ovs-moderator):not(.ovs-superchat)" and each :not() counting
+   toward specificity same as a real class — already match this row too,
+   also with !important, at a HIGHER specificity than a plain
+   ".ovs-message.ovs-event-membership_milestone" selector has. Two
+   !important declarations don't resolve by source order unless their
+   specificity is equal, so the more specific generic rule silently won
+   even positioned earlier in this file. Every selector below repeats the
+   same ".ovs-member ... :not(.ovs-moderator):not(.ovs-superchat)"
+   shape (plus the extra .ovs-event-membership_milestone + milestone-layout
+   attribute) specifically so it's AT LEAST as specific as what it needs
+   to override, and only relies on being later in this same file to win
+   any exact tie — not on !important weight, which both sides have. Also
+   note bubble-wrap.css (linked after this file) sets several of these
+   same properties !important on plain ".ovs-message" — those have far
+   lower specificity than anything below and are beaten on specificity
+   alone, but every contested property still carries !important here too
+   since !important always outranks a normal declaration regardless of
+   specificity. */
+:root[data-ovs-role-member-enabled='true'][data-ovs-role-member-milestone-layout='youtube']
+  .ovs-message.ovs-member.ovs-event-membership_milestone:not(.ovs-moderator):not(.ovs-superchat) {
+  display: grid !important;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: var(--ovs-layout-message-gap, 10px);
+  row-gap: 0;
+  align-items: stretch;
+  width: 100% !important;
+  align-self: stretch;
+  padding: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: var(--ovs-bubble-box-shadow, none) !important;
+  filter: var(--ovs-bubble-glow, none) !important;
+  border-radius: var(--ovs-bubble-radius, 12px) !important;
+  background: transparent !important;
+  /* !important because bubble-wrap.css's bunny-ears rule
+     (`.ovs-message[data-bunny-ears="true"] { overflow: visible !important }`)
+     otherwise wins on !important weight alone regardless of this
+     selector's much higher specificity — that's what was making the
+     youtube card square-cornered (header/body's flat rectangular edges
+     showing past the rounded frame) on bunny-ear themes only, while
+     non-bunny-ear themes stayed correctly rounded. Two-tier grid cards
+     have no sensible place for ears to poke out of anyway (see the ear
+     spans being hidden for this layout below), so always clipping here
+     is safe. */
+  overflow: hidden !important;
+}
+
+/* Two-tier YouTube-style cards have no bubble edge for bunny ears to sit
+   on — hide the injected ear spans entirely for this layout instead of
+   letting them float, mispositioned, over the rebuilt grid. */
+:root[data-ovs-role-member-enabled='true'][data-ovs-role-member-milestone-layout='youtube']
+  .ovs-message.ovs-member.ovs-event-membership_milestone:not(.ovs-moderator):not(.ovs-superchat) > .ovs-bunny-ear {
+  display: none !important;
+}
+
+/* Header fill — a full-bleed pseudo-element behind the avatar + meta row,
+   so the solid tier color spans the entire card width (including behind
+   the avatar), exactly like the YouTube-style Super Chat card. */
+:root[data-ovs-role-member-enabled='true'][data-ovs-role-member-milestone-layout='youtube']
+  .ovs-message.ovs-member.ovs-event-membership_milestone:not(.ovs-moderator):not(.ovs-superchat)::before {
+  content: '';
+  grid-column: 1 / -1;
+  grid-row: 1;
+  background: var(--ovs-member-tier-color, var(--ovs-role-member-author-color, #93c5fd)) !important;
+}
+
+:root[data-ovs-role-member-enabled='true'][data-ovs-role-member-milestone-layout='youtube']
+  .ovs-message.ovs-member.ovs-event-membership_milestone:not(.ovs-moderator):not(.ovs-superchat) .ovs-body {
+  display: contents !important;
+}
+
+:root[data-ovs-role-member-enabled='true'][data-ovs-role-member-milestone-layout='youtube']
+  .ovs-message.ovs-member.ovs-event-membership_milestone:not(.ovs-moderator):not(.ovs-superchat) .ovs-avatar {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  margin: 7px 0 7px 10px !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+}
+
+:root[data-ovs-role-member-enabled='true'][data-ovs-role-member-milestone-layout='youtube']
+  .ovs-message.ovs-member.ovs-event-membership_milestone:not(.ovs-moderator):not(.ovs-superchat) .ovs-meta {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 6px;
+  margin: 0 !important;
+  padding: 8px 10px 8px 0 !important;
+  min-width: 0;
+}
+
+:root[data-ovs-role-member-enabled='true'][data-ovs-role-member-milestone-layout='youtube']
+  .ovs-message.ovs-member.ovs-event-membership_milestone:not(.ovs-moderator):not(.ovs-superchat) .ovs-author {
+  font-size: 1.05em !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  color: #ffffff !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+}
+
+/* Badges slot carries the "N tháng"/"N months" text captured from
+   YouTube's own header (see main/capture-preload.js) — turned into a
+   solid pill pinned to the header's right edge, the same treatment Super
+   Chat's amount chip gets in the youtube layout, so the month count
+   itself is the thing that stands out. */
+:root[data-ovs-role-member-enabled='true'][data-ovs-role-member-milestone-layout='youtube']
+  .ovs-message.ovs-member.ovs-event-membership_milestone:not(.ovs-moderator):not(.ovs-superchat) .ovs-badges {
+  display: inline-flex !important;
+  align-self: center !important;
+  margin-left: auto !important;
+  flex-shrink: 0;
+  padding: 0.12em 0.55em !important;
+  border-radius: 999px !important;
+  font-size: 0.82em !important;
+  font-weight: 700 !important;
+  background: rgba(0, 0, 0, 0.16) !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+  opacity: 1 !important;
+}
+
+/* Body — tinted continuation of the header color underneath the message
+   text, same as the youtube layout's card. */
+:root[data-ovs-role-member-enabled='true'][data-ovs-role-member-milestone-layout='youtube']
+  .ovs-message.ovs-member.ovs-event-membership_milestone:not(.ovs-moderator):not(.ovs-superchat) .ovs-text {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: block !important;
+  width: auto !important;
+  max-width: none !important;
+  background: color-mix(in srgb, var(--ovs-member-tier-color, var(--ovs-role-member-author-color, #93c5fd)) 35%, transparent) !important;
+  border-width: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  padding: 6px 12px 10px 12px !important;
+  align-self: stretch !important;
+  opacity: 1 !important;
+}
+
+/* ==========================================
+   MEMBER — MILESTONE ("Gia hạn") BUBBLE NỔI BẬT (HIGHLIGHT)
+   Selectable via role.milestoneLayout: 'highlight' — re-added alongside
+   'bubble'/'youtube'. Unlike the 'youtube' block above, this does NOT
+   rebuild the row into a two-tier card: the row still renders through
+   the generic MEMBER STYLES bubble rules near the top of this file
+   (those already match membership_milestone rows too, per the
+   specificity note above the 'youtube' block) and this just piles glow/
+   scale on top, mirroring Super Chat's own 'highlight' layout so both
+   "stand out" bubbles read as the same visual language. Same specificity
+   shape as the 'youtube' block is required for the same reason — plain
+   ".ovs-event-membership_milestone" alone would lose to the generic
+   MEMBER STYLES rules above. Color follows whichever Mốc tháng tier the
+   renewing viewer resolved to (--ovs-member-tier-color), falling back to
+   the role's own author color, same precedence the 'youtube' block uses. */
+:root[data-ovs-role-member-enabled='true'][data-ovs-role-member-milestone-layout='highlight']
+  .ovs-message.ovs-member.ovs-event-membership_milestone:not(.ovs-moderator):not(.ovs-superchat) {
+  --ovs-role-highlight-color: var(--ovs-member-tier-color, var(--ovs-role-member-author-color, #93c5fd));
+  transform: scale(1.05);
+  transform-origin: center left;
+  position: relative;
+  z-index: 2;
+}
+
+/* Bubble mode (per-slot): glow lives on .ovs-text, same element the
+   generic member bubble rules target when not in row-wrap mode. */
+:root[data-ovs-role-member-enabled='true'][data-ovs-role-member-milestone-layout='highlight']:not([data-ovs-bubble-wrap-row='true'])
+  .ovs-message.ovs-member.ovs-event-membership_milestone:not(.ovs-moderator):not(.ovs-superchat) .ovs-text {
+  border-width: 2.5px !important;
+  border-color: var(--ovs-role-highlight-color) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ovs-role-highlight-color) 55%, transparent),
+    0 0 20px 4px color-mix(in srgb, var(--ovs-role-highlight-color) 65%, transparent),
+    inset 0 0 14px color-mix(in srgb, var(--ovs-role-highlight-color) 22%, transparent) !important;
+  animation: ovs-role-highlight-pulse 1.8s ease-in-out infinite;
+}
+
+/* Row mode: glow lives on the row itself, same element the generic
+   member row-wrap rules target. */
+:root[data-ovs-role-member-enabled='true'][data-ovs-bubble-wrap-row='true'][data-ovs-role-member-milestone-layout='highlight']
+  .ovs-message.ovs-member.ovs-event-membership_milestone:not(.ovs-moderator):not(.ovs-superchat) {
+  border-width: 2.5px !important;
+  border-color: var(--ovs-role-highlight-color) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ovs-role-highlight-color) 55%, transparent),
+    0 0 20px 4px color-mix(in srgb, var(--ovs-role-highlight-color) 65%, transparent) !important;
+  animation: ovs-role-highlight-pulse 1.8s ease-in-out infinite;
+}
+
+:root[data-ovs-role-member-enabled='true'][data-ovs-role-member-milestone-layout='highlight']
+  .ovs-message.ovs-member.ovs-event-membership_milestone:not(.ovs-moderator):not(.ovs-superchat) .ovs-author {
+  font-weight: 800 !important;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--ovs-role-highlight-color) 70%, transparent);
 }
 
 /* ==========================================
@@ -116,6 +370,7 @@
    ========================================== */
 :root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-author {
   color: var(--ovs-role-mod-author-color, inherit) !important;
+  font-weight: var(--ovs-role-mod-author-font-weight, inherit);
 }
 
 :root[data-ovs-role-mod-author-bg='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-author {
@@ -127,19 +382,26 @@
 
 :root[data-ovs-role-mod-enabled='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-text {
   background: var(--ovs-role-mod-message-bg, var(--ovs-role-fallback-message-bg)) !important;
+  border-width: var(--ovs-role-mod-message-border-width, var(--ovs-bubble-border-width, 1px));
+  border-style: solid;
+  border-radius: var(--ovs-bubble-radius, 12px);
   border-color: var(--ovs-role-mod-message-border-color, var(--ovs-role-fallback-message-border)) !important;
   color: var(--ovs-role-mod-message-text-color, inherit) !important;
+  opacity: 1;
   box-shadow: inset 0 0 0 1px var(--ovs-role-mod-message-border-color, transparent);
 }
 
+/* Text Scale multiplies whatever font-size would otherwise apply — `1em`
+   here resolves to the inherited size (same effect the old `inherit`
+   fallback had), so leaving Text Scale at its 1 default changes nothing. */
 :root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-text {
-  font-size: var(--ovs-role-mod-message-font-size, inherit) !important;
+  font-size: calc(var(--ovs-role-mod-message-font-size, 1em) * var(--ovs-role-mod-text-scale, 1)) !important;
 }
 :root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-author {
-  font-size: var(--ovs-role-mod-author-font-size, inherit) !important;
+  font-size: calc(var(--ovs-role-mod-author-font-size, 1em) * var(--ovs-role-mod-text-scale, 1)) !important;
 }
 :root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-badges {
-  font-size: var(--ovs-role-mod-badges-font-size, inherit) !important;
+  font-size: calc(var(--ovs-role-mod-badges-font-size, 1em) * var(--ovs-role-mod-text-scale, 1)) !important;
 }
 
 :root[data-ovs-role-mod-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) {
@@ -147,10 +409,14 @@
       --ovs-role-mod-row-bg,
       var(--ovs-role-mod-message-bg, var(--ovs-role-fallback-row-bg))
     ) !important;
+  border-width: var(--ovs-role-mod-message-border-width, var(--ovs-bubble-border-width, 1px));
+  border-style: solid;
+  border-radius: var(--ovs-bubble-radius, 12px);
   border-color: var(
       --ovs-role-mod-row-border-color,
       var(--ovs-role-mod-message-border-color, var(--ovs-role-fallback-row-border))
     ) !important;
+  opacity: 1;
 }
 :root[data-ovs-role-mod-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-moderator:not(.ovs-superchat) .ovs-text {
   color: var(--ovs-role-mod-message-text-color, inherit) !important;
@@ -168,6 +434,9 @@
 }
 :root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='false'] .ovs-message.ovs-superchat .ovs-author {
   color: var(--ovs-role-superchat-author-color, #fde047) !important;
+}
+:root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-author {
+  font-weight: var(--ovs-role-superchat-author-font-weight, inherit);
 }
 
 :root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-superchat-amount {
@@ -195,10 +464,12 @@
     --ovs-superchat-tier-bg,
     linear-gradient(135deg, rgba(255, 202, 40, 0.28), var(--ovs-role-fallback-message-bg))
   ) !important;
-  border-width: var(--ovs-bubble-border-width, 1px) !important;
+  border-width: var(--ovs-role-superchat-message-border-width, var(--ovs-bubble-border-width, 1px)) !important;
   border-style: solid !important;
+  border-radius: var(--ovs-bubble-radius, 12px);
   border-color: var(--ovs-superchat-tier-border, rgba(255, 202, 40, 0.45)) !important;
   color: var(--ovs-role-superchat-message-text-color, inherit) !important;
+  opacity: 1;
   box-shadow: inset 0 0 0 1px var(--ovs-superchat-tier-border, rgba(255, 202, 40, 0.45));
 }
 
@@ -207,21 +478,23 @@
     --ovs-role-superchat-message-bg,
     linear-gradient(135deg, rgba(255, 202, 40, 0.28), var(--ovs-role-fallback-message-bg))
   ) !important;
-  border-width: var(--ovs-bubble-border-width, 1px) !important;
+  border-width: var(--ovs-role-superchat-message-border-width, var(--ovs-bubble-border-width, 1px)) !important;
   border-style: solid !important;
+  border-radius: var(--ovs-bubble-radius, 12px);
   border-color: var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45)) !important;
   color: var(--ovs-role-superchat-message-text-color, inherit) !important;
+  opacity: 1;
   box-shadow: inset 0 0 0 1px var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45));
 }
 
 :root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-text {
-  font-size: var(--ovs-role-superchat-message-font-size, inherit) !important;
+  font-size: calc(var(--ovs-role-superchat-message-font-size, 1em) * var(--ovs-role-superchat-text-scale, 1)) !important;
 }
 :root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-author {
-  font-size: var(--ovs-role-superchat-author-font-size, inherit) !important;
+  font-size: calc(var(--ovs-role-superchat-author-font-size, 1em) * var(--ovs-role-superchat-text-scale, 1)) !important;
 }
 :root[data-ovs-role-superchat-enabled='true'] .ovs-message.ovs-superchat .ovs-badges {
-  font-size: var(--ovs-role-superchat-badges-font-size, inherit) !important;
+  font-size: calc(var(--ovs-role-superchat-badges-font-size, 1em) * var(--ovs-role-superchat-text-scale, 1)) !important;
 }
 
 /* If bubble wrap row is true (row mode): style the row */
@@ -230,9 +503,11 @@
       --ovs-superchat-tier-bg,
       linear-gradient(135deg, rgba(255, 202, 40, 0.22), var(--ovs-role-fallback-row-bg))
     ) !important;
-  border-width: var(--ovs-bubble-border-width, 1px) !important;
+  border-width: var(--ovs-role-superchat-message-border-width, var(--ovs-bubble-border-width, 1px)) !important;
   border-style: solid !important;
+  border-radius: var(--ovs-bubble-radius, 12px);
   border-color: var(--ovs-superchat-tier-border, rgba(255, 202, 40, 0.45)) !important;
+  opacity: 1;
 }
 
 :root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='false'][data-ovs-bubble-wrap-row='true']:not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat {
@@ -240,12 +515,14 @@
       --ovs-role-superchat-row-bg,
       var(--ovs-role-superchat-message-bg, linear-gradient(135deg, rgba(255, 202, 40, 0.22), var(--ovs-role-fallback-row-bg)))
     ) !important;
-  border-width: var(--ovs-bubble-border-width, 1px) !important;
+  border-width: var(--ovs-role-superchat-message-border-width, var(--ovs-bubble-border-width, 1px)) !important;
   border-style: solid !important;
+  border-radius: var(--ovs-bubble-radius, 12px);
   border-color: var(
       --ovs-role-superchat-row-border-color,
       var(--ovs-role-superchat-message-border-color, rgba(255, 202, 40, 0.45))
     ) !important;
+  opacity: 1;
 }
 
 :root[data-ovs-role-superchat-enabled='true'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-superchat .ovs-text {
@@ -296,51 +573,106 @@
   border: 1px solid rgba(255, 202, 40, 0.45);
 }
 
+/* --- Bubble / Highlight — tier-color text contrast fix ---
+   When useTierColor=true, .ovs-author/.ovs-superchat-amount/.ovs-text sit
+   on a translucent tint of the tier color (35% alpha, blended with
+   whatever the theme's own bubble background is) rather than a solid
+   fill — unlike the 'youtube' layout below, which paints an opaque tier
+   block behind its text. Painting the raw tier color as TEXT on top of a
+   translucent tint of that same color is what makes light tiers (1-2,
+   blue/cyan) unreadable on light/transparent themes.
+   Fix: reuse the exact fixed white/near-black split already proven for
+   the 'youtube' layout — it's a lookup over the 7 known, fixed tier
+   colors, not a runtime contrast calculation, so it's correct no matter
+   what the theme or bubble transparency is. The border/glow (highlight
+   layout) and amount/bubble background keep showing the real tier color,
+   so the tier is still visually identifiable — only the TEXT itself is
+   locked to a safe, readable color. No text-shadow/stroke involved. */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true']:not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat .ovs-author,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true']:not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat .ovs-superchat-amount,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true']:not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat .ovs-text {
+  color: #ffffff !important;
+}
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true']:not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat[data-ovs-superchat-tier='1'] .ovs-author,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true']:not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat[data-ovs-superchat-tier='1'] .ovs-superchat-amount,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true']:not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat[data-ovs-superchat-tier='1'] .ovs-text,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true']:not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat[data-ovs-superchat-tier='2'] .ovs-author,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true']:not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat[data-ovs-superchat-tier='2'] .ovs-superchat-amount,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true']:not([data-ovs-role-superchat-layout='youtube']) .ovs-message.ovs-superchat[data-ovs-superchat-tier='2'] .ovs-text {
+  color: #0a0a0a !important;
+}
+
 /* ==========================================
-   SUPERCHAT BANNER LAYOUT
-   ========================================== */
-
-/* Banner mode restructures the header area: author + amount stacked prominently */
-:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'] .ovs-message.ovs-superchat .ovs-author-area {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2em;
+   SUPERCHAT — "BUBBLE NỔI BẬT" (HIGHLIGHT) LAYOUT
+   Selectable via role.superchatLayout: 'highlight' — re-added alongside
+   'bubble'/'youtube'. Unlike 'youtube' below, this does NOT rebuild the
+   message into a two-tier card: it keeps the normal bubble shape (still
+   styled by the "BUBBLE MODE (default)" rules above — those are only
+   excluded for `[data-ovs-role-superchat-layout='youtube']`, so a
+   'highlight' row renders through them same as plain 'bubble') and piles
+   extra emphasis on top: a thicker glowing border, an outer glow shadow,
+   a light scale-up, and a slow breathing pulse. The goal is a Super Chat
+   that's unmistakably louder than a normal chat bubble at a glance, even
+   in a fast-moving feed, without switching to a different card shape.
+   `--ovs-role-highlight-color` follows the same tier/manual precedence
+   as the author color rules above it. */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='true'][data-ovs-role-superchat-layout='highlight'] .ovs-message.ovs-superchat {
+  --ovs-role-highlight-color: var(--ovs-superchat-tier-color, #fde047);
+}
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-use-tier-color='false'][data-ovs-role-superchat-layout='highlight'] .ovs-message.ovs-superchat {
+  --ovs-role-highlight-color: var(--ovs-role-superchat-author-color, #fde047);
 }
 
-/* In banner mode, amount is displayed prominently */
-:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'][data-ovs-role-superchat-show-amount='true'] .ovs-message.ovs-superchat .ovs-superchat-amount {
-  display: block;
-  order: -1; /* Amount appears ABOVE the author name */
-  margin-left: 0;
-  padding: 0.1em 0.4em;
-  border-radius: 6px;
-  font-size: var(--ovs-role-superchat-amount-font-size, 1.1em);
-  font-weight: var(--ovs-role-superchat-amount-font-weight, 700);
-  line-height: 1.25;
-  align-self: flex-start;
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='highlight'] .ovs-message.ovs-superchat {
+  transform: scale(1.05);
+  transform-origin: center left;
+  position: relative;
+  z-index: 2;
 }
 
-/* Banner: scale up the author name */
-:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'] .ovs-message.ovs-superchat .ovs-author {
-  font-size: var(--ovs-role-superchat-author-font-size, 1.05em) !important;
-  font-weight: 600;
+/* Bubble mode (per-slot): glow lives on .ovs-text, same element the
+   default bubble background/border rules above target. */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='highlight']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-superchat .ovs-text {
+  border-width: 2.5px !important;
+  border-color: var(--ovs-role-highlight-color, #fde047) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ovs-role-highlight-color, #fde047) 55%, transparent),
+    0 0 20px 4px color-mix(in srgb, var(--ovs-role-highlight-color, #fde047) 65%, transparent),
+    inset 0 0 14px color-mix(in srgb, var(--ovs-role-highlight-color, #fde047) 22%, transparent) !important;
+  animation: ovs-role-highlight-pulse 1.8s ease-in-out infinite;
 }
 
-/* Banner: add a top accent line using tier color */
-:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'][data-ovs-role-superchat-use-tier-color='true'] .ovs-message.ovs-superchat .ovs-text,
-:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'][data-ovs-role-superchat-use-tier-color='true']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-superchat .ovs-text {
-  border-top: 3px solid var(--ovs-superchat-tier-color, rgba(255, 202, 40, 0.8)) !important;
-  padding-top: 0.3em !important;
-}
-:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'][data-ovs-role-superchat-use-tier-color='false'] .ovs-message.ovs-superchat .ovs-text,
-:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'][data-ovs-role-superchat-use-tier-color='false']:not([data-ovs-bubble-wrap-row='true']) .ovs-message.ovs-superchat .ovs-text {
-  border-top: 3px solid var(--ovs-role-superchat-author-color, rgba(255, 202, 40, 0.8)) !important;
-  padding-top: 0.3em !important;
+/* Row mode: glow lives on the row itself, same element the default row
+   background/border rules above target. */
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='highlight'][data-ovs-bubble-wrap-row='true'] .ovs-message.ovs-superchat {
+  border-width: 2.5px !important;
+  border-color: var(--ovs-role-highlight-color, #fde047) !important;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ovs-role-highlight-color, #fde047) 55%, transparent),
+    0 0 20px 4px color-mix(in srgb, var(--ovs-role-highlight-color, #fde047) 65%, transparent) !important;
+  animation: ovs-role-highlight-pulse 1.8s ease-in-out infinite;
 }
 
-/* Banner: message text slightly smaller/muted */
-:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='banner'] .ovs-message.ovs-superchat .ovs-text-content {
-  opacity: 0.9;
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='highlight'] .ovs-message.ovs-superchat .ovs-author {
+  font-weight: 800 !important;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--ovs-role-highlight-color, #fde047) 70%, transparent);
+}
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='highlight'] .ovs-message.ovs-superchat .ovs-superchat-amount {
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--ovs-role-highlight-color, #fde047) 55%, transparent);
+}
+
+/* Shared breathing pulse — also used by Membership's 'highlight' renewal
+   layout below, so both "stand out" bubbles read as the same visual
+   language. brightness() rather than opacity/scale so it never fights
+   the scale(1.05) above or the bubble's own background/glow colors. */
+@keyframes ovs-role-highlight-pulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
 }
 
 /* ==========================================
@@ -370,7 +702,13 @@
   filter: var(--ovs-bubble-glow, none) !important;
   border-radius: var(--ovs-bubble-radius, 12px) !important;
   background: transparent !important;
-  overflow: hidden;
+  /* !important — see the matching comment on the Membership milestone
+     youtube-card rule above; same bunny-ears-vs-clip bug, same fix. */
+  overflow: hidden !important;
+}
+
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'] .ovs-message.ovs-superchat > .ovs-bunny-ear {
+  display: none !important;
 }
 
 /* Header fill — a full-bleed pseudo-element behind the avatar + meta row,
@@ -453,7 +791,7 @@
 
 /* Amount always sits pinned to the header's right edge, ignoring the
    inline/block amountPosition setting (that toggle only makes sense for
-   the bubble/banner layouts). */
+   the bubble layout). */
 :root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'][data-ovs-role-superchat-show-amount='true'] .ovs-message.ovs-superchat .ovs-superchat-amount {
   display: inline-flex !important;
   margin-left: auto !important;
@@ -465,10 +803,22 @@
 }
 
 /* Body — tinted continuation of the header color underneath the message
-   text, same as YouTube's card. */
+   text, same as YouTube's card.
+   When useTierColor=true, the background is one of 7 tier colors chosen
+   per-donation (not by the theme), so a theme's fixed messageTextColor can
+   land on a same-hue background (e.g. yellow text on the yellow tier) and
+   become unreadable. Body text mirrors the header's own white/black tier
+   split instead — tiers 1-2 (blue/cyan, light) get dark text, tiers 3-7
+   get white text — so contrast is always guaranteed regardless of theme. */
 :root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'][data-ovs-role-superchat-use-tier-color='true'] .ovs-message.ovs-superchat .ovs-text {
   background: var(--ovs-superchat-tier-bg, rgba(255, 202, 40, 0.35)) !important;
-  color: var(--ovs-role-superchat-message-text-color, inherit) !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'][data-ovs-role-superchat-use-tier-color='true'] .ovs-message.ovs-superchat[data-ovs-superchat-tier='1'] .ovs-text,
+:root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'][data-ovs-role-superchat-use-tier-color='true'] .ovs-message.ovs-superchat[data-ovs-superchat-tier='2'] .ovs-text {
+  color: #0a0a0a !important;
+  text-shadow: none;
 }
 :root[data-ovs-role-superchat-enabled='true'][data-ovs-role-superchat-layout='youtube'][data-ovs-role-superchat-use-tier-color='false'] .ovs-message.ovs-superchat .ovs-text {
   background: var(--ovs-role-superchat-message-bg, rgba(255, 202, 40, 0.28)) !important;

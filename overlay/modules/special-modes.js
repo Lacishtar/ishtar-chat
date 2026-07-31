@@ -237,8 +237,16 @@ function stepTicker(timestamp) {
     tickerActiveNodes.push({ el, width, positionX: spawnX });
   }
 
-  // If queue is empty, check if the latest message has reached its resting position at right edge
-  if (tickerQueue.length === 0 && tickerActiveNodes.length > 0) {
+  // If queue is empty, check if the latest message has reached its resting position at right edge.
+  // Only messages that actually fit within the screen width are allowed to "rest" —
+  // a message wider than the screen (long text, no wrap) would otherwise snap to x=0
+  // with its tail clipped off-screen by `overflow: hidden` and stay stuck there until
+  // a new message arrives. Oversized messages instead keep scrolling straight through
+  // and off the left edge, same as any other ticker item, so the full text is always shown.
+  const latestFitsScreen = tickerActiveNodes.length > 0
+    && tickerActiveNodes[tickerActiveNodes.length - 1].width + rightMargin <= containerWidth;
+
+  if (tickerQueue.length === 0 && latestFitsScreen) {
     const latest = tickerActiveNodes[tickerActiveNodes.length - 1];
     const targetX = Math.max(0, containerWidth - latest.width - rightMargin);
 

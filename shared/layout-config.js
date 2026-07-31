@@ -1,7 +1,7 @@
 /**
  * LayoutConfig — user-tunable layout properties for the four chat slots
- * (Avatar, Username, Badges, Message). Stored inside ThemeDocument.layout
- * (see shared/theme-document.js) and persisted in config.json as
+ * (Avatar, Username, Badges, Message). Stored as the layoutConfig field on
+ * a theme in shared/theme-presets/ (index.js + themes/*.js) and persisted in config.json as
  * layoutConfig. Compiled to CSS custom properties by this module's own
  * compileLayoutToCssVariables() (mirrored in overlay/modules/css-variables.js
  * for the overlay's runtime) and applied without changing the DOM renderer.

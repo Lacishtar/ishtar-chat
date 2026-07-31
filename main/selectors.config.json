@@ -7,6 +7,8 @@
   "author": "#author-name, .yt-live-chat-author-chip #author-name, #header-content-inner #author-name, yt-live-chat-author-chip #author-name",
   "avatar": "#author-photo img, #author-photo yt-img-shadow img, #img.yt-live-chat-author-chip img, yt-img-shadow#author-photo img, yt-live-chat-author-chip img",
   "message": "#message, #header-sub-text, #header-primary-text, #header-content-primary-text, #header-title, #primary-text",
+  "messageBody": "#message, #primary-text",
+  "membershipHeaderPriority": ["#header-sub-text", "#header-primary-text", "#header-content-primary-text", "#header-title"],
   "badgeContainer": "#chat-badges yt-live-chat-author-badge-renderer",
   "badgeAccessibilityLabelAttr": "aria-label",
   "superchatAmount": "#purchase-amount-chip #purchase-amount, #purchase-amount-chip, #purchase-amount",

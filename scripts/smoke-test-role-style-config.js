@@ -46,4 +46,27 @@ const disabled = compileRoleStyleToCssVariables({
 });
 assert(disabled.rootFlags['data-ovs-role-mod-enabled'] === 'false', 'mod disabled flag');
 
+// ── Member Tiers ────────────────────────────────────────────────────────────
+// (Membership Event Emphasis — per-event color/badge/glow for Hội viên mới /
+// Gia hạn / Tặng quà / Nhận quà — was removed entirely: no dashboard UI, no
+// role-level glow either. Member Tiers below is the one member-only override
+// mechanism left, and it still needs to compile correctly on its own.)
+const withTiers = mergeRoleStyleConfig(defaults, {
+  roles: {
+    member: {
+      enabled: true,
+      memberTiers: [{ id: 't1', minMonths: 6, color: '#ffd700', badge: '💎' }],
+    },
+  },
+});
+const tiersCompiled = compileRoleStyleToCssVariables(withTiers);
+assert(
+  tiersCompiled.vars['--ovs-role-member-tier-1-color'] === '#ffd700',
+  'memberTiers compiles correctly',
+);
+assert(
+  tiersCompiled.vars['--ovs-role-member-tier-1-badge-before-content'] === '"💎"',
+  'memberTiers badge compiles correctly',
+);
+
 console.log('[smoke:role-style] all checks passed');

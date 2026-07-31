@@ -7,7 +7,7 @@ const { attachWebSocketServer } = require('../main/server/ws-server');
 
 function getState() {
   return {
-    themeId: 'classic',
+    themeId: 'default',
     config: { fontSize: 16, textColor: '#EAECEF', bubbleBg: 'rgba(22,25,31,0.72)' },
   };
 }
@@ -35,7 +35,7 @@ async function main() {
   if (!overlayRes.body.includes('window.__OVS_INITIAL_STATE__')) {
     throw new Error('initial state placeholder not replaced correctly');
   }
-  if (!overlayRes.body.includes('"themeId":"classic"') && !overlayRes.body.includes('classic')) {
+  if (!overlayRes.body.includes('"themeId":"default"') && !overlayRes.body.includes('default')) {
     throw new Error('theme id missing from injected state');
   }
   console.log('[smoke] overlay HTML contains injected state ✔');
@@ -44,13 +44,9 @@ async function main() {
   console.log('[smoke] GET /overlay/overlay-client.js status:', clientJsRes.status);
   if (clientJsRes.status !== 200) throw new Error('overlay-client.js static serve failed');
 
-  const templateRes = await get(`http://127.0.0.1:${port}/themes/classic/template.html`);
-  console.log('[smoke] GET /themes/classic/template.html status:', templateRes.status);
-  if (templateRes.status !== 200) throw new Error('theme template static serve failed');
-
-  const styleRes = await get(`http://127.0.0.1:${port}/themes/classic/style.css`);
-  console.log('[smoke] GET /themes/classic/style.css status:', styleRes.status);
-  if (styleRes.status !== 200) throw new Error('theme style static serve failed');
+  const baseLayoutRes = await get(`http://127.0.0.1:${port}/overlay/base-layout.css`);
+  console.log('[smoke] GET /overlay/base-layout.css status:', baseLayoutRes.status);
+  if (baseLayoutRes.status !== 200) throw new Error('base-layout.css static serve failed');
 
   const badAvatarRes = await get(`http://127.0.0.1:${port}/avatar/proxy?url=https://evil.example/a.png`);
   console.log('[smoke] GET /avatar/proxy (blocked host) status:', badAvatarRes.status);

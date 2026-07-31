@@ -1,5 +1,15 @@
 import { useState } from 'react';
 import ColorPicker from './Customize/shared/ColorPicker.jsx';
+// Reused as-is from the Customize Inspector so Roles gets the exact same
+// collapsible-group chrome (border, disclosure caret, spacing) every other
+// Customize panel already uses — no parallel "Roles-only" accordion style.
+// We deliberately do NOT pull in useCustomizeState (the hook that normally
+// drives AccordionSection in the Inspector): that hook also owns
+// search/favorites machinery with no equivalent in Roles, so wiring it in
+// would import unrelated behavior along with the shell. A tiny local
+// open/close hook (useRoleAccordion below) drives the same component instead.
+import AccordionSection from './Customize/Inspector/AccordionSection.jsx';
+import { inputClass } from './Customize/shared/fields.jsx';
 import { useEditorState } from '../state/EditorStateContext.jsx';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -9,6 +19,16 @@ const ROLE_TABS = [
   { id: 'member', label: 'Hội viên', hint: 'Thành viên có badge kênh' },
   { id: 'superchat', label: 'Super Chat', hint: 'Tin nhắn trả phí / Super Chat' },
 ];
+
+// Shared across all three roles — Name Font Weight (Appearance) and the
+// Bubble shape/Emphasis defaults added on top of the existing color/badge
+// fields. null = inherit/no-override, same convention every other field
+// here already uses.
+const ROLE_EXTRA_DEFAULTS = {
+  authorFontWeight: null,
+  messageBorderWidth: null,
+  textScale: null,
+};
 
 const MOD_DEFAULTS = {
   enabled: true,
@@ -21,6 +41,7 @@ const MOD_DEFAULTS = {
   authorBg: null,
   messageTextColor: null,
   fontSize: null,
+  ...ROLE_EXTRA_DEFAULTS,
 };
 
 const MEMBER_DEFAULTS = {
@@ -34,6 +55,23 @@ const MEMBER_DEFAULTS = {
   messageBg: null,
   messageTextColor: null,
   fontSize: null,
+  ...ROLE_EXTRA_DEFAULTS,
+  // Member Tiers — same model as Super Chat's tier table (SUPERCHAT_TIER_TABLE
+  // in shared/chat-message.js), keyed by minMonths instead of minUsd. See
+  // shared/role-style-config.js#resolveMemberTier for the resolution logic.
+  memberTiers: [],
+  // Master on/off switch for Mốc tháng — keeps the tier list intact while
+  // toggled off, mirroring Super Chat's own useTierColor toggle.
+  memberTiersEnabled: true,
+  // Kiểu hiển thị khi gia hạn — layout riêng cho thông báo
+  // (membership_milestone), mặc định giống tin nhắn bình thường.
+  milestoneLayout: 'bubble',
+  // Dòng chữ "đã đồng hành N tháng" — luôn hiện cho sự kiện đăng ký mới /
+  // gia hạn / nhận quà tặng hội viên, kể cả khi sự kiện đó không có nội
+  // dung tin nhắn. {months} sẽ được thay bằng số tháng thực tế. Phải
+  // khớp DEFAULT_MEMBER_MILESTONE_TEXT trong shared/role-style-config.js.
+  milestoneText: 'đã hỗ trợ trong {months} tháng qua!!',
+  milestoneTextEnabled: true,
 };
 
 const SUPERCHAT_DEFAULTS = {
@@ -50,6 +88,7 @@ const SUPERCHAT_DEFAULTS = {
   authorColor: '#fde047',
   messageBg: 'linear-gradient(135deg, rgba(255, 202, 40, 0.28), rgba(22, 25, 31, 0.72))',
   messageBorderColor: 'rgba(255, 202, 40, 0.45)',
+  ...ROLE_EXTRA_DEFAULTS,
 };
 
 const ROLE_DEFAULTS_MAP = {
@@ -58,10 +97,63 @@ const ROLE_DEFAULTS_MAP = {
   superchat: SUPERCHAT_DEFAULTS,
 };
 
-// ─── Reusable UI helpers ─────────────────────────────────────────────────────
+// ─── Accordion state (mirrors useCustomizeState's isExpanded/toggleSection,
+// scoped to Roles only) ──────────────────────────────────────────────────────
+// Same storage-backed pattern the Customize Inspector uses for its own
+// AccordionSection state, kept local instead of shared because the two
+// panels have no other state in common (see import comment above).
 
-const inputClass =
-  'w-full rounded-lg bg-panelAlt border border-line px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-focusAccent';
+const ROLES_EXPANDED_KEY = 'ovs.roles.expanded';
+
+function loadRolesExpanded() {
+  try {
+    const raw = window.localStorage?.getItem(ROLES_EXPANDED_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRolesExpanded(value) {
+  try {
+    window.localStorage?.setItem(ROLES_EXPANDED_KEY, JSON.stringify(value));
+  } catch {
+    // Non-fatal — Roles tab still works, it just won't remember which
+    // group was open/closed between sessions.
+  }
+}
+
+function useRoleAccordion() {
+  const [expanded, setExpanded] = useState(loadRolesExpanded);
+
+  function isOpen(roleKey, sectionId, defaultOpen = true) {
+    const key = `${roleKey}:${sectionId}`;
+    return key in expanded ? expanded[key] : defaultOpen;
+  }
+
+  function toggle(roleKey, sectionId, defaultOpen = true) {
+    setExpanded((prev) => {
+      const key = `${roleKey}:${sectionId}`;
+      const next = { ...prev, [key]: !(key in prev ? prev[key] : defaultOpen) };
+      saveRolesExpanded(next);
+      return next;
+    });
+  }
+
+  return { isOpen, toggle };
+}
+
+/** AccordionSection lays its children out in a 2-column grid (right for the
+    Customize Inspector's small paired controls). Roles' controls skew wide
+    (gradient-capable color pickers, sliders, badge grids), so each group's
+    body is handed a single col-span-2 child that switches back to a plain
+    stacked column — reusing the accordion's chrome without forcing Roles'
+    content into a layout it wasn't designed for. */
+function AccordionBody({ children }) {
+  return <div className="col-span-2 flex flex-col gap-3 min-w-0">{children}</div>;
+}
+
+// ─── Reusable UI helpers ─────────────────────────────────────────────────────
 
 function SectionDivider({ label }) {
   return (
@@ -114,11 +206,11 @@ function Toggle({ checked, onChange, children }) {
   );
 }
 
-function SliderField({ label, min, max, value, onChange, unit = 'px', hint }) {
+function SliderField({ label, min, max, value, onChange, unit = 'px', hint, step = 1, defaultValue }) {
   const isCustom = typeof value === 'number';
   return (
     <Field label={label} hint={hint}>
-      <Toggle checked={isCustom} onChange={(v) => onChange(v ? min : null)}>
+      <Toggle checked={isCustom} onChange={(v) => onChange(v ? (defaultValue ?? min) : null)}>
         Đặt giá trị riêng
       </Toggle>
       {isCustom && (
@@ -127,6 +219,7 @@ function SliderField({ label, min, max, value, onChange, unit = 'px', hint }) {
             type="range"
             min={min}
             max={max}
+            step={step}
             value={value}
             onChange={(e) => onChange(Number(e.target.value))}
             className="flex-1 accent-focusAccent"
@@ -164,6 +257,73 @@ function BadgeFields({ badgeBefore, badgeAfter, onChange }) {
         />
       </Field>
     </div>
+  );
+}
+
+/** Generic segmented button control — same visual pattern Super Chat's
+    "Độ đậm số tiền" / "Kiểu hiển thị" pickers already use (active = filled
+    focusAccent pill), pulled out here so Name Font Weight and Glow don't
+    each hand-roll their own copy of that button row. `value` matches an
+    option's `value` exactly; passing `null`/`undefined` matches nothing
+    (every caller here treats that as "off"/"unset" and supplies its own
+    fallback option value, e.g. 'off' or a specific weight). */
+function ButtonGroup({ options, value, onChange }) {
+  return (
+    <div className="flex gap-1.5">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors border ${
+            value === opt.value
+              ? 'bg-focusAccent text-white border-focusAccent'
+              : 'bg-panelAlt border-line text-inkMuted hover:text-ink'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Name Font Weight — same three options/values as Super Chat's existing
+// amountFontWeight (WEIGHT_OPTIONS below), reused here for authorFontWeight
+// so every role's Name uses the same weight vocabulary the amount already does.
+const NAME_WEIGHT_OPTIONS = [
+  { value: 'normal', label: 'Thường' },
+  { value: 'bold', label: 'Đậm' },
+  { value: 'extrabold', label: 'Rất đậm' },
+];
+
+/** Appearance additions shared by all three roles: Name → Font Weight.
+    (Bubble → Border/Opacity controls removed; Background Color and
+    Border Color are still the existing messageBg/messageBorderColor
+    ColorFields around this component's call site — not duplicated here.) */
+function ExtraAppearanceFields({ role, set }) {
+  return (
+    <>
+      <Field label="Độ đậm tên (Font Weight)">
+        <ButtonGroup
+          options={NAME_WEIGHT_OPTIONS}
+          value={role.authorFontWeight || 'normal'}
+          onChange={(v) => set({ authorFontWeight: v === 'normal' ? null : v })}
+        />
+      </Field>
+
+      <SliderField
+        label="Phóng to chữ"
+        min={0.8}
+        max={2}
+        step={0.05}
+        unit="x"
+        value={role.textScale}
+        onChange={(v) => set({ textScale: v })}
+        defaultValue={1.15}
+        hint="Chỉ phóng to chữ (tên & nội dung), không đổi font."
+      />
+    </>
   );
 }
 
@@ -209,6 +369,12 @@ const EMPTY_ROLE = {
   badgeAfter: null,
   showAmount: null,
   fontSize: null,
+  ...ROLE_EXTRA_DEFAULTS,
+  memberTiers: [],
+  memberTiersEnabled: true,
+  milestoneLayout: 'bubble',
+  milestoneText: 'đã hỗ trợ trong {months} tháng qua!!',
+  milestoneTextEnabled: true,
 };
 
 function mergeLocalRole(roleStyleConfig, roleKey) {
@@ -220,9 +386,14 @@ function mergeLocalRole(roleStyleConfig, roleKey) {
 
 // ─── MODERATOR EDITOR ────────────────────────────────────────────────────────
 
-function ModeratorEditor({ role, onChange }) {
+function ModeratorEditor({ role, onChange, accordion }) {
   const set = (patch) => onChange('moderator', { ...role, ...patch });
   const enabled = role.enabled !== false;
+  const roleKey = 'moderator';
+  const sec = (id) => ({
+    open: accordion.isOpen(roleKey, id, true),
+    onToggle: () => accordion.toggle(roleKey, id, true),
+  });
 
   return (
     <div className="flex flex-col gap-3">
@@ -242,57 +413,54 @@ function ModeratorEditor({ role, onChange }) {
 
       {enabled && (
         <>
-          <SectionDivider label="Màu sắc" />
-          <ColorField
-            label="Màu tên"
-            value={role.authorColor}
-            onChange={(v) => set({ authorColor: v })}
-            allowGradient={false}
-          />
-          <ColorField
-            label="Nền bubble tên"
-            value={role.authorBg}
-            onChange={(v) => set({ authorBg: v })}
-            hint="Hiển thị pill nền đằng sau tên."
-          />
-          <ColorField
-            label="Nền bubble chat"
-            value={role.messageBg}
-            onChange={(v) => set({ messageBg: v })}
-          />
-          <ColorField
-            label="Màu chữ chat"
-            value={role.messageTextColor}
-            onChange={(v) => set({ messageTextColor: v })}
-            allowGradient={false}
-          />
-          <ColorField
-            label="Màu tai thỏ"
-            value={role.earColor}
-            onChange={(v) => set({ earColor: v })}
-            hint="Nếu để mặc định, tai thỏ sẽ theo màu bubble."
-          />
+          <AccordionSection id="section-moderator-appearance" title="Hình thức (Appearance)" {...sec('appearance')}>
+            <AccordionBody>
+              <SectionDivider label="Màu sắc" />
+              <ColorField
+                label="Màu tên"
+                value={role.authorColor}
+                onChange={(v) => set({ authorColor: v })}
+                allowGradient={false}
+              />
+              <ColorField
+                label="Nền bubble tên"
+                value={role.authorBg}
+                onChange={(v) => set({ authorBg: v })}
+                hint="Hiển thị pill nền đằng sau tên."
+              />
+              <ColorField
+                label="Nền bubble chat"
+                value={role.messageBg}
+                onChange={(v) => set({ messageBg: v })}
+              />
+              <ColorField
+                label="Màu chữ chat"
+                value={role.messageTextColor}
+                onChange={(v) => set({ messageTextColor: v })}
+                allowGradient={false}
+              />
+              <ColorField
+                label="Màu tai thỏ"
+                value={role.earColor}
+                onChange={(v) => set({ earColor: v })}
+                hint="Nếu để mặc định, tai thỏ sẽ theo màu bubble."
+              />
 
-          <SectionDivider label="Badge & chữ" />
-          <BadgeFields
-            badgeBefore={role.badgeBefore}
-            badgeAfter={role.badgeAfter}
-            onChange={set}
-          />
-          <SliderField
-            label="Cỡ chữ chat riêng"
-            min={10}
-            max={32}
-            value={role.fontSize}
-            onChange={(v) => set({ fontSize: v })}
-            hint="Tên và badge sẽ tự co giãn theo tỉ lệ."
-          />
+              <ExtraAppearanceFields role={role} set={set} />
 
-          <SectionDivider label="" />
+              <SectionDivider label="Badge & chữ" />
+              <BadgeFields
+                badgeBefore={role.badgeBefore}
+                badgeAfter={role.badgeAfter}
+                onChange={set}
+              />
+            </AccordionBody>
+          </AccordionSection>
+
           <button
             type="button"
             onClick={() => set({ ...MOD_DEFAULTS, enabled: true })}
-            className="text-xs text-inkMuted/60 hover:text-inkMuted underline text-left"
+            className="text-xs text-inkMuted/60 hover:text-inkMuted underline text-left mt-1"
           >
             Đặt lại về mặc định
           </button>
@@ -302,11 +470,154 @@ function ModeratorEditor({ role, onChange }) {
   );
 }
 
+// ─── MEMBER TIER EDITOR ("Mốc tháng") ──────────────────────────────────────
+// Reuses the same building blocks (Field, ColorField, inputClass, Toggle)
+// the Super Chat tab's controls are built from — Super Chat's own tier
+// table (SUPERCHAT_TIER_TABLE) is a fixed constant with no editor UI of its
+// own (only the read-only TierColorPreview above), so there's no existing
+// editable tier-list component to import; this is that same editable-list
+// pattern, applied to shared/role-style-config.js's memberTiers instead of
+// duplicating a second, unrelated list-editing approach.
+
+function generateMemberTierId() {
+  return `tier-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function MemberTierRow({ tier, onChange, onRemove }) {
+  return (
+    <div className="rounded-lg bg-panelAlt border border-line p-3 flex flex-col gap-2">
+      <div className="flex items-start gap-2">
+        <div className="flex-1">
+          <Field label="Số tháng tối thiểu" hint="Áp dụng cho hội viên gắn bó từ mốc này trở lên">
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={tier.minMonths ?? 0}
+              onChange={(e) => onChange({ minMonths: Math.max(0, Number(e.target.value) || 0) })}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="shrink-0 mt-5 text-xs text-red-400 hover:text-red-300 underline"
+        >
+          Xoá
+        </button>
+      </div>
+
+      <ColorField
+        label="Màu tier"
+        value={tier.color}
+        onChange={(v) => onChange({ color: v })}
+        allowGradient={false}
+        hint="Áp dụng cho màu tên và viền bubble khi hội viên đạt mốc này."
+      />
+
+      <Field label="Badge" hint="Để trống = không hiện">
+        <input
+          type="text"
+          value={tier.badge ?? ''}
+          placeholder="★, 💎, VIP…"
+          onChange={(e) => onChange({ badge: e.target.value || null })}
+          className={inputClass}
+          maxLength={8}
+        />
+      </Field>
+    </div>
+  );
+}
+
+function MemberTierEditor({ tiers, onChange, disabled }) {
+  const list = Array.isArray(tiers) ? tiers : [];
+  // Highest mốc first — same display order Super Chat's TierColorPreview
+  // uses (highest tier at top), and the order shared/role-style-config.js's
+  // normalizeMemberTiers()/resolveMemberTier() sort into anyway.
+  const sorted = [...list].sort((a, b) => (b.minMonths || 0) - (a.minMonths || 0));
+
+  const updateTier = (id, patch) => {
+    onChange(list.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  };
+  const removeTier = (id) => {
+    onChange(list.filter((t) => t.id !== id));
+  };
+  const addTier = () => {
+    onChange([
+      ...list,
+      { id: generateMemberTierId(), minMonths: 1, color: '#93c5fd', badge: '★' },
+    ]);
+  };
+
+  return (
+    <div className={`flex flex-col gap-2 ${disabled ? 'opacity-45 pointer-events-none' : ''}`}>
+      {sorted.length === 0 ? (
+        <div className="rounded-lg bg-panelAlt border border-line px-3 py-2">
+          <span className="text-[10px] text-inkMuted/80 leading-snug">
+            Chưa có mốc tháng nào — mọi hội viên dùng chung màu/badge ở phần Màu sắc/Badge bên trên.
+          </span>
+        </div>
+      ) : (
+        sorted.map((tier) => (
+          <MemberTierRow
+            key={tier.id}
+            tier={tier}
+            onChange={(patch) => updateTier(tier.id, patch)}
+            onRemove={() => removeTier(tier.id)}
+          />
+        ))
+      )}
+      <button
+        type="button"
+        onClick={addTier}
+        className="w-full rounded-lg border border-dashed border-focusAccent/50 py-2 text-xs text-focusAccent hover:bg-focusAccent/10 transition-colors"
+      >
+        + Thêm mốc tháng
+      </button>
+    </div>
+  );
+}
+
+// NOTE: Membership Event Emphasis (per-event color/badge/glow for Hội viên
+// mới / Gia hạn / Tặng quà / Nhận quà) has been removed entirely — event
+// detection wasn't reliable and the feature had no dashboard UI, so those
+// messages now just inherit the Hội viên role's own Appearance + Mốc tháng
+// styling above. shared/role-style-config.js no longer has a memberEvents
+// concept at all (removed, not just hidden) — configs saved before this
+// change that still carry a memberEvents block simply have it ignored.
+
 // ─── MEMBER EDITOR ───────────────────────────────────────────────────────────
 
-function MemberEditor({ role, onChange }) {
+// Same two options as Super Chat's LAYOUT_OPTIONS (below) — kept as its
+// own constant (not shared) because the copy is milestone-specific, but
+// the value set is identical: 'bubble' (default) or 'youtube'.
+const MILESTONE_LAYOUT_OPTIONS = [
+  {
+    value: 'bubble',
+    label: 'Bubble thường',
+    desc: 'Giống tin nhắn hội viên bình thường, không có gì đặc biệt',
+  },
+  {
+    value: 'highlight',
+    label: '✨ Bubble nổi bật',
+    desc: 'Vẫn là bubble bình thường nhưng viền phát sáng, có bóng đổ rực và hơi phóng to + nhấp nháy nhẹ — nổi bật giữa dòng chat mà không đổi hẳn sang layout khác',
+  },
+  {
+    value: 'youtube',
+    label: 'Kiểu YouTube',
+    desc: 'Card 2 tầng nổi bật: avatar + tên + số tháng trên nền màu Mốc tháng, tin nhắn bên dưới',
+  },
+];
+
+function MemberEditor({ role, onChange, accordion }) {
   const set = (patch) => onChange('member', { ...role, ...patch });
   const enabled = role.enabled !== false;
+  const roleKey = 'member';
+  const sec = (id) => ({
+    open: accordion.isOpen(roleKey, id, true),
+    onToggle: () => accordion.toggle(roleKey, id, true),
+  });
 
   return (
     <div className="flex flex-col gap-3">
@@ -326,57 +637,132 @@ function MemberEditor({ role, onChange }) {
 
       {enabled && (
         <>
-          <SectionDivider label="Màu sắc" />
-          <ColorField
-            label="Màu tên"
-            value={role.authorColor}
-            onChange={(v) => set({ authorColor: v })}
-            allowGradient={false}
-          />
-          <ColorField
-            label="Nền bubble tên"
-            value={role.authorBg}
-            onChange={(v) => set({ authorBg: v })}
-            hint="Hiển thị pill nền đằng sau tên."
-          />
-          <ColorField
-            label="Nền bubble chat"
-            value={role.messageBg}
-            onChange={(v) => set({ messageBg: v })}
-          />
-          <ColorField
-            label="Màu chữ chat"
-            value={role.messageTextColor}
-            onChange={(v) => set({ messageTextColor: v })}
-            allowGradient={false}
-          />
-          <ColorField
-            label="Màu tai thỏ"
-            value={role.earColor}
-            onChange={(v) => set({ earColor: v })}
-            hint="Nếu để mặc định, tai thỏ sẽ theo màu bubble."
-          />
+          <AccordionSection id="section-member-appearance" title="Hình thức (Appearance)" {...sec('appearance')}>
+            <AccordionBody>
+              <SectionDivider label="Màu sắc" />
+              <ColorField
+                label="Màu tên"
+                value={role.authorColor}
+                onChange={(v) => set({ authorColor: v })}
+                allowGradient={false}
+              />
+              <ColorField
+                label="Nền bubble tên"
+                value={role.authorBg}
+                onChange={(v) => set({ authorBg: v })}
+                hint="Hiển thị pill nền đằng sau tên."
+              />
+              <ColorField
+                label="Nền bubble chat"
+                value={role.messageBg}
+                onChange={(v) => set({ messageBg: v })}
+              />
+              <ColorField
+                label="Màu chữ chat"
+                value={role.messageTextColor}
+                onChange={(v) => set({ messageTextColor: v })}
+                allowGradient={false}
+              />
+              <ColorField
+                label="Màu tai thỏ"
+                value={role.earColor}
+                onChange={(v) => set({ earColor: v })}
+                hint="Nếu để mặc định, tai thỏ sẽ theo màu bubble."
+              />
 
-          <SectionDivider label="Badge & chữ" />
-          <BadgeFields
-            badgeBefore={role.badgeBefore}
-            badgeAfter={role.badgeAfter}
-            onChange={set}
-          />
-          <SliderField
-            label="Cỡ chữ chat riêng"
-            min={10}
-            max={32}
-            value={role.fontSize}
-            onChange={(v) => set({ fontSize: v })}
-            hint="Tên và badge sẽ tự co giãn theo tỉ lệ."
-          />
+              <ExtraAppearanceFields role={role} set={set} />
 
-          <SectionDivider label="" />
+              <SectionDivider label="Badge & chữ" />
+              <BadgeFields
+                badgeBefore={role.badgeBefore}
+                badgeAfter={role.badgeAfter}
+                onChange={set}
+              />
+            </AccordionBody>
+          </AccordionSection>
+
+          <AccordionSection id="section-member-tiers" title="🏆 Mốc tháng" {...sec('tiers')}>
+            <AccordionBody>
+              {/* ── Mốc tháng (Member Tiers) ──
+                  Cùng kiến trúc với Super Chat Tier: mỗi mốc gồm Minimum
+                  Months, Color, Badge — mốc cao nhất mà hội viên đạt được
+                  sẽ được áp dụng, giống cách Super Chat chọn tier theo số
+                  tiền.
+
+                  Sự kiện Hội viên (thông báo riêng cho Hội viên mới / Gia
+                  hạn / Tặng quà / Nhận quà) đã được bỏ khỏi giao diện: việc
+                  bắt sự kiện trước đây không ổn định, nên hội viên chat và
+                  các thông báo membership giờ dùng chung style của vai trò
+                  Hội viên ở trên (Hình thức + Mốc tháng) thay vì một bộ
+                  cấu hình riêng — NGOẠI TRỪ Banner gia hạn bên dưới, dùng
+                  riêng cho membership_milestone. */}
+              <Toggle
+                checked={role.memberTiersEnabled !== false}
+                onChange={(v) => set({ memberTiersEnabled: v })}
+              >
+                Bật Mốc tháng
+              </Toggle>
+              <span className="text-[10px] text-inkMuted/70 leading-snug">
+                Đổi màu & badge riêng theo số tháng hội viên đã gắn bó — mốc cao nhất mà họ đạt được sẽ được dùng, giống cách Super Chat đổi màu theo tier số tiền. Tắt tạm thời sẽ giữ nguyên danh sách mốc đã tạo, hội viên sẽ dùng chung màu/badge ở phần Hình thức bên trên.
+              </span>
+              <MemberTierEditor
+                tiers={role.memberTiers}
+                onChange={(memberTiers) => set({ memberTiers })}
+                disabled={role.memberTiersEnabled === false}
+              />
+
+              <SectionDivider label="Thông báo gia hạn" />
+              <Field label="Kiểu hiển thị khi gia hạn">
+                <div className="flex flex-col gap-2">
+                  {MILESTONE_LAYOUT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => set({ milestoneLayout: opt.value })}
+                      className={`w-full rounded-lg px-3 py-2.5 text-left transition-colors border ${
+                        (role.milestoneLayout || 'bubble') === opt.value
+                          ? 'bg-focusAccent/15 border-focusAccent/60 text-ink'
+                          : 'bg-panelAlt border-line text-inkMuted hover:text-ink hover:bg-line/30'
+                      }`}
+                    >
+                      <div className="text-xs font-semibold">{opt.label}</div>
+                      <div className="text-[10px] opacity-75 mt-0.5">{opt.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <span className="text-[10px] text-inkMuted/70 leading-snug">
+                Khi hội viên gia hạn (thông báo "đã gắn bó N tháng"), tin nhắn sẽ dùng kiểu hiển thị này — với màu lấy theo Mốc tháng ở trên (mốc mà họ vừa đạt được).
+              </span>
+
+              <SectionDivider label="Dòng chữ số tháng" />
+              <Toggle
+                checked={role.milestoneTextEnabled !== false}
+                onChange={(v) => set({ milestoneTextEnabled: v })}
+              >
+                Luôn hiện dòng chữ số tháng
+              </Toggle>
+              <span className="text-[10px] text-inkMuted/70 leading-snug">
+                Khi hội viên đăng ký mới / gia hạn / nhận quà tặng, dòng chữ này luôn hiện — kể cả khi sự kiện đó không có nội dung tin nhắn gì. Dùng <code>{'{months}'}</code> để chèn số tháng.
+              </span>
+              <Field label="Nội dung">
+                <input
+                  type="text"
+                  value={role.milestoneText ?? ''}
+                  placeholder="đã hỗ trợ trong {months} tháng qua!!"
+                  onChange={(e) => set({ milestoneText: e.target.value || null })}
+                  className={inputClass}
+                  maxLength={80}
+                  disabled={role.milestoneTextEnabled === false}
+                />
+              </Field>
+            </AccordionBody>
+          </AccordionSection>
+
           <button
             type="button"
             onClick={() => set({ ...MEMBER_DEFAULTS, enabled: true })}
-            className="text-xs text-inkMuted/60 hover:text-inkMuted underline text-left"
+            className="text-xs text-inkMuted/60 hover:text-inkMuted underline text-left mt-1"
           >
             Đặt lại về mặc định
           </button>
@@ -401,9 +787,9 @@ const LAYOUT_OPTIONS = [
     desc: 'Giống tin nhắn bình thường, chỉ màu khác theo tier',
   },
   {
-    value: 'banner',
-    label: 'Banner nổi bật',
-    desc: 'Số tiền nổi bật ở trên, tin nhắn bên dưới, viền accent',
+    value: 'highlight',
+    label: '✨ Bubble nổi bật',
+    desc: 'Vẫn là bubble bình thường nhưng viền phát sáng, có bóng đổ rực và hơi phóng to + nhấp nháy nhẹ — nổi bật giữa dòng chat mà không đổi hẳn sang layout khác',
   },
   {
     value: 'youtube',
@@ -412,10 +798,15 @@ const LAYOUT_OPTIONS = [
   },
 ];
 
-function SuperchatEditor({ role, onChange }) {
+function SuperchatEditor({ role, onChange, accordion }) {
   const set = (patch) => onChange('superchat', { ...role, ...patch });
   const enabled = role.enabled !== false;
   const useTierColor = role.useTierColor !== false;
+  const roleKey = 'superchat';
+  const sec = (id) => ({
+    open: accordion.isOpen(roleKey, id, true),
+    onToggle: () => accordion.toggle(roleKey, id, true),
+  });
 
   return (
     <div className="flex flex-col gap-3">
@@ -425,6 +816,8 @@ function SuperchatEditor({ role, onChange }) {
 
       {enabled && (
         <>
+          <AccordionSection id="section-superchat-appearance" title="Hình thức (Appearance)" {...sec('appearance')}>
+            <AccordionBody>
           {/* ── SECTION 1: Màu theo tier ── */}
           <SectionDivider label="🎨 Màu sắc" />
 
@@ -486,7 +879,20 @@ function SuperchatEditor({ role, onChange }) {
             hint="Nếu để mặc định, tai thỏ sẽ theo màu bubble."
           />
 
-          {/* ── SECTION 2: Số tiền ── */}
+          <ExtraAppearanceFields role={role} set={set} />
+
+              <SectionDivider label="Badge & chữ" />
+              <BadgeFields
+                badgeBefore={role.badgeBefore}
+                badgeAfter={role.badgeAfter}
+                onChange={set}
+              />
+            </AccordionBody>
+          </AccordionSection>
+
+          <AccordionSection id="section-superchat-emphasis" title="Nhấn mạnh (Emphasis)" {...sec('emphasis')}>
+            <AccordionBody>
+          {/* ── SECTION: Số tiền ── */}
           <SectionDivider label="💰 Số tiền" />
 
           <Toggle checked={role.showAmount !== false} onChange={(v) => set({ showAmount: v })}>
@@ -555,8 +961,8 @@ function SuperchatEditor({ role, onChange }) {
             </>
           )}
 
-          {/* ── SECTION 3: Layout & Badge ── */}
-          <SectionDivider label="🎭 Layout & Badge" />
+          {/* ── SECTION 3: Layout ── */}
+          <SectionDivider label="🎭 Kiểu hiển thị" />
 
           <Field label="Kiểu hiển thị Super Chat">
             <div className="flex flex-col gap-2">
@@ -577,27 +983,13 @@ function SuperchatEditor({ role, onChange }) {
               ))}
             </div>
           </Field>
+            </AccordionBody>
+          </AccordionSection>
 
-          <BadgeFields
-            badgeBefore={role.badgeBefore}
-            badgeAfter={role.badgeAfter}
-            onChange={set}
-          />
-
-          <SliderField
-            label="Cỡ chữ tên riêng"
-            min={10}
-            max={32}
-            value={role.fontSize}
-            onChange={(v) => set({ fontSize: v })}
-            hint="Áp dụng cho tên tác giả. Badge co giãn tỉ lệ theo."
-          />
-
-          <SectionDivider label="" />
           <button
             type="button"
             onClick={() => set({ ...SUPERCHAT_DEFAULTS, enabled: true })}
-            className="text-xs text-inkMuted/60 hover:text-inkMuted underline text-left"
+            className="text-xs text-inkMuted/60 hover:text-inkMuted underline text-left mt-1"
           >
             Đặt lại về mặc định
           </button>
@@ -616,6 +1008,7 @@ export default function RoleStylesPanel() {
 
   const activeTab = ROLE_TABS.find((t) => t.id === tab) || ROLE_TABS[0];
   const activeRole = mergeLocalRole(local, tab);
+  const accordion = useRoleAccordion();
 
   return (
     <section className="rounded-xl border border-line bg-panel p-4 flex flex-col gap-3">
@@ -626,35 +1019,64 @@ export default function RoleStylesPanel() {
         </p>
       </div>
 
-      {/* Tab bar */}
+      {/* ── Role List ──
+          Chọn Vai trò trước — mỗi nút có chấm màu phản ánh màu tên hiện tại
+          của vai trò đó (mờ đi nếu vai trò đang tắt), để nhận diện nhanh
+          không cần mở từng tab. */}
       <div className="flex gap-1 p-1 rounded-lg bg-panelAlt border border-line">
-        {ROLE_TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors ${
-              tab === t.id
-                ? 'bg-focusAccent text-white shadow-sm'
-                : 'text-inkMuted hover:text-ink hover:bg-line/40'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+        {ROLE_TABS.map((t) => {
+          const r = mergeLocalRole(local, t.id);
+          const dotColor = r.authorColor || ROLE_DEFAULTS_MAP[t.id]?.authorColor || '#9aa0a6';
+          const roleEnabled = r.enabled !== false;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              title={t.hint}
+              className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors ${
+                tab === t.id
+                  ? 'bg-focusAccent text-white shadow-sm'
+                  : 'text-inkMuted hover:text-ink hover:bg-line/40'
+              }`}
+            >
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ background: dotColor, opacity: roleEnabled ? 1 : 0.35 }}
+              />
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       <p className="text-[11px] text-inkMuted/90 -mt-1">{activeTab.hint}</p>
 
+      {/* ── Appearance + Emphasis ── each editor renders exactly these two
+          accordion groups so switching roles never reshuffles the layout. */}
       {tab === 'moderator' && (
-        <ModeratorEditor role={activeRole} onChange={pushRoleUpdate} />
+        <ModeratorEditor role={activeRole} onChange={pushRoleUpdate} accordion={accordion} />
       )}
       {tab === 'member' && (
-        <MemberEditor role={activeRole} onChange={pushRoleUpdate} />
+        <MemberEditor role={activeRole} onChange={pushRoleUpdate} accordion={accordion} />
       )}
       {tab === 'superchat' && (
-        <SuperchatEditor role={activeRole} onChange={pushRoleUpdate} />
+        <SuperchatEditor role={activeRole} onChange={pushRoleUpdate} accordion={accordion} />
       )}
+
+      {/* ── Live Preview ──
+          The overlay preview is already the app's own always-visible middle
+          column (see App.jsx → ChatPreview) fed by the same roleLocal state
+          this panel writes to via pushRoleUpdate — every change above is
+          already live there with no Apply step and no overlay reload. A
+          second preview widget in this panel would just be a duplicate of
+          that iframe, so this is a pointer to it rather than a new one. */}
+      <div className="rounded-lg bg-panelAlt border border-line px-3 py-2 flex items-center gap-2">
+        <span className="text-sm">👁</span>
+        <span className="text-[11px] text-inkMuted/80 leading-snug">
+          Thay đổi ở trên cập nhật ngay trong khung <strong className="text-inkMuted">Xem trước trực tiếp</strong> (giữa màn hình) — không cần Apply, không cần reload overlay.
+        </span>
+      </div>
     </section>
   );
 }

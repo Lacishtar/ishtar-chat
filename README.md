@@ -68,7 +68,7 @@ Khi ứng dụng mở ra, dán link livestream dạng `youtube.com/watch?v=...`,
 
 ---
 
-## 9 Theme tích hợp sẵn
+## 18 Theme tích hợp sẵn
 
 | Theme | Phong cách thiết kế |
 |---|---|
@@ -76,11 +76,13 @@ Khi ứng dụng mở ra, dán link livestream dạng `youtube.com/watch?v=...`,
 | `minimal-white` | Tối giản sáng — Chữ tối trên nền bubble trắng, lược bỏ avatar |
 | `minimal-dark` | Tối giản tối — Chữ sáng trên nền bong bóng tối mờ |
 | `discord` | Discord Dark — Thiết kế lấy cảm hứng từ Discord với màu xanh Blurple |
-| `cyber-neon` | Cyberpunk Neon — Khung phát sáng neon cyan/magenta, font chữ monospace |
 | `pastel-pink` | Pastel Pink — Tông màu hồng phấn nhẹ nhàng, bo góc tròn rộng |
 | `glassmorphism` | Kính mờ — Hiệu ứng Blur kính xuyên thấu thời thượng, viền sáng mảnh |
 | `cute-bubble` | Bong bóng tròn — Kiểu bong bóng chat tinh nghịch kèm hiệu ứng xuất hiện nảy (bounce) |
 | `anime` | Sakura Anime — Tông hồng đào ngọt ngào thích hợp cho các VTuber |
+| `karaoke` | Karaoke Night — Chat bay theo kiểu Danmaku, viền neon hồng/tím, chừa chỗ cho phụ đề lời bài hát (không có idle animation) |
+| `ticker-news` | Ticker News — Chat chạy theo kiểu Chat Ticker "breaking news", nền trắng chữ đỏ/đen sắc nét |
+| `edgy` | Edgy — Hào quang vàng của thánh thần va chạm ánh đỏ quỷ dữ trên nền đen tuyền, góc bo cực gắt |
 
 ---
 

@@ -272,7 +272,7 @@ function resetAriaAttributes(node) {
 // whatever it was the very first time this node was seen (its theme-
 // template baseline, captured by captureBubbleBaseline() before this node
 // was ever built), stripping every ovs-moderator / ovs-member /
-// ovs-superchat* / ovs-event-* / ovs-superchat-banner / -youtube class the
+// ovs-superchat* / ovs-event-* / ovs-superchat-youtube class the
 // build path added. Falls back to the current className on the (should-
 // never-happen) chance a node reaches release() without ever having gone
 // through captureBubbleBaseline() — better to no-op than to blank the row

@@ -4,13 +4,13 @@
 // All actual logic lives in ./modules/*.js — this file only orchestrates
 // the startup sequence, same shape as before but split by concern.
 
-import { state, listEl, themeStyleEl, initialHistory } from './modules/state.js';
+import { state, listEl, messageTemplateEl, initialHistory } from './modules/state.js';
 import { loadTheme, applyThemePayload } from './modules/theme-loader.js';
 import { connectSocket } from './modules/socket.js';
 import { bubblePoolManager } from './modules/pool/PoolManager.js';
 
-if (!listEl || !themeStyleEl) {
-  console.error('[ovs] overlay markup missing #ovs-chat-list or #ovs-theme-style');
+if (!listEl || !messageTemplateEl) {
+  console.error('[ovs] overlay markup missing #ovs-chat-list or #ovs-message-template');
 } else {
   loadTheme(state.currentTheme).then((ok) => {
     if (!ok) return;

@@ -1,49 +1,26 @@
-const fs = require('fs');
-const path = require('path');
-const { loadThemeDocument } = require('../theme-engine');
-const { readThemeConfig, THEMES_DIR } = require('../theme-registry');
-const { DEFAULT_CUSTOMIZE_CONFIG, sanitizeThemeDefaults } = require('../../shared/customize-config');
-const { mergeLayoutConfig } = require('../../shared/layout-config');
-const { DEFAULT_SLOT_STYLE_CONFIG, mergeSlotStyleConfig } = require('../../shared/slot-style-config');
-const { DEFAULT_ANIMATION_CONFIG, mergeAnimationConfig } = require('../../shared/animation-config');
-const { DEFAULT_DECORATION_CONFIG, mergeDecorationConfig } = require('../../shared/decoration-config');
-const { DEFAULT_ROLE_STYLE_CONFIG, mergeRoleStyleConfig } = require('../../shared/role-style-config');
+const { LoadTheme } = require('../../shared/theme-manager');
 
-function readThemeOptionalJson(themeId, filename) {
-  try {
-    return JSON.parse(fs.readFileSync(path.join(THEMES_DIR, themeId, filename), 'utf-8'));
-  } catch (_err) {
-    return null;
-  }
-}
+const FALLBACK_THEME_ID = 'default';
 
 /**
- * Loads customize + layout from themes/<id>/ on disk — source of truth.
+ * Resolves the full config-store shape for a theme id, sourced entirely
+ * from shared/theme-presets/ (index.js + themes/*.js) via shared/theme-manager.js#LoadTheme — the
+ * single source of truth for both the theme picker (theme:list/theme:apply)
+ * and app boot / theme:reset-preset. Falls back to FALLBACK_THEME_ID for an
+ * unknown/missing id.
  */
 function resolveThemeState(themeId) {
-  const fallbackThemeId = 'classic';
-  const resolvedThemeId = (themeId && fs.existsSync(path.join(THEMES_DIR, themeId, 'template.html'))) ? themeId : fallbackThemeId;
-  const themeDefaults = sanitizeThemeDefaults(readThemeConfig(resolvedThemeId));
+  const resolvedThemeId = LoadTheme(themeId) ? themeId : FALLBACK_THEME_ID;
+  const theme = LoadTheme(resolvedThemeId);
 
-  let themeDoc;
-  try {
-    themeDoc = loadThemeDocument(resolvedThemeId);
-  } catch (err) {
-    console.warn(`[theme-state] falling back to '${fallbackThemeId}' for missing theme '${themeId}':`, err.message);
-    themeDoc = loadThemeDocument(fallbackThemeId);
-  }
-
-  const layoutPreset = readThemeOptionalJson(resolvedThemeId, 'layout-config.json');
-  const slotStylePreset = readThemeOptionalJson(resolvedThemeId, 'slot-style-config.json');
-  const decorationPreset = readThemeOptionalJson(resolvedThemeId, 'decoration-config.json');
   return {
     selectedTheme: resolvedThemeId,
-    customizeConfig: { ...DEFAULT_CUSTOMIZE_CONFIG, ...themeDefaults },
-    layoutConfig: mergeLayoutConfig(themeDoc.layout.settings, layoutPreset),
-    slotStyleConfig: mergeSlotStyleConfig(DEFAULT_SLOT_STYLE_CONFIG, slotStylePreset),
-    animationConfig: mergeAnimationConfig(DEFAULT_ANIMATION_CONFIG),
-    decorationConfig: mergeDecorationConfig(DEFAULT_DECORATION_CONFIG, decorationPreset),
-    roleStyleConfig: mergeRoleStyleConfig(DEFAULT_ROLE_STYLE_CONFIG),
+    customizeConfig: theme.customizeConfig,
+    layoutConfig: theme.layoutConfig,
+    slotStyleConfig: theme.slotStyleConfig,
+    animationConfig: theme.animationConfig,
+    decorationConfig: theme.decorationConfig,
+    roleStyleConfig: theme.roleStyleConfig,
   };
 }
 

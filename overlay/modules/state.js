@@ -9,7 +9,7 @@
 const initial = window.__OVS_INITIAL_STATE__ || {};
 
 export const state = {
-  currentTheme: initial.theme || initial.themeId || 'classic',
+  currentTheme: initial.theme || initial.themeId || 'default',
   currentConfig: initial.config || {},
   currentLayout: initial.layoutConfig || {},
   currentSlotStyle: initial.slotStyleConfig || {},
@@ -32,7 +32,7 @@ export const state = {
 export const initialHistory = initial.history;
 
 export const listEl = document.getElementById('ovs-chat-list');
-export const themeStyleEl = document.getElementById('ovs-theme-style');
+export const messageTemplateEl = document.getElementById('ovs-message-template');
 
 // 'stack' is the normal chat feed (bubbles stack up/down per
 // currentConfig.position). 'danmaku' flies each message across the screen
