@@ -33,7 +33,7 @@ function snapshotText(msg) {
   return {
     author: msg.author,
     messageHtml: msg.messageHtml,
-    badges: (msg.badges || []).join('|'),
+    membershipTierName: msg.membershipTierName || '',
   };
 }
 

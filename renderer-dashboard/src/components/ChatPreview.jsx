@@ -1,24 +1,33 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { inputClass } from './Customize/shared/fields.jsx';
 
-// Common OBS canvas / Browser Source resolutions. The point of all this is
-// to render the overlay's iframe at the SAME pixel size a real OBS Browser
-// Source would use, then visually scale that down to fit the dashboard
-// panel — rather than letting the iframe stretch to whatever width the
-// panel happens to be. The overlay leans on vw/vh and % positioning
-// (danmaku lanes, layout margins, ...), so previewing at the panel's own
-// (arbitrary, resizable) size gives numbers that don't match what OBS will
-// actually show once it's rendering at a fixed 1920x1080 (or whatever the
-// user's Browser Source is really configured as).
+// The point of all this is to render the overlay's iframe at the SAME pixel
+// size a real OBS Browser Source would use, then visually scale that down to
+// fit the dashboard panel — rather than letting the iframe stretch to
+// whatever width the panel happens to be. The overlay leans on vw/vh and %
+// positioning (danmaku lanes, layout margins, .ovs-message's 92% max-width,
+// ...), so previewing at the panel's own (arbitrary, resizable) size gives
+// numbers that don't match what OBS will actually show.
+//
+// IMPORTANT: this is the size of the Browser Source itself — i.e. the chat
+// frame — NOT the streamer's monitor/canvas resolution. A Browser Source in
+// OBS doesn't have to match the stream canvas; for a chat overlay it's
+// usually its own small box (e.g. ~500×800) cropped to just the chat and
+// positioned in a corner of the scene. The presets below default to that
+// realistic chat-frame sizing. "Toàn màn hình" is kept as an option for the
+// less common setup where the Browser Source is stretched to the full
+// canvas and the chat is anchored inside it via chatAlign/chatOffset.
 const CANVAS_PRESETS = [
-  { id: '1920x1080', label: '1920 × 1080 (16:9)', width: 1920, height: 1080 },
-  { id: '1280x720', label: '1280 × 720 (16:9)', width: 1280, height: 720 },
-  { id: '2560x1440', label: '2560 × 1440 (16:9)', width: 2560, height: 1440 },
-  { id: '3840x2160', label: '3840 × 2160 (4K)', width: 3840, height: 2160 },
-  { id: '1080x1920', label: '1080 × 1920 (dọc)', width: 1080, height: 1920 },
-  { id: '720x1280', label: '720 × 1280 (dọc)', width: 720, height: 1280 },
+  { id: 'chat-sm', label: 'Khung chat nhỏ gọn — 400 × 700', width: 400, height: 700 },
+  { id: 'chat-md', label: 'Khung chat vừa — 500 × 800', width: 500, height: 800 },
+  { id: 'chat-lg', label: 'Khung chat rộng — 600 × 1000', width: 600, height: 1000 },
+  { id: '1920x1080', label: 'Toàn màn hình (canvas OBS) — 1920 × 1080', width: 1920, height: 1080 },
   { id: 'custom', label: 'Tuỳ chỉnh…' },
 ];
+
+const DEFAULT_PRESET_ID = 'chat-md';
+const DEFAULT_WIDTH = 500;
+const DEFAULT_HEIGHT = 800;
 
 const MIN_DIM = 100;
 const MAX_DIM = 7680;
@@ -47,9 +56,9 @@ export default function ChatPreview({ overlayUrl, previewKey, onRefresh }) {
   const [copyError, setCopyError] = useState(null);
 
   const stored = useMemo(() => loadStoredCanvas(), []);
-  const [presetId, setPresetId] = useState(stored?.presetId || '1920x1080');
-  const [canvasWidth, setCanvasWidth] = useState(stored?.width || 1920);
-  const [canvasHeight, setCanvasHeight] = useState(stored?.height || 1080);
+  const [presetId, setPresetId] = useState(stored?.presetId || DEFAULT_PRESET_ID);
+  const [canvasWidth, setCanvasWidth] = useState(stored?.width || DEFAULT_WIDTH);
+  const [canvasHeight, setCanvasHeight] = useState(stored?.height || DEFAULT_HEIGHT);
 
   // The custom width/height <input>s are backed by their OWN string state
   // instead of being bound straight to canvasWidth/canvasHeight. If they
@@ -60,8 +69,8 @@ export default function ChatPreview({ overlayUrl, previewKey, onRefresh }) {
   // (including "", a bare "6", etc.) and only get clamped/normalized on
   // blur; canvasWidth/canvasHeight still update live off any parseable
   // number so the preview keeps responding as you type.
-  const [widthText, setWidthText] = useState(String(stored?.width || 1920));
-  const [heightText, setHeightText] = useState(String(stored?.height || 1080));
+  const [widthText, setWidthText] = useState(String(stored?.width || DEFAULT_WIDTH));
+  const [heightText, setHeightText] = useState(String(stored?.height || DEFAULT_HEIGHT));
 
   useEffect(() => {
     try {

@@ -116,7 +116,6 @@ function contractSimpleLayout(layout) {
   if (!layout) {
     return {
       avatarPosition: 'left',
-      nameBadges: 'inline-after',
       messagePosition: 'below',
       gap: 10,
       padding: 8,
@@ -136,7 +135,6 @@ function contractSimpleLayout(layout) {
   }
 
   const mr = layout.messageRow || {};
-  const meta = layout.metaRow || {};
   const body = layout.bodyColumn || {};
   const slots = layout.slots || {};
   const screen = layout.screen || {};
@@ -144,10 +142,6 @@ function contractSimpleLayout(layout) {
   let avatarPosition = 'left';
   if (mr.direction === 'vertical') avatarPosition = 'top';
   else if ((slots.avatar?.order ?? 0) > 0) avatarPosition = 'right';
-
-  let nameBadges = 'inline-after';
-  if (meta.direction === 'vertical') nameBadges = 'badges-below';
-  else if ((slots.badges?.order ?? 1) < (slots.author?.order ?? 0)) nameBadges = 'inline-before';
 
   const messagePosition = body.direction === 'horizontal' ? 'beside' : 'below';
 
@@ -162,7 +156,6 @@ function contractSimpleLayout(layout) {
 
   return {
     avatarPosition,
-    nameBadges,
     messagePosition,
     gap: mr.gap ?? 10,
     padding: mr.padding ?? 8,
@@ -183,17 +176,13 @@ function contractSimpleLayout(layout) {
     avatarMargin: slots.avatar?.margin ?? 0,
     authorPadding: slots.author?.padding ?? 0,
     authorMargin: slots.author?.margin ?? 0,
-    badgesPadding: slots.badges?.padding ?? 0,
-    badgesMargin: slots.badges?.margin ?? 0,
     messagePadding: slots.message?.padding ?? 0,
     messageMargin: slots.message?.margin ?? 0,
     showAvatarSlot: slots.avatar?.visible ?? null,
     showAuthorSlot: slots.author?.visible ?? null,
-    showBadgesSlot: slots.badges?.visible ?? null,
     showMessageSlot: slots.message?.visible ?? null,
     ...slotPositionFields('avatar'),
     ...slotPositionFields('author'),
-    ...slotPositionFields('badges'),
     ...slotPositionFields('message'),
   };
 }
@@ -228,11 +217,11 @@ function expandSimpleLayout(simple) {
       margin: 0,
     },
     metaRow: {
-      direction: s.nameBadges === 'badges-below' ? 'vertical' : 'horizontal',
+      direction: 'horizontal',
       gap: 6,
       align: 'center',
       padding: 0,
-      margin: s.nameBadges === 'badges-below' ? 0 : 2,
+      margin: 2,
     },
     bodyColumn: {
       direction: s.messagePosition === 'beside' ? 'horizontal' : 'vertical',
@@ -243,8 +232,7 @@ function expandSimpleLayout(simple) {
     },
     slots: {
       avatar: slotFromSimple('avatar', s.avatarPosition === 'right' ? 1 : 0),
-      author: slotFromSimple('author', s.nameBadges === 'inline-before' ? 1 : 0),
-      badges: slotFromSimple('badges', s.nameBadges === 'inline-before' ? 0 : 1),
+      author: slotFromSimple('author', 0),
       message: slotFromSimple('message', 1),
     },
     screen: {
@@ -354,18 +342,6 @@ export default function LayoutPanel() {
           { value: 'right', label: 'Bên phải', hint: 'Avatar bên phải nội dung', icon: ICONS.avatarRight },
         ]}
       />
-
-      <Field label="Tên & badge">
-        <select
-          className={inputClass}
-          value={local.nameBadges}
-          onChange={(e) => pushUpdate({ nameBadges: e.target.value })}
-        >
-          <option value="inline-after">Cùng hàng — badge sau tên</option>
-          <option value="inline-before">Cùng hàng — badge trước tên</option>
-          <option value="badges-below">Badge xuống dòng dưới tên</option>
-        </select>
-      </Field>
 
       <Field label="Nội dung tin nhắn">
         <select
@@ -501,15 +477,6 @@ export default function LayoutPanel() {
             className="accent-focusAccent"
           />
           Tên
-        </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={local.showBadgesSlot ?? true}
-            onChange={(e) => pushUpdate({ showBadgesSlot: e.target.checked })}
-            className="accent-focusAccent"
-          />
-          Badge
         </label>
         <label className="flex items-center gap-2">
           <input

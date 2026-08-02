@@ -24,9 +24,6 @@ export const SEARCH_INDEX = [
   { objectId: 'message', sectionId: 'emoji', label: 'Ô emoji (chip vuông)', keywords: ['emoji', 'ô vuông', 'chip', 'bo góc', 'radius', 'màu', 'color', 'opacity', 'độ mờ', 'glow', 'phát sáng'] },
   { objectId: 'message', sectionId: 'transform', label: 'Nội dung — Transform', keywords: ['nội dung', 'message', 'xoay', 'rotate', 'offset', 'z-index'] },
   { objectId: 'message', sectionId: 'bubble', label: 'Nội dung — Bubble riêng', keywords: ['nội dung', 'message', 'bubble', 'radius', 'viền', 'border', 'offset', 'shadow', 'glow', 'texture', 'tai thỏ'] },
-
-  { objectId: 'badges', sectionId: 'appearance', label: 'Badge — Kích thước & độ mờ', keywords: ['badge', 'huy hiệu', 'size', 'opacity'] },
-  { objectId: 'badges', sectionId: 'transform', label: 'Badge — Transform', keywords: ['badge', 'xoay', 'rotate', 'offset', 'z-index'] },
 ];
 
 export function searchSections(keyword) {

@@ -9,21 +9,22 @@
 // message-renderer.js would close a circular-import loop. This tiny leaf
 // module has no such dependency and is safe for both to import.
 //
-// "Milestone text" = the always-on "đã đồng hành N tháng" style line for a
-// member's registration/renewal events (see MEMBER_MILESTONE_EVENT_TYPES,
-// shared/role-style-config.js). YouTube's own event text for these is
-// frequently empty (a plain system "member for N months" event has no
-// author-written message body at all), so this line is appended
-// UNCONDITIONALLY whenever the event qualifies — regardless of whether
-// msg.messageHtml itself is empty or not — rather than only filling in for
-// the empty case.
+// NOTE: this module used to also append an app-authored "đã đồng hành N
+// tháng" milestone-text line (see MEMBER_MILESTONE_EVENT_TYPES history in
+// shared/role-style-config.js) for member registration/renewal events with
+// no real message body. That was removed: a real-world capture showed
+// YouTube's own '#header-subtext' element already carries meaningful copy
+// for exactly that "no message" case (e.g. "Chào mừng bạn đến với ... !!"
+// for a new member with no header count and no #message text) — so the
+// app-fabricated line was redundant, and could show alongside/instead of
+// real YouTube copy in misleading ways (e.g. keyed off a person's
+// persistent tier badge rather than this specific event). The Package/Tier
+// Name line below (sourced from msg.membershipTierName, i.e. that same
+// '#header-subtext' element) already covers this case with real content.
 
-import { MEMBER_MILESTONE_EVENT_TYPES, DEFAULT_MEMBER_MILESTONE_TEXT, formatMilestoneText } from '/shared/role-style-config.mjs';
-
-// milestoneText is user-authored (typed into the dashboard's Roles panel),
-// unlike msg.messageHtml which originates from YouTube's own already-
-// sanitized chat renderer — so, unlike messageHtml above, this DOES need
-// escaping before going into innerHTML.
+// membershipTierName is captured, untrusted text — unlike msg.messageHtml,
+// which originates from YouTube's own already-sanitized chat renderer —
+// so it DOES need escaping before going into innerHTML.
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
@@ -31,29 +32,48 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
+// The 3 events Fan Service's "membership" group targets (see
+// shared/fan-service-config.js header comment) — deliberately NOT
+// membership_gift_received, same exclusion Fan Service itself makes.
+// Scoped this narrowly on purpose: msg.memberMonths also reflects a
+// viewer's persistent tier badge on completely unrelated messages (any
+// member's regular chat line carries it too), and surfacing "Hội viên
+// trong N tháng" there would be showing an unrequested, easily-misread
+// number on rows that have nothing to do with a membership event. See
+// this file's header comment for the prior history of a similar
+// always-on line that was removed for exactly that reason.
+const MEMBER_MONTHS_EVENT_TYPES = new Set(['membership_new', 'membership_gift_sent', 'membership_milestone']);
+
+/**
+ * Returns the text for the dedicated member-months line
+ * ([data-slot="member-months"], class .ovs-member-months) — e.g.
+ * "Hội viên trong 12 tháng". Empty string (nothing rendered, CSS handles
+ * hiding a fully empty div) unless both: the event is one of the 3 Fan
+ * Service membership events, and memberMonths parsed to something > 0
+ * (membership_new's real-world badge never carries a count — see
+ * overlay/modules/theme-loader.js's mock-data comment — so this stays
+ * empty there too, which is expected, not a bug).
+ */
+export function composeMemberMonthsText(msg) {
+  if (!MEMBER_MONTHS_EVENT_TYPES.has(msg.eventType)) return '';
+  const months = msg.memberMonths || 0;
+  if (!months) return '';
+  return `Hội viên trong ${months} tháng`;
+}
+
 /**
  * Returns the full innerHTML for the message slot: the chat text span,
- * plus — when `msg` is a member registration/renewal event with a
- * resolvable months figure and the feature isn't disabled — a second
- * span carrying the resolved milestone text.
+ * plus — when `msg` is a member event that carried a tier/package name
+ * and the feature isn't disabled — a second span showing that name
+ * verbatim (real YouTube content, not an app-authored template).
  */
 export function composeMessageBodyHtml(msg, memberRole) {
   const textSpan = `<span class="ovs-text-content">${msg.messageHtml || ''}</span>`;
 
-  if (!msg.roles?.includes('member')) return textSpan;
-  if (!MEMBER_MILESTONE_EVENT_TYPES.has(msg.eventType)) return textSpan;
-  if (memberRole?.milestoneTextEnabled === false) return textSpan;
+  const packageNameSpan =
+    msg.roles?.includes('member') && memberRole?.packageNameEnabled !== false && msg.membershipTierName
+      ? `<span class="ovs-package-name-text">${escapeHtml(msg.membershipTierName)}</span>`
+      : '';
 
-  const months = Number(msg.memberMonths) || 0;
-  if (months <= 0) return textSpan;
-
-  const template =
-    typeof memberRole?.milestoneText === 'string' && memberRole.milestoneText.trim()
-      ? memberRole.milestoneText
-      : DEFAULT_MEMBER_MILESTONE_TEXT;
-  const text = formatMilestoneText(template, months);
-  if (!text) return textSpan;
-
-  const milestoneSpan = `<span class="ovs-milestone-text">${escapeHtml(text)}</span>`;
-  return `${textSpan}${milestoneSpan}`;
+  return `${textSpan}${packageNameSpan}`;
 }

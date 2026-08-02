@@ -106,6 +106,7 @@ function logMembershipStructureOnce(node, eventType, headerText, messageEl, badg
     '#header-sub-text',
     '#header-content-primary-text',
     '#header-title',
+    '#header-subtext',
     '#message',
     '#primary-text',
     '#author-name',
@@ -169,6 +170,31 @@ function extractMessage(node) {
       .map((b) => b.getAttribute(selectors.badgeAccessibilityLabelAttr) || '')
       .filter(Boolean);
 
+    // Real YouTube badge ICON (not just the text label) — this is what
+    // powers "Dùng badge thật" (useRealBadge, shared/role-style-config.js):
+    // the actual member-loyalty shield image YouTube renders, captured as
+    // an <img> src so the overlay can show it verbatim alongside our own
+    // custom-designed Mốc tháng badge instead of only ever reading its
+    // aria-label text. A message can carry several badges (verified, mod,
+    // member) — we specifically want the MEMBER/loyalty one, so pair each
+    // <img> with its own badge element's aria-label and prefer whichever
+    // entry's label looks like a membership badge (same keyword set
+    // deriveRoles() in shared/chat-message.js uses for 'member'); fall
+    // back to the first badge icon found if none match (e.g. selectors
+    // drift or a non-membership-only badge set).
+    const badgeIconCandidates = Array.from(badgeEls)
+      .map((b) => {
+        const label = b.getAttribute(selectors.badgeAccessibilityLabelAttr) || '';
+        const imgEl = b.querySelector(selectors.badgeIconImg || 'img');
+        const url = imgEl ? (imgEl.src || imgEl.getAttribute('src') || '') : '';
+        return { label, url };
+      })
+      .filter((c) => c.url);
+    const memberBadgeIcon = badgeIconCandidates.find((c) =>
+      /member|th[aà]nh\s*vi[eê]n|h[ộo]i\s*vi[eê]n/i.test(c.label)
+    );
+    const badgeIconUrl = (memberBadgeIcon || badgeIconCandidates[0] || {}).url || '';
+
     const tagNameEarly = (node.tagName || '').toLowerCase();
     const isSuperchat = selectors.superchatRenderer ? node.matches(selectors.superchatRenderer) : false;
     const isMembership =
@@ -200,6 +226,7 @@ function extractMessage(node) {
 
     let eventType = 'text';
     let headerText = '';
+    let membershipTierName = '';
 
     if (node.matches('yt-live-chat-paid-sticker-renderer')) {
       eventType = 'sticker';
@@ -248,6 +275,19 @@ function extractMessage(node) {
         }
       }
       headerText = headerSub ? headerSub.textContent.trim() : '';
+
+      // Membership tier/package name (e.g. "Dead Beat +") — YouTube's own
+      // per-channel tier tagline, NOT per-event data (identical on every
+      // membership item at that tier, regardless of who posted it or how
+      // many months they have). Lives at '#header-subtext' (no hyphen —
+      // see the headerPriority comment above for why that's easy to
+      // confuse with '#header-sub-text'). Deliberately read from a
+      // dedicated selector, never folded into headerPriority/headerText,
+      // so it can't accidentally get picked up as the milestone month
+      // count by deriveMemberMonths() (shared/chat-message.js).
+      const tierNameSelector = selectors.membershipTierName || '#header-subtext';
+      const tierNameEl = node.querySelector(tierNameSelector);
+      membershipTierName = tierNameEl ? tierNameEl.textContent.trim() : '';
 
       // IMPORTANT: check "gift" BEFORE the generic member/month check.
       // Almost every membership header — new-member AND gift AND milestone
@@ -338,10 +378,12 @@ function extractMessage(node) {
       // detection and (later) Rule Engine text matching.
       messageText,
       badges,
+      badgeIconUrl,
       eventType,
       isSuperchat,
       superchatAmountRaw: superchatAmountEl ? superchatAmountEl.textContent.trim() : '',
       superchatColor,
+      membershipTierName,
     };
   } catch (err) {
     console.warn(

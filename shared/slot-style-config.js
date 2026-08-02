@@ -1,5 +1,5 @@
 /**
- * SlotStyleConfig — per-slot visual properties (Avatar, Username, Badges, Message).
+ * SlotStyleConfig — per-slot visual properties (Avatar, Username, Message).
  * Compiled to --ovs-slot-* CSS variables. Slot overrides fall back to CustomizeConfig.
  */
 
@@ -50,13 +50,6 @@ const DEFAULT_SLOT_STYLE_CONFIG = {
       ...createTransformDefaults(),
     },
     author: { ...createTextSlotDefaults(), ...createSlotBubbleDefaults() },
-    badges: {
-      visible: null,
-      fontSize: null,
-      opacity: null,
-      margin: 0,
-      ...createTransformDefaults(),
-    },
     message: { ...createTextSlotDefaults(), ...createSlotBubbleDefaults() },
   },
 };
@@ -69,7 +62,6 @@ function mergeSlotStyleConfig(base, overrides) {
     slots: {
       avatar: mergeSlot('avatar'),
       author: mergeSlot('author'),
-      badges: mergeSlot('badges'),
       message: mergeSlot('message'),
     },
   };
@@ -81,7 +73,7 @@ function isSet(value) {
 
 // Priority: per-slot style override (Inspector) > LayoutPanel's Ẩn/hiện
 // checkbox (layoutConfig.slots.*.visible) > global customize-config toggle
-// (avatar/badges only) > default visible. The layoutConfig tier used to be
+// (avatar only) > default visible. The layoutConfig tier used to be
 // missing entirely, so the Layout panel's Ẩn/hiện checkboxes wrote to a
 // field nothing ever read — toggling them had zero effect on the overlay.
 function resolveSlotVisibility(slotVisible, layoutVisible, globalVisible) {
@@ -127,13 +119,6 @@ function resolveEffectiveSlotStyle(slotStyle, customizeConfig, layoutConfig) {
       strokeWidth: slots.author.strokeWidth ?? cfg.textStrokeWidth ?? 0,
       strokeColor: slots.author.strokeColor ?? cfg.textStrokeColor ?? null,
       ...resolveTransform(slots.author, false, isRtl),
-    },
-    badges: {
-      visible: resolveSlotVisibility(slots.badges.visible, layoutSlots.badges?.visible, cfg.showBadges),
-      fontSize: slots.badges.fontSize ?? Math.round(cfg.fontSize * 0.65),
-      opacity: slots.badges.opacity ?? 1,
-      margin: slots.badges.margin ?? 0,
-      ...resolveTransform(slots.badges, false, isRtl),
     },
     message: {
       visible: resolveSlotVisibility(slots.message.visible, layoutSlots.message?.visible, true),
@@ -220,11 +205,6 @@ function compileSlotStyleToCssVariables(slotStyle, customizeConfig, layoutConfig
   vars['--ovs-slot-author-text-shadow'] = buildTextShadow(e.author.glow, e.author.strokeWidth, e.author.strokeColor);
   Object.assign(vars, compileTransformVars('author', e.author, isRtl));
 
-  if (e.badges.fontSize != null) vars['--ovs-slot-badges-font-size'] = px(e.badges.fontSize);
-  if (e.badges.opacity != null) vars['--ovs-slot-badges-opacity'] = String(e.badges.opacity);
-  if (e.badges.margin != null) vars['--ovs-slot-badges-margin'] = px(e.badges.margin);
-  Object.assign(vars, compileTransformVars('badges', e.badges, isRtl));
-
   if (e.message.fontFamily) vars['--ovs-slot-message-font-family'] = e.message.fontFamily;
   if (e.message.fontSize != null) vars['--ovs-slot-message-font-size'] = px(e.message.fontSize);
   if (e.message.color) vars['--ovs-slot-message-color'] = e.message.color;
@@ -269,13 +249,11 @@ function componentOverridesToSlotStyle(componentOverrides) {
   const slots = {
     avatar: {},
     author: {},
-    badges: {},
     message: {},
   };
 
   mapText('Avatar', slots.avatar);
   mapText('Username', slots.author);
-  mapText('Badges', slots.badges);
   mapText('Message', slots.message);
 
   if (co.Avatar?.size != null) slots.avatar.size = co.Avatar.size;

@@ -21,6 +21,7 @@ function resolveThemeState(themeId) {
     animationConfig: theme.animationConfig,
     decorationConfig: theme.decorationConfig,
     roleStyleConfig: theme.roleStyleConfig,
+    fanServiceConfig: theme.fanServiceConfig,
   };
 }
 

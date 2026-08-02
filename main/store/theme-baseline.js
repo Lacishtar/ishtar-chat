@@ -9,6 +9,7 @@ function getThemeBaseline(themeId) {
     animationConfig: state.animationConfig,
     decorationConfig: state.decorationConfig,
     roleStyleConfig: state.roleStyleConfig,
+    fanServiceConfig: state.fanServiceConfig,
   };
 }
 
@@ -24,7 +25,8 @@ function getDirtyFields(state, themeId) {
   if (!deepEqual(state.slotStyleConfig, baseline.slotStyleConfig)) fields.push('kiểu từng phần tử');
   if (!deepEqual(state.animationConfig, baseline.animationConfig)) fields.push('hiệu ứng');
   if (!deepEqual(state.decorationConfig, baseline.decorationConfig)) fields.push('trang trí ảnh');
-  if (!deepEqual(state.roleStyleConfig, baseline.roleStyleConfig)) fields.push('kiểu mod/hội viên/superchat');
+  if (!deepEqual(state.roleStyleConfig, baseline.roleStyleConfig)) fields.push('kiểu mod/hội viên');
+  if (!deepEqual(state.fanServiceConfig, baseline.fanServiceConfig)) fields.push('Fan Service');
   return fields;
 }
 

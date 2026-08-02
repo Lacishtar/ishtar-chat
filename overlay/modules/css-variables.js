@@ -24,8 +24,29 @@ import {
 import { compileAnimationToCssVariables } from '/shared/animation-config.mjs';
 import { compileRoleStyleToCssVariables } from '/shared/role-style-config.mjs';
 import { compileBubbleDecorationToCssVariables } from '/shared/customize-config.mjs';
+import { compileFanServiceCss } from '/shared/fan-service-config.mjs';
 
 export { normalizeBubbleWrapScreen, isRowBubbleWrap, resolveEffectiveSlotStyle };
+
+const FAN_SERVICE_STYLE_ID = 'ovs-fan-service-style';
+
+/**
+ * Fan Service (see shared/fan-service-config.js) works by injecting a
+ * *scoped* <style> block instead of writing to :root like the rest of this
+ * file — its whole point is styling only Super Chat / membership rows
+ * without touching everyone else's. A single <style> tag is created once
+ * and its textContent replaced on every update, so re-applying doesn't leak
+ * duplicate tags.
+ */
+export function applyFanServiceStyle(fanServiceConfig) {
+  let styleEl = document.getElementById(FAN_SERVICE_STYLE_ID);
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = FAN_SERVICE_STYLE_ID;
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = compileFanServiceCss(fanServiceConfig);
+}
 
 /** Inline :root vars for optional size caps — must be removed when disabled (0). */
 const RESET_WHEN_UNSET = new Set([

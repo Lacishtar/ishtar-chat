@@ -2,7 +2,7 @@
  * Theme preset: edgy
  */
 
-const { defaultLayout, defaultSlotStyle, emptyDecorations } = require('../helpers');
+const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 
 module.exports = {
   id: 'edgy',
@@ -59,7 +59,6 @@ module.exports = {
     bubbleFixedHeight: 0,
     avatarSize: 32,
     showAvatar: true,
-    showBadges: false,
     animationMs: 240,
     position: 'bottom-up',
     maxMessages: 40,
@@ -84,7 +83,6 @@ module.exports = {
     targets: {
       avatar:   { durationMs: null, delayMs: 0, easing: 'ease-out', translateX: 0, translateY: 0, blur: 6 },
       author:   { durationMs: null, delayMs: 40, easing: 'ease-out', translateX: 0, translateY: 0, blur: 6 },
-      badges:   { durationMs: null, delayMs: 55, easing: 'ease-out', translateX: 0, translateY: 0, blur: 6 },
       message:  { durationMs: null, delayMs: 70, easing: 'ease-out', translateX: 0, translateY: 0, blur: 6 },
     },
   },
@@ -105,15 +103,12 @@ module.exports = {
       earColor: null,
       badgeBefore: '👼',
       badgeAfter: null,
-      showAmount: null,
       authorFontWeight: 'extrabold',
       messageBorderWidth: null,
       textScale: null,
       memberTiers: [],
     },
       member: {
-      // The "demon" — crimson ember glow, escalating with tenure.
-      milestoneLayout: 'highlight',
       enabled: true,
       authorColor: '#E86373',
       authorBorderColor: 'rgba(226, 58, 78, 0.55)',
@@ -126,7 +121,6 @@ module.exports = {
       earColor: null,
       badgeBefore: '🔥',
       badgeAfter: null,
-      showAmount: null,
       authorFontWeight: 'bold',
       messageBorderWidth: null,
       textScale: 1.12,
@@ -137,32 +131,10 @@ module.exports = {
         { id: 'tier-12mo', minMonths: 12, color: '#D4AF37', badge: '👑' },
       ],
     },
-      superchat: {
-      // Full clash — black ground, gold halo ring, demon-red heart.
-      enabled: true,
-      authorColor: '#D4AF37',
-      authorBorderColor: 'rgba(212, 175, 55, 0.85)',
-      authorBg: null,
-      messageBg: 'rgba(38, 6, 10, 0.95)',
-      messageBorderColor: 'rgba(196, 16, 47, 0.7)',
-      messageTextColor: '#F0DFA0',
-      rowBg: 'rgba(38, 6, 10, 0.95)',
-      rowBorderColor: 'rgba(196, 16, 47, 0.7)',
-      earColor: null,
-      badgeBefore: null,
-      badgeAfter: null,
-      showAmount: true,
-      fontSize: null,
-      authorFontWeight: 'extrabold',
-      messageBorderWidth: 2,
-      textScale: 1.28,
-      memberTiers: [],
-      useTierColor: true,
-      superchatLayout: 'youtube',
-      amountFontSize: null,
-      amountFontWeight: 'extrabold',
-      amountPosition: 'block',
-    },
     },
   },
+  fanServiceConfig: defaultThemeFanService({
+    superchat: { authorColor: '#D4AF37', messageColor: '#EDE6DA' },
+    membership: { authorColor: '#E86373', messageColor: '#EC818E', monthsColor: '#E86373' },
+  }),
 };

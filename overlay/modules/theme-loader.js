@@ -1,5 +1,5 @@
 import { state, listEl, messageTemplateEl, syncThemeModeClass } from './state.js';
-import { applyCssVariables } from './css-variables.js';
+import { applyCssVariables, applyFanServiceStyle } from './css-variables.js';
 import { refreshAllDecorations } from './decoration.js';
 import { renderHistory } from './message-renderer.js';
 import { hardResetStackPool } from './render-queue.js';
@@ -32,6 +32,7 @@ export function applyThemePayload(data, options = {}) {
   if (data.animationConfig) state.currentAnimation = data.animationConfig;
   if (data.decorationConfig) state.currentDecoration = data.decorationConfig;
   if (data.roleStyleConfig) state.currentRoleStyle = data.roleStyleConfig;
+  if (data.fanServiceConfig) state.currentFanService = data.fanServiceConfig;
 
   const isPreview = new URLSearchParams(window.location.search).has('preview');
   let incomingHistory = Array.isArray(data.history) ? data.history : null;
@@ -39,10 +40,18 @@ export function applyThemePayload(data, options = {}) {
   const usingMockFallback = isPreview && !hasRealHistory;
   if (usingMockFallback) {
     // Preview-only sample history — static, no timers/sockets involved.
-    // Covers every role x tier combination the Roles panel can style, so
-    // toggling a setting (Moderator / Member tier / Super Chat tier / dual
-    // role) always has a matching bubble visible in this list instead of
-    // only the last entry (previously just one lone Super Chat message).
+    // Trimmed to the minimum row count that still exercises every role x
+    // tier x event-type combination the Roles panel can style: a plain
+    // viewer (baseline, no role), a moderator, one member tier (also
+    // covers the Mốc tháng badge), one Super Chat tier, and the 4 YouTube
+    // membership event types. A dual-role (mod+member) row and extra
+    // tier/amount examples used to sit here too, but they didn't add
+    // preview coverage a single example of each role doesn't already give
+    // — CSS-wise a mod+member row renders identically to a plain
+    // moderator row (member styles are scoped `:not(.ovs-moderator)`, so
+    // moderator always wins when both classes are present), and every
+    // Super Chat/Member tier is just the same rule set with a different
+    // color plugged in.
     incomingHistory = [
       {
         avatarUrl: 'mock-avatar:A Viewer',
@@ -64,56 +73,15 @@ export function applyThemePayload(data, options = {}) {
         avatarUrl: 'mock-avatar:C Viewer',
         id: 'ovs-mock-3',
         author: 'C Viewer',
-        messageHtml: 'Mình mới bấm tham gia hội viên nè! 🎉',
-        roles: ['member'],
-        badges: [],
-        memberMonths: 1
-      },
-      {
-        avatarUrl: 'mock-avatar:D Viewer',
-        id: 'ovs-mock-4',
-        author: 'D Viewer',
-        messageHtml: 'Ủng hộ kênh được 8 tháng rồi đó nha',
-        roles: ['member'],
-        badges: [],
-        memberMonths: 8
-      },
-      {
-        avatarUrl: 'mock-avatar:E Viewer',
-        id: 'ovs-mock-5',
-        author: 'E Viewer',
         messageHtml: '2 năm theo dõi kênh không bỏ sót buổi nào luôn 💙',
         roles: ['member'],
         badges: [],
         memberMonths: 24
       },
       {
-        avatarUrl: 'mock-avatar:F Mod',
-        id: 'ovs-mock-6',
-        author: 'F Mod',
-        messageHtml: 'Vừa là mod vừa là hội viên, coi chừng bị xoá tin nhắn đó 😏',
-        roles: ['moderator', 'member'],
-        badges: [],
-        memberMonths: 5
-      },
-      {
-        avatarUrl: 'mock-avatar:G Viewer',
-        id: 'ovs-mock-7',
-        author: 'G Viewer',
-        messageHtml: 'Ủng hộ nhẹ cho kênh nè!',
-        roles: [],
-        badges: [],
-        isSuperchat: true,
-        superchatCurrencyRaw: '70.000 ₫',
-        superchatTier: 2,
-        superchatColor: '#00e5ff',
-        superchatBg: 'rgba(0, 229, 255, 0.35)',
-        superchatBorder: 'rgba(0, 229, 255, 0.7)'
-      },
-      {
-        avatarUrl: 'mock-avatar:H Viewer',
-        id: 'ovs-mock-8',
-        author: 'H Viewer',
+        avatarUrl: 'mock-avatar:D Viewer',
+        id: 'ovs-mock-4',
+        author: 'D Viewer',
         messageHtml: 'Chúc kênh phát triển thật mạnh nha! 🚀',
         roles: [],
         badges: [],
@@ -121,67 +89,85 @@ export function applyThemePayload(data, options = {}) {
         superchatCurrencyRaw: '350.000 ₫',
         superchatTier: 4,
         superchatColor: '#ffca28',
-        superchatBg: 'rgba(255, 202, 40, 0.35)',
+        superchatBg: 'rgba(255, 202, 40, 0.9)',
         superchatBorder: 'rgba(255, 202, 40, 0.7)'
-      },
-      {
-        avatarUrl: 'mock-avatar:I Viewer',
-        id: 'ovs-mock-9',
-        author: 'I Viewer',
-        messageHtml: 'Bạn này ngố phết kkkkk 😂',
-        roles: ['member'],
-        badges: [],
-        memberMonths: 6,
-        isSuperchat: true,
-        superchatCurrencyRaw: '3.500.000 ₫',
-        superchatTier: 7,
-        superchatColor: '#e53935',
-        superchatBg: 'rgba(229, 57, 53, 0.35)',
-        superchatBorder: 'rgba(229, 57, 53, 0.7)'
       },
       // Membership announcements — YouTube's own 4 event types. These still
       // render with the ovs-event-<eventType> class (see message-renderer.js)
-      // for other overlay purposes (e.g. animation state), but role-style-config.js
-      // no longer has a memberEvents concept — these preview rows now render
-      // with plain Member role styling (Appearance + Mốc tháng) like any
-      // other member message, same as real membership announcements do.
+      // for other overlay purposes (e.g. animation state), on top of the
+      // plain Member styling (Appearance + Mốc tháng) every other member
+      // row uses.
+      //
+      // The four rows below were rebuilt from real captured markup
+      // (membership-debug.log dumps of yt-live-chat-membership-item-renderer /
+      // ytd-sponsorships-live-chat-gift-*-announcement-renderer) instead of
+      // app-authored placeholder copy, since each event type's real field
+      // layout doesn't match generic filler text:
+      //   - membership_new: #message is always empty on a fresh join — the
+      //     only real copy is YouTube's own welcome line, which lives in
+      //     '#header-subtext' and surfaces here as membershipTierName (see
+      //     message-body.js's package-name span), NOT messageHtml. The tier
+      //     badge at this point usually just reads "Hội viên mới" (no month
+      //     count yet), so memberMonths is 0.
+      //   - membership_milestone: badges carries BOTH the exact milestone
+      //     count from '#header-primary-text' (e.g. "Hội viên trong 12
+      //     tháng" — first in the array, so deriveMemberMonths() reads it
+      //     over the coarser badge) AND the viewer's persistent tier badge
+      //     (e.g. "Hội viên (1 năm)"), which can legitimately show a smaller
+      //     number since tier badges only bump at fixed milestones. A real
+      //     optional thank-you note in #message is the common case, not the
+      //     empty string the old fixture used. membershipTierName here is
+      //     just the channel/team name — no "chào mừng" wording, that
+      //     phrasing is unique to the new-member case above.
+      //   - membership_gift_sent: messageHtml is YouTube's own auto-generated
+      //     "Đã tặng N gói hội viên của kênh {channel}" line, read straight
+      //     from the gift renderer's '#primary-text' — not app-authored
+      //     text. badges is just the gifter's own persistent tier badge.
+      //   - membership_gift_received: messageHtml is YouTube's own
+      //     "đã nhận được một gói hội viên do @X tặng" line from '#message'.
+      //     A freshly-redeemed recipient typically has no tier badge yet in
+      //     the captured markup, so badges/memberMonths fall back to the
+      //     same generic ['Member'] / 0 capture-preload.js stamps on any
+      //     unbadged membership row.
       {
-        avatarUrl: 'mock-avatar:J Viewer',
-        id: 'ovs-mock-10',
-        author: 'J Viewer',
-        messageHtml: 'đã trở thành Hội viên kênh!',
+        avatarUrl: 'mock-avatar:E Viewer',
+        id: 'ovs-mock-5',
+        author: 'E Viewer',
+        messageHtml: '',
         roles: ['member'],
-        badges: [],
+        badges: ['Hội viên mới'],
+        membershipTierName: 'Chào mừng bạn đến với Team Ví Dụ!',
         memberMonths: 0,
         eventType: 'membership_new'
       },
       {
-        avatarUrl: 'mock-avatar:K Viewer',
-        id: 'ovs-mock-11',
-        author: 'K Viewer',
-        messageHtml: '',
+        avatarUrl: 'mock-avatar:F Viewer',
+        id: 'ovs-mock-6',
+        author: 'F Viewer',
+        messageHtml: 'thank you nha, chúc kênh sớm debut thành công nữa!',
         roles: ['member'],
-        badges: [],
+        badges: ['Hội viên trong 12 tháng', 'Hội viên (1 năm)'],
+        membershipTierName: 'Team Ví Dụ',
         memberMonths: 12,
         eventType: 'membership_milestone'
       },
       {
-        avatarUrl: 'mock-avatar:L Viewer',
-        id: 'ovs-mock-12',
-        author: 'L Viewer',
-        messageHtml: 'đã tặng 5 lượt Hội viên cho cộng đồng!',
+        avatarUrl: 'mock-avatar:G Viewer',
+        id: 'ovs-mock-7',
+        author: 'G Viewer',
+        messageHtml: 'Đã tặng 10 gói hội viên của kênh Team Ví Dụ',
         roles: ['member'],
-        badges: [],
-        memberMonths: 3,
+        badges: ['Hội viên (1 năm)'],
+        memberMonths: 12,
         eventType: 'membership_gift_sent'
       },
       {
-        avatarUrl: 'mock-avatar:M Viewer',
-        id: 'ovs-mock-13',
-        author: 'M Viewer',
-        messageHtml: 'đã nhận được một lượt Hội viên được tặng!',
+        avatarUrl: 'mock-avatar:H Viewer',
+        id: 'ovs-mock-8',
+        author: 'H Viewer',
+        messageHtml: 'đã nhận được một gói hội viên do <b>G Viewer</b> tặng',
         roles: ['member'],
-        badges: [],
+        badges: ['Member'],
         memberMonths: 0,
         eventType: 'membership_gift_received'
       }
@@ -190,6 +176,7 @@ export function applyThemePayload(data, options = {}) {
 
   const finish = () => {
     applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);
+    applyFanServiceStyle(state.currentFanService);
     const modeChanged = syncThemeModeClass();
     if (themeSwitch) {
       // Preset switches no longer swap the DOM template — only appearance

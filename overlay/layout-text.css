@@ -1,7 +1,6 @@
 /* Preserve natural punctuation/emoji order when horizontal layout is mirrored. */
 .ovs-text,
 .ovs-author,
-.ovs-badges,
 .ovs-meta,
 .ovs-body {
   direction: ltr;
@@ -47,24 +46,25 @@
   vertical-align: -0.32em;
 }
 
-/* Milestone text — the always-on "đã đồng hành N tháng" line composed by
-   overlay/modules/message-body.js for a member's registration/renewal
-   events (see MEMBER_MILESTONE_EVENT_TYPES, shared/role-style-config.js).
-   Renders as its own line below the chat text (if any); when the event
-   itself carried no message text, .ovs-text-content is just an empty
-   span and this ends up being the only visible line. Sits at 0.85em and
-   slightly muted so it reads as a caption under the message rather than
-   competing with it — themes/roles are still free to override this via
-   the --ovs-role-member-* text-color/font vars already applied to the
-   whole bubble. */
-.ovs-milestone-text {
-  display: block;
-  margin-top: 0.2em;
-  font-size: 0.85em;
-  font-weight: 600;
-  opacity: 0.85;
+/* Package/Tier Name — the channel's own membership tier tagline / new-
+   member greeting text (e.g. "Dead Beat +", or a full "Chào mừng bạn đến
+   với ...!!" welcome sentence), composed by overlay/modules/message-body.js
+   from msg.membershipTierName (real YouTube content, read from
+   '#header-subtext' — see shared/chat-message.js). Sits below the chat
+   text: smaller and more muted since it's often a static/reused label
+   rather than a one-off event notification — reads like a small caption
+   under the message. */
+.ovs-package-name-text {
+  display: var(--ovs-package-name-display, block);
+  margin-top: var(--ovs-package-name-margin-top, 0.2em);
+  margin-left: var(--ovs-package-name-margin-left, 0);
+  font-size: var(--ovs-package-name-font-size, 0.78em);
+  font-weight: 500;
+  opacity: 0.7;
+  font-style: italic;
+  color: var(--ovs-package-name-color, inherit);
 }
 
-.ovs-text-content:empty + .ovs-milestone-text {
+.ovs-text-content:empty + .ovs-package-name-text {
   margin-top: 0;
 }

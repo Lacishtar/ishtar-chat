@@ -13,6 +13,7 @@ const { mergeSlotStyleConfig } = require('../shared/slot-style-config');
 const { mergeAnimationConfig } = require('../shared/animation-config');
 const { mergeDecorationConfig } = require('../shared/decoration-config');
 const { mergeRoleStyleConfig } = require('../shared/role-style-config');
+const { mergeFanServiceConfig } = require('../shared/fan-service-config');
 const { resolveThemeState } = require('./store/theme-state');
 const { getDirtyFields } = require('./store/theme-baseline');
 const { GetThemeList, ApplyTheme, ResetCategory } = require('../shared/theme-manager');
@@ -39,6 +40,7 @@ function getOverlayState() {
     animationConfig: state.animationConfig,
     decorationConfig: state.decorationConfig,
     roleStyleConfig: state.roleStyleConfig,
+    fanServiceConfig: state.fanServiceConfig,
     history: messageHistory,
   };
 }
@@ -111,6 +113,7 @@ function registerIpcHandlers() {
       animationConfig: state.animationConfig,
       decorationConfig: state.decorationConfig,
       roleStyleConfig: state.roleStyleConfig,
+      fanServiceConfig: state.fanServiceConfig,
       lastSessionUrl: state.lastSessionUrl,
       overlayUrl: getOverlayUrl(),
       port: httpPort,
@@ -147,6 +150,7 @@ function registerIpcHandlers() {
       animationConfig: fresh.animationConfig,
       decorationConfig: fresh.decorationConfig,
       roleStyleConfig: fresh.roleStyleConfig,
+      fanServiceConfig: fresh.fanServiceConfig,
     });
 
     const {
@@ -156,6 +160,7 @@ function registerIpcHandlers() {
       animationConfig,
       decorationConfig,
       roleStyleConfig,
+      fanServiceConfig,
     } = fresh;
     wsBroadcast('theme:changed', {
       themeId,
@@ -165,6 +170,7 @@ function registerIpcHandlers() {
       animationConfig,
       decorationConfig,
       roleStyleConfig,
+      fanServiceConfig,
       history: messageHistory,
     });
     safeSend(mainWindow, 'theme:changed', {
@@ -175,6 +181,7 @@ function registerIpcHandlers() {
       animationConfig,
       decorationConfig,
       roleStyleConfig,
+      fanServiceConfig,
     });
     return {
       ok: true,
@@ -184,6 +191,7 @@ function registerIpcHandlers() {
       animationConfig,
       decorationConfig,
       roleStyleConfig,
+      fanServiceConfig,
     };
   });
 
@@ -238,6 +246,22 @@ function registerIpcHandlers() {
     return { ok: true, roleStyleConfig: merged };
   });
 
+  // Direct live edits from the Fan Service tab — a partial patch merged
+  // onto whichever group the user is editing. Fan Service is now part of
+  // the theme-baseline system (see CATEGORY_BROADCAST/theme:reset-preset/
+  // theme:apply below, and shared/theme-presets/helpers.js#defaultThemeFanService),
+  // but it still isn't (yet) captured by Custom Presets — those stay a
+  // deliberately separate 6-category snapshot, see
+  // main/store/custom-presets-store.js.
+  ipcMain.handle('fan-service:update', (_event, partialFanService) => {
+    const merged = mergeFanServiceConfig(configStore.get().fanServiceConfig, partialFanService);
+    configStore.set({ fanServiceConfig: merged });
+
+    wsBroadcast('fan-service:updated', merged);
+    safeSend(mainWindow, 'fan-service:updated', merged);
+    return { ok: true, fanServiceConfig: merged };
+  });
+
   ipcMain.handle('theme:list', () => {
     return GetThemeList();
   });
@@ -246,11 +270,11 @@ function registerIpcHandlers() {
     const result = ApplyTheme(themePresetId, configStore);
     if (!result.ok) return result;
 
-    const { customizeConfig: config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig } = result;
+    const { customizeConfig: config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig, fanServiceConfig } = result;
     const themeId = configStore.get().selectedTheme;
 
-    wsBroadcast('theme:changed', { themeId, config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig, history: messageHistory });
-    safeSend(mainWindow, 'theme:changed', { themeId, config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig });
+    wsBroadcast('theme:changed', { themeId, config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig, fanServiceConfig, history: messageHistory });
+    safeSend(mainWindow, 'theme:changed', { themeId, config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig, fanServiceConfig });
 
     return result;
   });
@@ -263,6 +287,7 @@ function registerIpcHandlers() {
     animationConfig:  { channel: 'animation:updated',  key: 'animationConfig',  payloadKey: 'animationConfig' },
     decorationConfig: { channel: 'decoration:updated', key: 'decorationConfig', payloadKey: 'decorationConfig' },
     roleStyleConfig:  { channel: 'role-style:updated', key: 'roleStyleConfig',  payloadKey: 'roleStyleConfig' },
+    fanServiceConfig: { channel: 'fan-service:updated', key: 'fanServiceConfig', payloadKey: 'fanServiceConfig' },
   };
 
   ipcMain.handle('theme:reset-category', (_event, category) => {

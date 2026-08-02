@@ -6,8 +6,16 @@
  *   author: string,
  *   avatarUrl: string,
  *   badges: string[],              // raw badge labels as captured, e.g. ["Moderator", "Member (6 months)"]
+ *   badgeIconUrl: string,          // real YouTube member-badge icon image URL as captured (https:// only,
+ *                                  // '' otherwise), for the "Dùng badge thật" (useRealBadge) feature —
+ *                                  // shown in the overlay ALONGSIDE the custom Mốc tháng badge, not instead of it.
  *   roles: string[],                // derived from badges: subset of "moderator" | "member" | "verified"
  *   memberMonths: number,           // parsed from a "Member (N months|years)" badge, 0 if not a member / not parseable
+ *   membershipTierName: string,     // channel's own membership tier/package name (e.g. "Dead Beat +"),
+ *                                   // read from YouTube's '#header-subtext' element. Static per tier —
+ *                                   // identical across every membership event at that tier, not per-event
+ *                                   // data. '' when absent (non-membership events, or channels with a
+ *                                   // single unnamed tier).
  *   eventType: 'text' | 'superchat' | 'sticker' | 'membership_new' | 'membership_gift' | 'membership_gift_sent' | 'membership_gift_received' | 'membership_milestone',
  *     // 'membership_gift' is retained only for backward compatibility with
  *     // any already-captured/stored data — capture-preload.js no longer
@@ -106,31 +114,31 @@ function toNfc(str) {
 }
 
 const SUPERCHAT_TIER_TABLE = [
-  { tier: 7, minUsd: 100, color: '#e53935', bg: 'rgba(229, 57, 53, 0.35)', border: 'rgba(229, 57, 53, 0.7)' },
-  { tier: 6, minUsd: 50,  color: '#e91e63', bg: 'rgba(233, 30, 99, 0.35)', border: 'rgba(233, 30, 99, 0.7)' },
-  { tier: 5, minUsd: 20,  color: '#f57c00', bg: 'rgba(245, 124, 0, 0.35)', border: 'rgba(245, 124, 0, 0.7)' },
-  { tier: 4, minUsd: 10,  color: '#ffca28', bg: 'rgba(255, 202, 40, 0.35)', border: 'rgba(255, 202, 40, 0.7)' },
-  { tier: 3, minUsd: 5,   color: '#0f9d58', bg: 'rgba(15, 157, 88, 0.35)', border: 'rgba(15, 157, 88, 0.7)' },
-  { tier: 2, minUsd: 2,   color: '#00e5ff', bg: 'rgba(0, 229, 255, 0.35)', border: 'rgba(0, 229, 255, 0.7)' },
-  { tier: 1, minUsd: 0,   color: '#1e88e5', bg: 'rgba(30, 136, 229, 0.35)', border: 'rgba(30, 136, 229, 0.7)' },
+  { tier: 7, minUsd: 100, color: '#e53935', bg: 'rgba(229, 57, 53, 0.9)', border: 'rgba(229, 57, 53, 0.7)' },
+  { tier: 6, minUsd: 50,  color: '#e91e63', bg: 'rgba(233, 30, 99, 0.9)', border: 'rgba(233, 30, 99, 0.7)' },
+  { tier: 5, minUsd: 20,  color: '#f57c00', bg: 'rgba(245, 124, 0, 0.9)', border: 'rgba(245, 124, 0, 0.7)' },
+  { tier: 4, minUsd: 10,  color: '#ffca28', bg: 'rgba(255, 202, 40, 0.9)', border: 'rgba(255, 202, 40, 0.7)' },
+  { tier: 3, minUsd: 5,   color: '#0f9d58', bg: 'rgba(15, 157, 88, 0.9)', border: 'rgba(15, 157, 88, 0.7)' },
+  { tier: 2, minUsd: 2,   color: '#00e5ff', bg: 'rgba(0, 229, 255, 0.9)', border: 'rgba(0, 229, 255, 0.7)' },
+  { tier: 1, minUsd: 0,   color: '#1e88e5', bg: 'rgba(30, 136, 229, 0.9)', border: 'rgba(30, 136, 229, 0.7)' },
 ];
 
 function deriveSuperchatTierInfo(rawColor, amountUsd) {
   if (rawColor && typeof rawColor === 'string' && rawColor.trim()) {
     const trimmed = rawColor.trim();
-    if (/229,\s*57,\s*53|e53935/i.test(trimmed)) return { tier: 7, color: trimmed, bg: 'rgba(229, 57, 53, 0.35)', border: 'rgba(229, 57, 53, 0.7)' };
-    if (/233,\s*30,\s*99|e91e63/i.test(trimmed)) return { tier: 6, color: trimmed, bg: 'rgba(233, 30, 99, 0.35)', border: 'rgba(233, 30, 99, 0.7)' };
-    if (/245,\s*124,\s*0|f57c00/i.test(trimmed)) return { tier: 5, color: trimmed, bg: 'rgba(245, 124, 0, 0.35)', border: 'rgba(245, 124, 0, 0.7)' };
-    if (/255,\s*202,\s*40|ffca28/i.test(trimmed)) return { tier: 4, color: trimmed, bg: 'rgba(255, 202, 40, 0.35)', border: 'rgba(255, 202, 40, 0.7)' };
-    if (/15,\s*157,\s*88|0f9d58/i.test(trimmed)) return { tier: 3, color: trimmed, bg: 'rgba(15, 157, 88, 0.35)', border: 'rgba(15, 157, 88, 0.7)' };
-    if (/0,\s*229,\s*255|00e5ff/i.test(trimmed)) return { tier: 2, color: trimmed, bg: 'rgba(0, 229, 255, 0.35)', border: 'rgba(0, 229, 255, 0.7)' };
-    if (/30,\s*136,\s*229|1e88e5/i.test(trimmed)) return { tier: 1, color: trimmed, bg: 'rgba(30, 136, 229, 0.35)', border: 'rgba(30, 136, 229, 0.7)' };
+    if (/229,\s*57,\s*53|e53935/i.test(trimmed)) return { tier: 7, color: trimmed, bg: 'rgba(229, 57, 53, 0.9)', border: 'rgba(229, 57, 53, 0.7)' };
+    if (/233,\s*30,\s*99|e91e63/i.test(trimmed)) return { tier: 6, color: trimmed, bg: 'rgba(233, 30, 99, 0.9)', border: 'rgba(233, 30, 99, 0.7)' };
+    if (/245,\s*124,\s*0|f57c00/i.test(trimmed)) return { tier: 5, color: trimmed, bg: 'rgba(245, 124, 0, 0.9)', border: 'rgba(245, 124, 0, 0.7)' };
+    if (/255,\s*202,\s*40|ffca28/i.test(trimmed)) return { tier: 4, color: trimmed, bg: 'rgba(255, 202, 40, 0.9)', border: 'rgba(255, 202, 40, 0.7)' };
+    if (/15,\s*157,\s*88|0f9d58/i.test(trimmed)) return { tier: 3, color: trimmed, bg: 'rgba(15, 157, 88, 0.9)', border: 'rgba(15, 157, 88, 0.7)' };
+    if (/0,\s*229,\s*255|00e5ff/i.test(trimmed)) return { tier: 2, color: trimmed, bg: 'rgba(0, 229, 255, 0.9)', border: 'rgba(0, 229, 255, 0.7)' };
+    if (/30,\s*136,\s*229|1e88e5/i.test(trimmed)) return { tier: 1, color: trimmed, bg: 'rgba(30, 136, 229, 0.9)', border: 'rgba(30, 136, 229, 0.7)' };
 
     const matchTier = SUPERCHAT_TIER_TABLE.find((t) => (amountUsd || 0) >= t.minUsd) || SUPERCHAT_TIER_TABLE[SUPERCHAT_TIER_TABLE.length - 1];
     return {
       tier: matchTier.tier,
       color: trimmed,
-      bg: trimmed.startsWith('rgb') && !trimmed.startsWith('rgba') ? trimmed.replace('rgb(', 'rgba(').replace(')', ', 0.35)') : trimmed,
+      bg: trimmed.startsWith('rgb') && !trimmed.startsWith('rgba') ? trimmed.replace('rgb(', 'rgba(').replace(')', ', 0.9)') : trimmed,
       border: trimmed,
     };
   }
@@ -145,6 +153,15 @@ function normalizeMessage(raw) {
   const messageText = toNfc(String(raw.messageText || '')).slice(0, 2000);
   const id = raw.id ? String(raw.id) : hashFallbackId(author, messageHtml, raw.avatarUrl);
   const badges = Array.isArray(raw.badges) ? raw.badges.slice(0, 5).map((b) => toNfc(String(b))) : [];
+  const membershipTierName = toNfc(String(raw.membershipTierName || '')).slice(0, 120);
+  // Real YouTube badge icon (captured verbatim by capture-preload.js) —
+  // only meaningful when the streamer turns on "Dùng badge thật"
+  // (useRealBadge, shared/role-style-config.js). Same trust posture as
+  // avatarUrl below: must be an actual https:// image URL, never
+  // javascript:/data: or arbitrary markup, since it ends up as an <img
+  // src> in the overlay (message-renderer.js).
+  const badgeIconUrlRaw = typeof raw.badgeIconUrl === 'string' ? raw.badgeIconUrl.trim() : '';
+  const badgeIconUrl = /^https:\/\//i.test(badgeIconUrlRaw) ? badgeIconUrlRaw.slice(0, 500) : '';
 
   let eventType = typeof raw.eventType === 'string' && VALID_EVENT_TYPES.has(raw.eventType)
     ? raw.eventType
@@ -169,8 +186,10 @@ function normalizeMessage(raw) {
     author,
     avatarUrl: typeof raw.avatarUrl === 'string' ? raw.avatarUrl : '',
     badges,
+    badgeIconUrl,
     roles: deriveRoles(badges),
     memberMonths: deriveMemberMonths(badges),
+    membershipTierName,
     eventType,
     messageText,
     messageHtml,

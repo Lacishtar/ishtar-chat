@@ -36,6 +36,7 @@ if (!listEl || !messageTemplateEl) {
         animationConfig: state.currentAnimation,
         decorationConfig: state.currentDecoration,
         roleStyleConfig: state.currentRoleStyle,
+        fanServiceConfig: state.currentFanService,
         history: initialHistory,
       },
       { forceHistory: true }

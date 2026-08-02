@@ -14,8 +14,9 @@
 
 import { state, listEl, getDisplayMode, syncThemeModeClass } from './state.js';
 import { resolveEffectiveSlotStyle } from './css-variables.js';
-import { resolveMemberTier, quoteCssContent } from '/shared/role-style-config.mjs';
-import { composeMessageBodyHtml } from './message-body.js';
+import { resolveMemberTier } from '/shared/role-style-config.mjs';
+import { quoteCssContent, isImageUrlValue, getBadgeImageSrc } from '/shared/css-content-helpers.mjs';
+import { composeMessageBodyHtml, composeMemberMonthsText } from './message-body.js';
 import { applyAvatar } from './avatar.js';
 import { ensureBubbleTexture, applyMessageBunnyEars, applySlotBunnyEars } from './bubble.js';
 import { applyEmojiOnlyStyling } from './emoji.js';
@@ -39,12 +40,70 @@ export function applySlotVisibility(el, slotKey) {
   }
 }
 
-export function refreshBadgesVisibility(badgesEl) {
-  if (!badgesEl) return;
-  applySlotVisibility(badgesEl, 'badges');
-  if (badgesEl.getAttribute('data-hidden') === 'true') return;
-  if (!badgesEl.textContent.trim()) {
-    badgesEl.setAttribute('data-hidden', 'true');
+// Image-URL member-tier badges (badgeBefore/badgeAfter) are real <img>
+// elements inside .ovs-author, not CSS `content: url(...)` on ::before/
+// ::after — see getBadgeImageSrc() (shared/css-content-helpers.js) for why.
+// Text/emoji badges are untouched by this and keep using the ::before/
+// ::after CSS var (role-styles.css); this only ever adds/removes/updates
+// the two <img> siblings around .ovs-author-text. Called by both the
+// full-build path (createMessageNode) and the diff-update path
+// (bubble-updater.js's applyStyleUpdate) so there's exactly one place
+// that decides "image badge -> <img> element, text badge -> nothing to
+// do here".
+export function applyMemberTierBadgeImage(authorEl, side, url) {
+  if (!authorEl) return;
+  const cls = `ovs-member-badge ovs-member-badge--${side}`;
+  let img = authorEl.querySelector(`:scope > img.ovs-member-badge--${side}`);
+  if (!url) {
+    if (img) img.remove();
+    return;
+  }
+  if (!img) {
+    img = document.createElement('img');
+    img.className = cls;
+    img.alt = '';
+    const textEl = authorEl.querySelector('.ovs-author-text');
+    if (side === 'before') {
+      authorEl.insertBefore(img, textEl || authorEl.firstChild);
+    } else {
+      authorEl.appendChild(img);
+    }
+  }
+  if (img.dataset.rawSrc !== url) {
+    img.dataset.rawSrc = url;
+    img.src = url;
+  }
+}
+
+// "Dùng badge thật" (role.useRealBadge, shared/role-style-config.js) — a
+// real <img> for YouTube's own captured member badge icon
+// (msg.badgeIconUrl, main/capture-preload.js). Deliberately its own
+// element/class (ovs-real-badge), completely separate from the
+// ovs-member-badge--before/after pair applyMemberTierBadgeImage() manages
+// above: the two are meant to show AT THE SAME TIME ("song song") — this
+// is an ADDITION next to the custom Mốc tháng badge, never a replacement
+// for it. Always placed at the very start of .ovs-author (before the
+// Mốc tháng "before" badge, if any) so the real YouTube badge reads first,
+// closest to where YouTube itself shows it, with the custom badge(s)
+// following. Same create-if-missing / remove-if-empty shape as
+// applyMemberTierBadgeImage so both can be called unconditionally on every
+// render without extra branching at call sites.
+export function applyRealBadgeImage(authorEl, url) {
+  if (!authorEl) return;
+  let img = authorEl.querySelector(':scope > img.ovs-real-badge');
+  if (!url) {
+    if (img) img.remove();
+    return;
+  }
+  if (!img) {
+    img = document.createElement('img');
+    img.className = 'ovs-real-badge';
+    img.alt = '';
+    authorEl.insertBefore(img, authorEl.firstChild);
+  }
+  if (img.dataset.rawSrc !== url) {
+    img.dataset.rawSrc = url;
+    img.src = url;
   }
 }
 
@@ -52,7 +111,6 @@ export function refreshMessageNodeVisibility(node) {
   if (!node) return;
   const avatarEl = node.querySelector('[data-slot="avatar"]');
   const authorEl = node.querySelector('[data-slot="author"]');
-  const badgesEl = node.querySelector('[data-slot="badges"]');
   const messageEl = node.querySelector('[data-slot="message"]');
 
   if (avatarEl) {
@@ -61,7 +119,6 @@ export function refreshMessageNodeVisibility(node) {
   }
   applySlotVisibility(authorEl, 'author');
   applySlotVisibility(messageEl, 'message');
-  refreshBadgesVisibility(badgesEl);
 }
 
 export function refreshAllSlotVisibility() {
@@ -77,7 +134,6 @@ function applySlotEnterAnimation(node, skip) {
   const pairs = [
     ['avatar', node.querySelector('[data-slot="avatar"]')],
     ['author', node.querySelector('[data-slot="author"]')],
-    ['badges', node.querySelector('[data-slot="badges"]')],
     ['message', node.querySelector('[data-slot="message"]')],
   ];
 
@@ -115,8 +171,8 @@ export function createMessageNode(msg, options = {}) {
 
   const avatarEl = node.querySelector('[data-slot="avatar"]');
   const authorEl = node.querySelector('[data-slot="author"]');
-  const badgesEl = node.querySelector('[data-slot="badges"]');
   const messageEl = node.querySelector('[data-slot="message"]');
+  const memberMonthsEl = node.querySelector('[data-slot="member-months"]');
 
   if (avatarEl) {
     // Always store (even when empty) so refreshMessageNodeVisibility can
@@ -126,16 +182,20 @@ export function createMessageNode(msg, options = {}) {
   }
   applySlotVisibility(authorEl, 'author');
   applySlotVisibility(messageEl, 'message');
+  if (memberMonthsEl) memberMonthsEl.textContent = composeMemberMonthsText(msg);
 
   // Set role class TRƯỚC khi gọi applyMessageBunnyEars
   // để resolveEarBgForNode có thể đọc classList ngay lập tức.
-  // Gắn TẤT CẢ role class phù hợp (không chỉ 1) — vd một mod gửi Super Chat
-  // sẽ có cả ovs-moderator lẫn ovs-superchat. role-styles.css đã có sẵn các
-  // khối CSS riêng cho tổ hợp .ovs-moderator.ovs-superchat /
-  // .ovs-member.ovs-superchat để hiện gradient pha trộn, nhưng trước đây
-  // node chỉ nhận đúng 1 class (ưu tiên superchat > mod > member) nên các
-  // khối CSS đó không bao giờ khớp — badge/màu của mod hoặc member bị Super
-  // Chat "nuốt mất" hoàn toàn thay vì hoà trộn.
+  // Gắn TẤT CẢ role/event class phù hợp (không chỉ 1) — vd một mod gửi
+  // Super Chat sẽ có cả ovs-moderator lẫn ovs-superchat. Đây là các data
+  // hook DOM trung lập: message-renderer.js không quan tâm ai đang tiêu
+  // thụ chúng. Sau refactor Super Chat -> Fan Service
+  // (docs/refactor-superchat-to-fanservice.md), .ovs-superchat được Fan
+  // Service (shared/fan-service-config.js) style hoàn toàn qua CSS scoped
+  // khi bật; badge Identity (MOD) của role-styles.css vẫn hiện độc lập bên
+  // cạnh vì badge không còn bị :not(.ovs-superchat) loại trừ nữa (mục 3.3
+  // của tài liệu) — không còn khái niệm "combined role CSS" nữa, mỗi hệ
+  // (Role/Fan Service) chỉ style đúng phần mình sở hữu.
   if (msg.roles?.includes('moderator')) rowEl.classList.add('ovs-moderator');
   if (msg.roles?.includes('member')) rowEl.classList.add('ovs-member');
   if (msg.isSuperchat) {
@@ -153,12 +213,6 @@ export function createMessageNode(msg, options = {}) {
     if (msg.superchatBorder) {
       rowEl.style.setProperty('--ovs-superchat-tier-border', msg.superchatBorder);
     }
-    // Apply layout class based on root attribute set by role-style-config
-    const rootEl = document.documentElement;
-    const superchatLayoutAttr = rootEl.getAttribute('data-ovs-role-superchat-layout');
-    if (superchatLayoutAttr === 'youtube') {
-      rowEl.classList.add('ovs-superchat-youtube');
-    }
   }
 
   // Attach eventType class hook (e.g. ovs-event-text, ovs-event-superchat, ovs-event-sticker,
@@ -170,6 +224,11 @@ export function createMessageNode(msg, options = {}) {
   // memberMonths is stored on the row so decoration.js can read it later
   // (including when refreshAllDecorations() re-applies layers without a msg ref).
   rowEl.dataset.ovsMemberMonths = String(msg.memberMonths || 0);
+  // Same reason: bubble-updater.js's applyMemberTierToRow() runs the "Dùng
+  // badge thật" real-badge lookup with no `msg` reference at hand
+  // (refreshAllMemberTiers()), so the captured URL has to live on the row
+  // too, not just be read from msg here.
+  rowEl.dataset.ovsBadgeIconUrl = msg.badgeIconUrl || '';
 
   // Member Tiers — same pattern as the Super Chat tier block above: resolve
   // which configured tier (if any) this row qualifies for, then stamp an
@@ -181,16 +240,25 @@ export function createMessageNode(msg, options = {}) {
   // bubble-updater.js's diff-update path, so there is exactly one
   // resolution algorithm for the whole app).
   const memberRole = msg.roles?.includes('member') ? state.currentRoleStyle?.roles?.member : null;
+  let memberTier = null;
 
   if (memberRole) {
     const memberTiers = memberRole.memberTiers;
     const months = Number(rowEl.dataset.ovsMemberMonths) || 0;
     const tier = resolveMemberTier(memberTiers, months, memberRole.memberTiersEnabled !== false);
+    memberTier = tier;
     if (tier) {
       rowEl.classList.add(`ovs-member-tier-${tier.index}`);
       rowEl.dataset.ovsMemberTier = String(tier.index);
       if (tier.color) rowEl.style.setProperty('--ovs-member-tier-color', tier.color);
-      rowEl.style.setProperty('--ovs-member-tier-badge-before-content', quoteCssContent(tier.badge));
+      rowEl.style.setProperty(
+        '--ovs-member-tier-badge-before-content',
+        isImageUrlValue(tier.badgeBefore) ? 'none' : quoteCssContent(tier.badgeBefore)
+      );
+      rowEl.style.setProperty(
+        '--ovs-member-tier-badge-after-content',
+        isImageUrlValue(tier.badgeAfter) ? 'none' : quoteCssContent(tier.badgeAfter)
+      );
     }
   }
 
@@ -198,14 +266,15 @@ export function createMessageNode(msg, options = {}) {
   applyMessageBunnyEars(rowEl);
   if (authorEl) {
     authorEl.innerHTML = `<span class="ovs-author-text">${msg.author}</span>`;
+    applyMemberTierBadgeImage(authorEl, 'before', getBadgeImageSrc(memberTier?.badgeBefore));
+    applyMemberTierBadgeImage(authorEl, 'after', getBadgeImageSrc(memberTier?.badgeAfter));
+    // "Dùng badge thật" — hiển thị SONG SONG với badge Mốc tháng ở trên,
+    // không thay thế. Chỉ hiện khi role bật useRealBadge VÀ message này có
+    // capture được badgeIconUrl (không phải hội viên nào cũng có, ví dụ
+    // hội viên mới dưới ngưỡng badge đầu tiên của YouTube).
+    applyRealBadgeImage(authorEl, memberRole?.useRealBadge ? (msg.badgeIconUrl || '') : '');
     ensureBubbleTexture(authorEl);
     applySlotBunnyEars(authorEl, 'author');
-  }
-  if (badgesEl) {
-    if (msg.badges?.length) {
-      badgesEl.textContent = msg.badges.map((b) => `[${b}]`).join(' ');
-    }
-    refreshBadgesVisibility(badgesEl);
   }
   // messageHtml originates from YouTube's own already-sanitized chat
   // renderer (plain text + their emoji <img> tags) — that's what lets us

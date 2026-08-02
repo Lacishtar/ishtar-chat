@@ -111,7 +111,7 @@ Tính năng tự động cập nhật liên kết trực tiếp với các bản
 
 ### Tùy biến hoặc Thêm Theme mới
 Bạn có thể dễ dàng thêm theme tùy chỉnh bằng cách tạo một thư mục mới trong `/themes` có cấu trúc:
-- `template.html`: Chứa khung HTML của một dòng chat. Bắt buộc có đủ 4 thuộc tính `data-slot="avatar|author|badges|message"` để script tự động điền dữ liệu.
+- `template.html`: Chứa khung HTML của một dòng chat. Bắt buộc có đủ 3 thuộc tính `data-slot="avatar|author|message"` để script tự động điền dữ liệu.
 - `style.css`: CSS áp dụng cho dòng chat của theme đó. Bạn có thể sử dụng các biến CSS `--ovs-*` được tính toán sẵn từ cấu hình chung.
 - `default-config.json`: Chứa cấu hình mặc định cho theme này (bao gồm trường `_label` đặt tên hiển thị).
 

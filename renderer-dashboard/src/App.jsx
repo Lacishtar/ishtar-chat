@@ -6,12 +6,13 @@ import CustomizePanel from './components/CustomizePanel.jsx';
 import LayoutPanel from './components/LayoutPanel.jsx';
 import DecorationsPanel from './components/DecorationsPanel.jsx';
 import RoleStylesPanel from './components/RoleStylesPanel.jsx';
+import FanServicePanel from './components/FanServicePanel.jsx';
 import ThemeLibraryPanel from './components/ThemeLibraryPanel.jsx';
 import CustomPresetsPanel from './components/CustomPresetsPanel.jsx';
 import ChatPreview from './components/ChatPreview.jsx';
 import StatusBadge from './components/StatusBadge.jsx';
 
-// Tabs for the four "settings" panels — ConnectPanel stays outside this list
+// Tabs for the five "settings" panels — ConnectPanel stays outside this list
 // and is always rendered above, since connection status matters regardless
 // of which settings tab the user is working in.
 const TABS = [
@@ -19,6 +20,7 @@ const TABS = [
   { id: 'layout', label: 'Bố cục' },
   { id: 'decorations', label: 'Trang trí' },
   { id: 'roles', label: 'Vai trò' },
+  { id: 'fanService', label: 'Fan Service' },
 ];
 
 function TabBar({ active, onChange }) {
@@ -116,6 +118,7 @@ function AppShell() {
             {activeTab === 'layout' && <LayoutPanel />}
             {activeTab === 'decorations' && <DecorationsPanel />}
             {activeTab === 'roles' && <RoleStylesPanel />}
+            {activeTab === 'fanService' && <FanServicePanel />}
           </div>
         </div>
 

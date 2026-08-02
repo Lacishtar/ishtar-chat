@@ -21,6 +21,7 @@ const SHARED_DIR = path.join(__dirname, '..', '..', 'shared');
 // require() a Node builtin (fs, crypto, path, os, ...).
 const ALLOWED_MODULES = new Set([
   'image-url',
+  'css-content-helpers',
   'decoration-config',
   'layout-config',
   'slot-bubble-config',
@@ -28,6 +29,7 @@ const ALLOWED_MODULES = new Set([
   'slot-style-config',
   'animation-config',
   'role-style-config',
+  'fan-service-config',
 ]);
 
 function findMatchingBrace(src, openIndex) {

@@ -1,14 +1,21 @@
 /**
- * RoleStyleConfig — visual overrides for moderator, member, and superchat messages.
+ * RoleStyleConfig — visual overrides for moderator and member messages.
  * Compiled to --ovs-role-* CSS variables on :root.
+ *
+ * Role is Identity-only after the Super Chat -> Fan Service refactor: it no
+ * longer knows anything about Super Chat. All Super Chat styling (tier
+ * color, badge, amount display) now lives in shared/fan-service-config.js's
+ * `superchat` group — see that file's header comment and
+ * docs/refactor-superchat-to-fanservice.md for the full design.
  */
 
-const ROLE_KEYS = ['moderator', 'member', 'superchat'];
+const { quoteCssContent, isImageUrlValue, getBadgeImageSrc, FONT_WEIGHT_MAP } = require('./css-content-helpers');
+
+const ROLE_KEYS = ['moderator', 'member'];
 
 const ROLE_CSS_PREFIX = {
   moderator: 'mod',
   member: 'member',
-  superchat: 'superchat',
 };
 
 function createRoleDefaults(overrides = {}) {
@@ -25,7 +32,6 @@ function createRoleDefaults(overrides = {}) {
     earColor: null,
     badgeBefore: null,
     badgeAfter: null,
-    showAmount: null,
     fontSize: null,
     // Name — Font Weight (Appearance). authorColor already covers Name Color.
     authorFontWeight: null, // 'normal' | 'bold' | 'extrabold' or null = inherit theme weight
@@ -38,13 +44,17 @@ function createRoleDefaults(overrides = {}) {
     textScale: null,   // number (e.g. 1.15) or null = no text scale change (1)
     // Member Tiers — same shape/resolution model as SUPERCHAT_TIER_TABLE
     // (shared/chat-message.js), just keyed by minMonths instead of minUsd.
-    // Only meaningful for the 'member' role today, but lives here (not in a
-    // member-only defaults factory) since createRoleDefaults() is the one
-    // shape every role normalizes through — keeps normalizeRole() the
-    // single place that knows how to validate/sort this array, instead of
-    // duplicating that logic in a second per-role normalizer the way
-    // superchat's tier table (a fixed constant, not user-edited) never
-    // needed to.
+    // Each tier carries its own badgeBefore/badgeAfter (text/emoji or an
+    // image URL — see quoteCssContent below) — this is the only badge
+    // mechanism the 'member' role has; there is no separate role-level
+    // badge outside of a Mốc tháng tier (see the `roleKey !== 'member'`
+    // guard in compileRoleStyleToCssVariables). Only meaningful for the
+    // 'member' role today, but lives here (not in a member-only defaults
+    // factory) since createRoleDefaults() is the one shape every role
+    // normalizes through — keeps normalizeRole() the single place that
+    // knows how to validate/sort this array, instead of duplicating that
+    // logic in a second per-role normalizer the way superchat's tier table
+    // (a fixed constant, not user-edited) never needed to.
     memberTiers: [],
     // Master on/off switch for the Mốc tháng (memberTiers) feature. Lets
     // the streamer disable tier-based coloring without losing their
@@ -53,77 +63,70 @@ function createRoleDefaults(overrides = {}) {
     // pattern createSuperchatDefaults' useTierColor already uses for Super
     // Chat. Only meaningful for 'member', same caveat as memberTiers above.
     memberTiersEnabled: true,
-    // Stand-out layout for membership_milestone rows (the renewal
-    // notification), scoped to just that one event type instead of every
-    // message from the role, since a milestone notification is a one-off
-    // event rather than an ongoing chat style. Same three options as Super
-    // Chat's superchatLayout — 'bubble' (default, renders like a normal
-    // member message), 'highlight' (still a bubble, but pushed to stand
-    // out with a glowing border/shadow + slight scale — see
-    // compileRoleStyleToCssVariables/role-styles.css), or 'youtube'
-    // (two-tier card: solid tier-color header + tinted body, same visual
-    // language as Super Chat's 'youtube' layout). Only meaningful for
-    // 'member', same caveat as memberTiers above.
-    milestoneLayout: 'bubble', // 'bubble' | 'highlight' | 'youtube'
-    // Milestone Text — a line always rendered for a member's registration/
-    // renewal events (see MEMBER_MILESTONE_EVENT_TYPES below), independent
-    // of whatever text YouTube itself attached to that event (which is
-    // often empty — a plain "member for N months" system event has no
-    // author-written message body at all). `{months}` in the template is
-    // replaced with the resolved number (see formatMilestoneText()).
-    // null = use DEFAULT_MEMBER_MILESTONE_TEXT. Only meaningful for
-    // 'member', same caveat as memberTiers/milestoneLayout above.
-    milestoneText: null,
-    // Master on/off switch, same "keep the data, skip the effect" pattern
-    // as memberTiersEnabled/useTierColor above.
-    milestoneTextEnabled: true,
+    // "Dùng badge thật" — when on, the overlay shows YouTube's own captured
+    // member-loyalty badge icon (ChatMessage.badgeIconUrl, captured by
+    // main/capture-preload.js) ALONGSIDE the custom Mốc tháng badge above,
+    // not instead of it — both render at once (see applyRealBadgeImage(),
+    // overlay/modules/message-renderer.js). Off by default: most streamers
+    // set this up specifically to replace YouTube's plain badge with their
+    // own art, so showing YouTube's badge too should be an opt-in extra,
+    // not a surprise default. Only meaningful for 'member', same caveat as
+    // memberTiers above.
+    useRealBadge: false,
+    // Package/Tier Name — shows YouTube's own per-channel membership tier
+    // tagline / new-member greeting (read from '#header-subtext' — see
+    // membershipTierName on ChatMessage, shared/chat-message.js). This is
+    // real YouTube content, shown verbatim whenever the captured event
+    // carried one — not a user-authored template (that mechanism was
+    // removed: YouTube's own '#header-subtext' text turned out to already
+    // cover the "no message body" case on its own — see the "Chào mừng
+    // bạn đến với..." new-member greeting example — so a separate
+    // app-fabricated "đã hỗ trợ trong N tháng qua!!" line was redundant
+    // and, worse, could show alongside/instead of real YouTube copy).
+    // Always rendered now — the toggle that used to gate this line was
+    // removed, so this field is kept only so old persisted shapes/callers
+    // that still reference role.packageNameEnabled keep working; it is
+    // always normalized to true (see normalizeRole below), no user-facing
+    // switch exists to turn it off any more.
+    // Only meaningful for 'member', same caveat as memberTiers above.
+    packageNameEnabled: true,
     ...overrides,
   };
 }
 
-// Events where a member's own months-of-membership figure is meaningful
-// to show regardless of the event's own (often empty) message text: a
-// brand-new sub, a renewal milestone notification, or a gifted membership
-// being redeemed. Deliberately excludes 'membership_gift_sent' (that
-// event is about the GIFTER, whose own memberMonths isn't what's being
-// celebrated) and plain chat/superchat/sticker events (those already have
-// real message content and showing this on every chat line from a member
-// would be noise, not signal).
-const MEMBER_MILESTONE_EVENT_TYPES = new Set([
-  'membership_new',
-  'membership_milestone',
-  'membership_gift_received',
-]);
-
-const DEFAULT_MEMBER_MILESTONE_TEXT = 'đã hỗ trợ trong {months} tháng qua!!';
-
-// Replaces every `{months}` placeholder in a user-authored template with
-// the resolved months value. Returns '' for a blank/whitespace-only
-// template so callers can treat that the same as "nothing to show".
-function formatMilestoneText(template, months) {
-  const t = typeof template === 'string' ? template : '';
-  if (!t.trim()) return '';
-  const m = typeof months === 'number' && Number.isFinite(months) ? months : 0;
-  return t.replace(/\{months\}/g, String(m));
-}
-
-// One member tier entry: { id, minMonths, color, badge }. Mirrors
-// SUPERCHAT_TIER_TABLE's { tier, minUsd, color, ... } shape/spirit, but
-// minMonths/color/badge are user-authored (via RoleStylesPanel) rather than
-// a fixed constant table, so — unlike SUPERCHAT_TIER_TABLE — this needs a
-// normalizer instead of being hand-written once.
+// One member tier entry: { id, minMonths, color, badgeBefore, badgeAfter }.
+// Mirrors SUPERCHAT_TIER_TABLE's { tier, minUsd, color, ... } shape/spirit,
+// but minMonths/color/badgeBefore/badgeAfter are user-authored (via
+// RoleStylesPanel) rather than a fixed constant table, so — unlike
+// SUPERCHAT_TIER_TABLE — this needs a normalizer instead of being
+// hand-written once.
+//
+// badgeBefore/badgeAfter each accept either plain text/emoji (rendered as
+// CSS `content: "..."`) or an image URL (rendered as CSS `content:
+// url(...)`, auto-detected by compileBadgeContent() below) — this is the
+// one place Mốc tháng badges live now that the role-level badgeBefore/
+// badgeAfter fields (createRoleDefaults) are no longer used for the
+// 'member' role (see compileRoleStyleToCssVariables' `roleKey === 'member'`
+// skip below). `badge` (singular, before-only) was the old shape before
+// after-name badges existed here — still accepted on read so configs saved
+// before this change keep working, migrated into badgeBefore.
 function normalizeMemberTierEntry(raw, index) {
   const t = raw || {};
   const minMonths = typeof t.minMonths === 'number' && Number.isFinite(t.minMonths) && t.minMonths >= 0
     ? t.minMonths
     : 0;
+  const badgeBefore = t.badgeBefore !== undefined && t.badgeBefore !== null && String(t.badgeBefore).trim() !== ''
+    ? String(t.badgeBefore)
+    : (t.badge !== undefined && t.badge !== null && String(t.badge).trim() !== '' ? String(t.badge) : null);
+  const badgeAfter = t.badgeAfter !== undefined && t.badgeAfter !== null && String(t.badgeAfter).trim() !== ''
+    ? String(t.badgeAfter)
+    : null;
   return {
     id: typeof t.id === 'string' && t.id ? t.id : `tier-${index}-${minMonths}`,
     minMonths,
     color: typeof t.color === 'string' && t.color ? t.color : null,
-    badge: t.badge !== undefined && t.badge !== null && String(t.badge).trim() !== ''
-      ? String(t.badge)
-      : null,
+    badgeBefore,
+    badgeAfter,
   };
 }
 
@@ -163,29 +166,6 @@ function resolveMemberTier(memberTiers, months, enabled = true) {
   return { ...list[idx], index: idx + 1 };
 }
 
-function createSuperchatDefaults(overrides = {}) {
-  return {
-    ...createRoleDefaults({
-      enabled: true,
-      authorColor: '#fde047',
-      authorBorderColor: 'rgba(255, 202, 40, 0.55)',
-      messageBg: 'rgba(104, 87, 34, 0.8)',
-      messageBorderColor: 'rgba(255, 202, 40, 0.45)',
-      rowBg: 'rgba(88, 75, 34, 0.78)',
-      rowBorderColor: 'rgba(255, 202, 40, 0.45)',
-      badgeBefore: '✦',
-      showAmount: true,
-    }),
-    // Superchat-specific fields
-    useTierColor: true,        // When true: YouTube tier color overrides manual color settings
-    superchatLayout: 'bubble', // 'bubble' | 'youtube'
-    amountFontSize: null,      // number (px) or null = inherit from fontSize
-    amountFontWeight: 'bold',  // 'normal' | 'bold' | 'extrabold'
-    amountPosition: 'inline',  // 'inline' (next to name) | 'block' (own line below name)
-    ...overrides,
-  };
-}
-
 const DEFAULT_ROLE_STYLE_CONFIG = {
   roles: {
     moderator: createRoleDefaults({
@@ -202,10 +182,11 @@ const DEFAULT_ROLE_STYLE_CONFIG = {
       authorBorderColor: 'rgba(96, 165, 250, 0.55)',
       messageBg: 'rgba(30, 58, 95, 0.9)',
       messageBorderColor: 'rgba(96, 165, 250, 0.45)',
-      badgeBefore: '★',
-      milestoneText: DEFAULT_MEMBER_MILESTONE_TEXT,
+      // No badgeBefore/badgeAfter default — the 'member' role no longer
+      // has its own role-level badge (see compileRoleStyleToCssVariables'
+      // `roleKey !== 'member'` guard above); a streamer who wants a member
+      // badge configures it per Mốc tháng tier instead (memberTiers).
     }),
-    superchat: createSuperchatDefaults(),
   },
 };
 
@@ -242,7 +223,6 @@ function normalizeRole(raw, fallback) {
       role.badgeAfter !== undefined && role.badgeAfter !== null
         ? role.badgeAfter
         : base.badgeAfter,
-    showAmount: role.showAmount !== undefined && role.showAmount !== null ? Boolean(role.showAmount) : base.showAmount,
     fontSize: typeof role.fontSize === 'number' && role.fontSize > 0 ? role.fontSize : base.fontSize,
     authorFontWeight: ['normal', 'bold', 'extrabold'].includes(role.authorFontWeight)
       ? role.authorFontWeight
@@ -255,47 +235,13 @@ function normalizeRole(raw, fallback) {
     memberTiers: normalizeMemberTiers(role.memberTiers !== undefined ? role.memberTiers : base.memberTiers),
     memberTiersEnabled:
       typeof role.memberTiersEnabled === 'boolean' ? role.memberTiersEnabled : base.memberTiersEnabled !== false,
-    // Accept the picker value directly ('bubble' | 'highlight' |
-    // 'youtube'); migrate any config saved before this became a picker
-    // (role.milestoneBannerEnabled: boolean) so existing "on" configs land
-    // on 'youtube' (the only stand-out style that existed at the time)
-    // instead of silently reverting to the plain 'bubble' look.
-    milestoneLayout: ['bubble', 'highlight', 'youtube'].includes(role.milestoneLayout)
-      ? role.milestoneLayout
-      : (typeof role.milestoneBannerEnabled === 'boolean'
-          ? (role.milestoneBannerEnabled ? 'youtube' : 'bubble')
-          : (['bubble', 'highlight', 'youtube'].includes(base.milestoneLayout) ? base.milestoneLayout : 'bubble')),
-    milestoneText: typeof role.milestoneText === 'string' ? role.milestoneText : base.milestoneText,
-    milestoneTextEnabled:
-      typeof role.milestoneTextEnabled === 'boolean' ? role.milestoneTextEnabled : base.milestoneTextEnabled !== false,
-  };
-}
-
-function normalizeSuperchatRole(raw, fallback) {
-  const baseShape = normalizeRole(raw, fallback);
-  const role = raw || {};
-  const base = fallback || createSuperchatDefaults();
-
-  return {
-    ...baseShape,
-    useTierColor: typeof role.useTierColor === 'boolean' ? role.useTierColor : (base.useTierColor !== false),
-    // 'banner' was removed as a selectable layout — it migrates to
-    // 'youtube' (the closest surviving "stand out" option) instead of
-    // silently dropping to the plain 'bubble' look. 'highlight' ("Bubble
-    // nổi bật") was re-added alongside 'bubble'/'youtube' — still a bubble
-    // shape, but with a glowing border/shadow + slight scale (see
-    // compileRoleStyleToCssVariables/role-styles.css) instead of the
-    // 'youtube' layout's full two-tier card rebuild.
-    superchatLayout: role.superchatLayout === 'banner'
-      ? 'youtube'
-      : (['bubble', 'highlight', 'youtube'].includes(role.superchatLayout)
-          ? role.superchatLayout
-          : (['bubble', 'highlight', 'youtube'].includes(base.superchatLayout) ? base.superchatLayout : 'bubble')),
-    amountFontSize: typeof role.amountFontSize === 'number' && role.amountFontSize > 0 ? role.amountFontSize : (base.amountFontSize || null),
-    amountFontWeight: ['normal', 'bold', 'extrabold'].includes(role.amountFontWeight)
-      ? role.amountFontWeight
-      : (base.amountFontWeight || 'bold'),
-    amountPosition: role.amountPosition === 'block' ? 'block' : (base.amountPosition || 'inline'),
+    useRealBadge:
+      typeof role.useRealBadge === 'boolean' ? role.useRealBadge : base.useRealBadge === true,
+    // Package/Tier Name is always shown now — there is no user-facing
+    // on/off switch for it any more (see createRoleDefaults' comment on
+    // packageNameEnabled above), so normalization always forces this to
+    // true regardless of what a legacy config.json may have persisted.
+    packageNameEnabled: true,
   };
 }
 
@@ -306,7 +252,6 @@ function normalizeRoleStyleConfig(config) {
     roles: {
       moderator: normalizeRole(roles.moderator, defaults.moderator),
       member: normalizeRole(roles.member, defaults.member),
-      superchat: normalizeSuperchatRole(roles.superchat, defaults.superchat),
     },
   };
 }
@@ -339,24 +284,31 @@ function mergeRoleStyleConfig(base, overrides) {
     roles: {
       moderator: mergeOne('moderator'),
       member: mergeOne('member'),
-      superchat: mergeOne('superchat'),
     },
   });
 }
 
-function quoteCssContent(value) {
-  if (!value) return 'none';
-  return `"${String(value).replace(/"/g, '\\"')}"`;
-}
-
-// Shared by both Name Font Weight (authorFontWeight, every role) and Super
-// Chat's amount Font Weight (amountFontWeight) — same three options, same
-// numeric mapping, so there's exactly one place this ever gets defined.
-const FONT_WEIGHT_MAP = {
-  normal: '400',
-  bold: '700',
-  extrabold: '900',
-};
+// A badge value is treated as an image URL (rendered via CSS `content:
+// url(...)`, same replaced-element technique shared/customize-config.js
+// already uses for bubbleTextureUrl) whenever it looks like an http(s)
+// link; anything else (emoji, plain text like "VIP") stays a quoted text
+// content string. This is deliberately a cheap prefix check, not a strict
+// URL parse — badge fields are free-text inputs, not always well-formed
+// URLs, and the cost of a false positive here (an oddly-typed non-URL
+// string starting with "http" rendering as a broken image) is low compared
+// to rejecting a valid-but-unusual image URL.
+//
+// isImageUrlValue/quoteCssContent/getBadgeImageSrc/FONT_WEIGHT_MAP used to
+// live here; they're now in shared/css-content-helpers.js (imported at the
+// top of this file), used internally below for Role's own badge fields
+// (moderator badge, Mốc tháng member-tier badges). shared/fan-service-config.js
+// imports the same helpers directly from css-content-helpers.js too, for
+// Super Chat's badge/amount styling — neither module imports these from the
+// other, so Role stays fully independent of Fan Service and vice versa.
+// Overlay consumers (message-renderer.js, bubble-updater.js) also import
+// these directly from css-content-helpers.mjs now, not re-exported through
+// this file, so this module's own require() above is purely an
+// implementation detail, not part of Role's public API.
 
 function compileRoleStyleToCssVariables(roleStyle) {
   const cfg = normalizeRoleStyleConfig(roleStyle);
@@ -369,54 +321,11 @@ function compileRoleStyleToCssVariables(roleStyle) {
     const enabled = role.enabled !== false;
     rootFlags[`data-ovs-role-${prefix}-enabled`] = enabled ? 'true' : 'false';
 
-    if (roleKey === 'superchat') {
-      rootFlags['data-ovs-role-superchat-show-amount'] =
-        role.showAmount === false ? 'false' : 'true';
-
-      // Layout: 'bubble' (default), 'highlight' (glowing bubble — see
-      // role-styles.css), or 'youtube' (mirrors YouTube's own card).
-      // 'banner' was removed as a selectable layout — see the migration
-      // note in normalizeSuperchatRole() above.
-      rootFlags['data-ovs-role-superchat-layout'] =
-        role.superchatLayout === 'youtube' || role.superchatLayout === 'highlight'
-          ? role.superchatLayout
-          : 'bubble';
-
-      // Amount position: inline (default) or block
-      rootFlags['data-ovs-role-superchat-amount-position'] =
-        role.amountPosition === 'block' ? 'block' : 'inline';
-
-      // useTierColor: when false, user's manual colors take precedence over tier vars
-      rootFlags['data-ovs-role-superchat-use-tier-color'] =
-        role.useTierColor === false ? 'false' : 'true';
-    }
-
-    if (roleKey === 'member') {
-      // Renewal ("Gia hạn") stand-out layout — 'bubble' (default) or
-      // 'youtube'. Read regardless of `enabled` below being false isn't
-      // needed here since the CSS selector for this flag is itself gated
-      // on data-ovs-role-member-enabled='true'; setting it unconditionally
-      // just avoids leaving the attribute unset (which would otherwise
-      // read as neither value to an [attr='...'] selector, same "always
-      // emit" pattern the superchat flags above and the enabled flag
-      // itself already follow).
-      rootFlags['data-ovs-role-member-milestone-layout'] =
-        role.milestoneLayout === 'youtube' || role.milestoneLayout === 'highlight'
-          ? role.milestoneLayout
-          : 'bubble';
-    }
-
     if (!enabled) return;
 
-    // When superchat useTierColor is true, skip emitting manual color vars
-    // so that --ovs-superchat-tier-* (set inline per-message) wins cleanly.
-    const skipManualColors = roleKey === 'superchat' && role.useTierColor !== false;
-
-    if (!skipManualColors) {
-      if (role.authorColor) vars[`--ovs-role-${prefix}-author-color`] = role.authorColor;
-      if (role.messageBg) vars[`--ovs-role-${prefix}-message-bg`] = role.messageBg;
-      if (role.messageBorderColor) vars[`--ovs-role-${prefix}-message-border-color`] = role.messageBorderColor;
-    }
+    if (role.authorColor) vars[`--ovs-role-${prefix}-author-color`] = role.authorColor;
+    if (role.messageBg) vars[`--ovs-role-${prefix}-message-bg`] = role.messageBg;
+    if (role.messageBorderColor) vars[`--ovs-role-${prefix}-message-border-color`] = role.messageBorderColor;
 
     if (role.authorBorderColor) vars[`--ovs-role-${prefix}-author-border-color`] = role.authorBorderColor;
     if (role.authorBg) {
@@ -427,13 +336,26 @@ function compileRoleStyleToCssVariables(roleStyle) {
     if (role.rowBg) vars[`--ovs-role-${prefix}-row-bg`] = role.rowBg;
     if (role.rowBorderColor) vars[`--ovs-role-${prefix}-row-border-color`] = role.rowBorderColor;
     if (role.earColor) vars[`--ovs-role-${prefix}-ear-color`] = role.earColor;
-    vars[`--ovs-role-${prefix}-badge-before-content`] = quoteCssContent(role.badgeBefore);
-    vars[`--ovs-role-${prefix}-badge-after-content`] = quoteCssContent(role.badgeAfter);
+
+    // Role-level badgeBefore/badgeAfter ("Badge & chữ") — moderator only
+    // now. The 'member' role no longer has its own badge here: Mốc tháng
+    // (memberTiers, below) is the only badge mechanism for members now, so
+    // there is exactly one place a member's badge comes from instead of a
+    // "flat badge that a tier badge silently overrides" pair of
+    // mechanisms. role.badgeBefore/badgeAfter may still be present on an
+    // old saved 'member' config (normalizeRole still accepts them, for
+    // forward/backward config compatibility) — they're simply never read
+    // here, so they have no visual effect for members. Super Chat's badge
+    // is gone from this function entirely — see
+    // shared/fan-service-config.js's `superchat` group.
+    if (roleKey !== 'member') {
+      vars[`--ovs-role-${prefix}-badge-before-content`] = quoteCssContent(role.badgeBefore);
+      vars[`--ovs-role-${prefix}-badge-after-content`] = quoteCssContent(role.badgeAfter);
+    }
 
     if (typeof role.fontSize === 'number' && role.fontSize > 0) {
       vars[`--ovs-role-${prefix}-message-font-size`] = `${role.fontSize}px`;
       vars[`--ovs-role-${prefix}-author-font-size`] = `${Math.round(role.fontSize * 0.9)}px`;
-      vars[`--ovs-role-${prefix}-badges-font-size`] = `${Math.round(role.fontSize * 0.65)}px`;
     }
 
     // Name — Font Weight
@@ -464,19 +386,11 @@ function compileRoleStyleToCssVariables(roleStyle) {
       tiers.forEach((tier, idx) => {
         const n = idx + 1;
         if (tier.color) vars[`--ovs-role-member-tier-${n}-color`] = tier.color;
-        vars[`--ovs-role-member-tier-${n}-badge-before-content`] = quoteCssContent(tier.badge);
+        vars[`--ovs-role-member-tier-${n}-badge-before-content`] = quoteCssContent(tier.badgeBefore);
+        vars[`--ovs-role-member-tier-${n}-badge-after-content`] = quoteCssContent(tier.badgeAfter);
       });
     }
 
-    // Superchat-specific amount styling
-    if (roleKey === 'superchat') {
-      const amountSize = role.amountFontSize || role.fontSize;
-      if (typeof amountSize === 'number' && amountSize > 0) {
-        vars[`--ovs-role-superchat-amount-font-size`] = `${amountSize}px`;
-      }
-      const weightValue = FONT_WEIGHT_MAP[role.amountFontWeight] || '700';
-      vars[`--ovs-role-superchat-amount-font-weight`] = weightValue;
-    }
   });
 
   return { vars, rootFlags };
@@ -487,14 +401,9 @@ module.exports = {
   ROLE_CSS_PREFIX,
   DEFAULT_ROLE_STYLE_CONFIG,
   createRoleDefaults,
-  createSuperchatDefaults,
   normalizeRoleStyleConfig,
   mergeRoleStyleConfig,
   compileRoleStyleToCssVariables,
   normalizeMemberTiers,
   resolveMemberTier,
-  quoteCssContent,
-  MEMBER_MILESTONE_EVENT_TYPES,
-  DEFAULT_MEMBER_MILESTONE_TEXT,
-  formatMilestoneText,
 };

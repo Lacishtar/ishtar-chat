@@ -1,7 +1,8 @@
 import { state, syncThemeModeClass } from './state.js';
-import { applyCssVariables } from './css-variables.js';
+import { applyCssVariables, applyFanServiceStyle } from './css-variables.js';
 import { refreshAllDecorations } from './decoration.js';
 import { refreshAllSlotBunnyEars } from './bubble.js';
+import { refreshAllMemberTiers } from './bubble-updater.js';
 import { applyThemePayload } from './theme-loader.js';
 import { enqueueMessage, flushQueue } from './message-queue.js';
 import { renderHistory, clearAllMessages } from './message-renderer.js';
@@ -54,6 +55,14 @@ export function connectSocket() {
       applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);
       // Refresh ear colors vì màu phụ thuộc vào role config
       refreshAllSlotBunnyEars();
+      // Re-resolve Mốc tháng (member tier) for every row already on screen —
+      // otherwise an edited threshold/color/badge only shows up on messages
+      // that arrive (or are otherwise re-rendered) after this point, not the
+      // ones already rendered. See refreshAllMemberTiers() for details.
+      refreshAllMemberTiers();
+    } else if (payload.type === 'fan-service:updated') {
+      state.currentFanService = payload.data || { superchat: {}, membership: {} };
+      applyFanServiceStyle(state.currentFanService);
     }
   });
 

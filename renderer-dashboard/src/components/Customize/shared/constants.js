@@ -102,5 +102,4 @@ export const OBJECTS = [
   { id: 'avatar', label: 'Avatar', hint: 'Ảnh đại diện' },
   { id: 'author', label: 'Tên', hint: 'Username' },
   { id: 'message', label: 'Nội dung', hint: 'Nội dung chat' },
-  { id: 'badges', label: 'Badge', hint: 'Huy hiệu' },
 ];

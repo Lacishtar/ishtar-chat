@@ -6,7 +6,6 @@ import GlobalInspector from '../ObjectInspectors/GlobalInspector.jsx';
 import AvatarInspector from '../ObjectInspectors/AvatarInspector.jsx';
 import AuthorInspector from '../ObjectInspectors/AuthorInspector.jsx';
 import MessageInspector from '../ObjectInspectors/MessageInspector.jsx';
-import BadgesInspector from '../ObjectInspectors/BadgesInspector.jsx';
 import { OBJECTS } from '../shared/constants.js';
 
 const INSPECTORS = {
@@ -14,7 +13,6 @@ const INSPECTORS = {
   avatar: AvatarInspector,
   author: AuthorInspector,
   message: MessageInspector,
-  badges: BadgesInspector,
 };
 
 export default function InspectorPanel() {

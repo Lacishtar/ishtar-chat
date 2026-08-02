@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('api', {
   updateAnimation: (partialAnimation) => ipcRenderer.invoke('animation:update', partialAnimation),
   updateDecorationConfig: (partialDecoration) => ipcRenderer.invoke('decoration:update', partialDecoration),
   updateRoleStyleConfig: (partialRoleStyle) => ipcRenderer.invoke('role-style:update', partialRoleStyle),
+  updateFanServiceConfig: (partialFanService) => ipcRenderer.invoke('fan-service:update', partialFanService),
 
   // Custom presets
   listCustomPresets: () => ipcRenderer.invoke('custom-preset:list'),
@@ -38,5 +39,6 @@ contextBridge.exposeInMainWorld('api', {
   onAnimationUpdated: (callback) => subscribe('animation:updated', callback),
   onDecorationUpdated: (callback) => subscribe('decoration:updated', callback),
   onRoleStyleUpdated: (callback) => subscribe('role-style:updated', callback),
+  onFanServiceUpdated: (callback) => subscribe('fan-service:updated', callback),
   onThemeChanged: (callback) => subscribe('theme:changed', callback),
 });

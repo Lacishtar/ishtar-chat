@@ -12,6 +12,7 @@ const SLOT_DEBOUNCE_MS = 100;
 const LAYOUT_DEBOUNCE_MS = 100;
 const DECORATION_DEBOUNCE_MS = 100;
 const ROLE_DEBOUNCE_MS = 120;
+const FAN_SERVICE_DEBOUNCE_MS = 120;
 
 function applyInitialState(state, setters) {
   setters.setLocal(state.customizeConfig);
@@ -19,6 +20,7 @@ function applyInitialState(state, setters) {
   setters.setSlotLocal(state.slotStyleConfig);
   setters.setDecorationLocal(state.decorationConfig);
   setters.setRoleLocal(state.roleStyleConfig);
+  setters.setFanServiceLocal(state.fanServiceConfig);
   setters.setAnimLocal(state.animationConfig);
   setters.setOverlayUrl(state.overlayUrl);
   setters.setLastSessionUrl(state.lastSessionUrl || '');
@@ -53,6 +55,7 @@ export function EditorStateProvider({ api, children }) {
   const [animLocal, setAnimLocal] = useState(null);
   const [decorationLocal, setDecorationLocal] = useState(null);
   const [roleLocal, setRoleLocal] = useState(null);
+  const [fanServiceLocal, setFanServiceLocal] = useState(null);
 
   // ── Non-editable app state (connection, preview) ──────────────────────────
   const [overlayUrl, setOverlayUrl] = useState('');
@@ -65,6 +68,7 @@ export function EditorStateProvider({ api, children }) {
   const layoutDebounce = useRef(null);
   const decorationDebounce = useRef(null);
   const roleDebounce = useRef(null);
+  const fanServiceDebounce = useRef(null);
 
   const loadInitialState = useCallback(() => {
     setLoading(true);
@@ -79,6 +83,7 @@ export function EditorStateProvider({ api, children }) {
           setSlotLocal,
           setDecorationLocal,
           setRoleLocal,
+          setFanServiceLocal,
           setAnimLocal,
           setOverlayUrl,
           setLastSessionUrl,
@@ -111,6 +116,7 @@ export function EditorStateProvider({ api, children }) {
       api.onSlotStyleUpdated((payload) => setSlotLocal(payload)),
       api.onDecorationUpdated?.((payload) => setDecorationLocal(payload)),
       api.onRoleStyleUpdated?.((payload) => setRoleLocal(payload)),
+      api.onFanServiceUpdated?.((payload) => setFanServiceLocal(payload)),
       api.onAnimationUpdated?.((payload) => setAnimLocal(payload)),
       api.onThemeChanged((payload) => {
         // Loading a theme (or a Custom Preset, which reuses this same
@@ -122,6 +128,11 @@ export function EditorStateProvider({ api, children }) {
         setDecorationLocal(payload.decorationConfig);
         setRoleLocal(payload.roleStyleConfig);
         setAnimLocal(payload.animationConfig);
+        // Fan Service is now themed too — every built-in theme carries its
+        // own fanServiceConfig (see shared/theme-presets/helpers.js#defaultThemeFanService),
+        // so switching themes (or loading a Custom Preset, which reuses
+        // this broadcast) must replace this buffer as well.
+        if (payload.fanServiceConfig) setFanServiceLocal(payload.fanServiceConfig);
         setPreviewKey((k) => k + 1);
       }),
     ];
@@ -200,6 +211,22 @@ export function EditorStateProvider({ api, children }) {
     [api],
   );
 
+  // Fan Service edits a single group ('superchat' | 'membership') at a time
+  // — same shallow-merge-per-group shape as the backend's mergeFanServiceConfig.
+  const pushFanServiceUpdate = useCallback(
+    (group, patch) => {
+      setFanServiceLocal((prev) => ({
+        ...prev,
+        [group]: { ...(prev?.[group] || {}), ...patch },
+      }));
+      clearTimeout(fanServiceDebounce.current);
+      fanServiceDebounce.current = setTimeout(() => {
+        api.updateFanServiceConfig({ [group]: patch });
+      }, FAN_SERVICE_DEBOUNCE_MS);
+    },
+    [api],
+  );
+
   const resetPreset = useCallback(async () => {
     const result = await api.resetPreset?.();
     if (result?.ok) {
@@ -209,6 +236,7 @@ export function EditorStateProvider({ api, children }) {
       setDecorationLocal(result.decorationConfig);
       setRoleLocal(result.roleStyleConfig);
       setAnimLocal(result.animationConfig);
+      if (result.fanServiceConfig) setFanServiceLocal(result.fanServiceConfig);
       setPreviewKey((k) => k + 1);
     }
     return result;
@@ -251,6 +279,7 @@ export function EditorStateProvider({ api, children }) {
     layoutLocal,
     decorationLocal,
     roleLocal,
+    fanServiceLocal,
 
     pushConfigUpdate,
     pushSlotUpdate,
@@ -258,6 +287,7 @@ export function EditorStateProvider({ api, children }) {
     pushLayoutUpdate,
     pushDecorationUpdate,
     pushRoleUpdate,
+    pushFanServiceUpdate,
     resetPreset,
     buildPresetSnapshot,
   };

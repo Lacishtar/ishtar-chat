@@ -24,7 +24,75 @@ import { useEditorState } from '../state/EditorStateContext.jsx';
  *     which serializes the live editing buffers (the same state the
  *     Inspector/LayoutPanel/DecorationsPanel/RoleStylesPanel are rendering
  *     right now) — never a copy that's waiting on a debounced IPC round-trip.
+ *   - Delete confirmation is a portaled in-app modal (`ConfirmDialog`), NOT
+ *     `window.confirm()`. A native confirm() is a blocking dialog fired
+ *     synchronously from a click handler whose own target (the "🗑 Xoá" row
+ *     inside the portaled "⋯" menu) is unmounted in that same tick — on
+ *     Electron this reliably leaves the BrowserWindow's focus manager in a
+ *     broken state where no input anywhere in the window can receive
+ *     keyboard focus again until the window is blurred/refocused. Every
+ *     other confirmation surface in this app already avoids this (Export/
+ *     Import use the main-process `dialog` module over IPC); this component
+ *     now follows the same rule with a fully in-renderer, non-blocking modal.
  */
+
+// ── ConfirmDialog ────────────────────────────────────────────────────────────
+
+/**
+ * Small in-app replacement for `window.confirm()`. Portaled to document.body
+ * (same reasoning as PresetCardMenu — escapes the scrolling preset list),
+ * but crucially it never blocks the JS thread: it's just React state, so it
+ * can't corrupt Electron's window focus the way a native confirm() dialog
+ * can when triggered from an element that's unmounting in the same tick.
+ */
+function ConfirmDialog({ message, confirmLabel = 'Xoá', onConfirm, onCancel }) {
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+    function handleEscape(e) {
+      if (e.key === 'Escape') onCancel();
+    }
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onCancel]);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="alertdialog"
+        aria-modal="true"
+        className="w-full max-w-xs rounded-xl border border-line bg-panel shadow-panel p-4 flex flex-col gap-3 focus:outline-none"
+      >
+        <p className="text-xs text-ink leading-relaxed">{message}</p>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-line bg-panel hover:bg-panelAlt text-inkMuted hover:text-ink text-xs px-3 py-1.5 transition-colors"
+          >
+            Huỷ
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-lg bg-live hover:bg-live/90 text-white text-xs font-medium px-3 py-1.5 transition-colors"
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
 
 // ── PresetCard ──────────────────────────────────────────────────────────────
 
@@ -242,6 +310,7 @@ export default function CustomPresetsPanel() {
   const [saving, setSaving] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [applyingId, setApplyingId] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null); // null | { id, name }
   const [status, setStatus] = useState(null); // null | { type: 'ok'|'error', msg: string }
   const statusTimer = useRef(null);
   const saveInputRef = useRef(null);
@@ -322,8 +391,15 @@ export default function CustomPresetsPanel() {
     }
   }
 
-  async function handleDelete(id, name) {
-    if (!window.confirm(`Xoá preset "${name}"?`)) return;
+  function handleDelete(id, name) {
+    // Opens the in-app ConfirmDialog instead of blocking with window.confirm()
+    // — see the module docblock for why. Actual deletion happens in
+    // performDelete() once the user confirms.
+    setPendingDelete({ id, name });
+  }
+
+  async function performDelete(id, name) {
+    setPendingDelete(null);
     const result = await api.deleteCustomPreset?.(id);
     if (result?.ok) {
       setPresets((prev) => prev.filter((p) => p.id !== id));
@@ -477,6 +553,16 @@ export default function CustomPresetsPanel() {
           Nhập JSON
         </button>
       </div>
+
+      {/* ── Delete confirmation (in-app modal, not window.confirm) ── */}
+      {pendingDelete && (
+        <ConfirmDialog
+          message={`Xoá preset "${pendingDelete.name}"?`}
+          confirmLabel="Xoá"
+          onConfirm={() => performDelete(pendingDelete.id, pendingDelete.name)}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
     </div>
   );
 }

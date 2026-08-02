@@ -1,5 +1,5 @@
 // Verifies resetBubbleNode() (overlay/modules/pool/bubble-reset.js) leaves
-// NO trace of a previously-rendered message: text, author, badges, avatar,
+// NO trace of a previously-rendered message: text, author, avatar,
 // sticker, decoration, texture, animation, dataset, classList, inline
 // style, opacity, transform, visibility, pointer-events, aria, data-*.
 import { JSDOM } from 'jsdom';
@@ -66,11 +66,6 @@ function buildDirtyBubble() {
   amountEl.textContent = '$5.00';
   areaWrapper.appendChild(amountEl);
 
-  const badges = document.createElement('div');
-  badges.setAttribute('data-slot', 'badges');
-  badges.textContent = '[mod]';
-  row.appendChild(badges);
-
   const message = document.createElement('div');
   message.setAttribute('data-slot', 'message');
   message.setAttribute('data-emoji-only', 'true');
@@ -126,8 +121,6 @@ if (node.querySelector('.ovs-sticker-img')) fail('sticker image leaked');
 if (node.querySelector('[data-slot="author"]').innerHTML !== '') fail('author not cleared');
 if (node.querySelector('.ovs-author-area')) fail('author-area wrapper not unwrapped/removed');
 if (node.querySelector('.ovs-superchat-amount')) fail('superchat amount el leaked');
-// badges
-if (node.querySelector('[data-slot="badges"]').textContent !== '') fail('badges not cleared');
 // avatar
 const avatarEl = node.querySelector('[data-slot="avatar"]');
 if (avatarEl.hasAttribute('src')) fail('avatar src leaked');
@@ -159,4 +152,4 @@ if (avatarEl.getAttribute('style')) fail('avatar inline style leaked');
 // aria
 if (node.hasAttribute('aria-hidden')) fail('root aria-hidden leaked');
 
-console.log('[smoke] bubble-reset: full checklist (text/author/badges/avatar/sticker/decoration/texture/animation/dataset/classList/inline-style/opacity/transform/visibility/aria/data-attrs) clean after release ✔');
+console.log('[smoke] bubble-reset: full checklist (text/author/avatar/sticker/decoration/texture/animation/dataset/classList/inline-style/opacity/transform/visibility/aria/data-attrs) clean after release ✔');

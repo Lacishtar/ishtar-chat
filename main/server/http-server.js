@@ -33,6 +33,7 @@ function createApp(getState, options = {}) {
       animationConfig,
       decorationConfig,
       roleStyleConfig,
+      fanServiceConfig,
     } = getState();
     const initialState = {
       theme: themeId,
@@ -43,6 +44,7 @@ function createApp(getState, options = {}) {
       animationConfig,
       decorationConfig,
       roleStyleConfig,
+      fanServiceConfig,
       history,
     };
     const html = OVERLAY_TEMPLATE.replace(

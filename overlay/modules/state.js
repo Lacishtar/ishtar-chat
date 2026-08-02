@@ -16,6 +16,7 @@ export const state = {
   currentAnimation: initial.animationConfig || {},
   currentDecoration: initial.decorationConfig || { layers: [] },
   currentRoleStyle: initial.roleStyleConfig || { roles: {} },
+  currentFanService: initial.fanServiceConfig || { superchat: {}, membership: {} },
   messageTemplate: null,
   messageHistory: Array.isArray(initial.history) ? [...initial.history] : [],
   // True only while `.ovs-message` nodes on screen are the synthetic

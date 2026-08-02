@@ -30,7 +30,11 @@
  *       animationConfig   — shared/animation-config.js#DEFAULT_ANIMATION_CONFIG
  *       decorationConfig  — shared/decoration-config.js#DEFAULT_DECORATION_CONFIG
  *       roleStyleConfig   — shared/role-style-config.js#DEFAULT_ROLE_STYLE_CONFIG
- *   - All six categories must be fully specified on every theme (no partial
+ *       fanServiceConfig  — shared/fan-service-config.js#DEFAULT_FAN_SERVICE_CONFIG
+ *         (build with helpers.js#defaultThemeFanService — every built-in theme
+ *         ships its own Super Chat/Membership look now, see that helper's
+ *         comment and docs/refactor-superchat-to-fanservice.md Open Question OQ-1)
+ *   - All seven categories must be fully specified on every theme (no partial
  *     overrides) so ThemeManager.NormalizeTheme() can rely on completeness.
  *   - Do NOT hardcode themes anywhere else in the codebase — import from here.
  */

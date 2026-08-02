@@ -7,7 +7,7 @@
  *   ValidateTheme(obj)   — verify that an object looks like a complete theme.
  *   NormalizeTheme(obj)  — fill every missing/null field with canonical defaults.
  *   ApplyTheme(id, store) — apply a theme into the live config-store and return
- *                           the resulting six config categories.
+ *                           the resulting seven config categories.
  *   ResetCurrentTheme(store) — re-apply the current theme's defaults (delegates to
  *                              the existing theme:reset-preset flow).
  *   ResetCategory(category, store) — reset only one config category to its
@@ -32,6 +32,7 @@ const { DEFAULT_SLOT_STYLE_CONFIG, mergeSlotStyleConfig } = require('./slot-styl
 const { DEFAULT_ANIMATION_CONFIG, mergeAnimationConfig } = require('./animation-config');
 const { DEFAULT_DECORATION_CONFIG, mergeDecorationConfig } = require('./decoration-config');
 const { DEFAULT_ROLE_STYLE_CONFIG, mergeRoleStyleConfig } = require('./role-style-config');
+const { DEFAULT_FAN_SERVICE_CONFIG, mergeFanServiceConfig } = require('./fan-service-config');
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -43,7 +44,12 @@ const { DEFAULT_ROLE_STYLE_CONFIG, mergeRoleStyleConfig } = require('./role-styl
  */
 const _themeMap = new Map(BUILTIN_THEMES.map((p) => [p.id, p]));
 
-/** The six recognised config category keys. */
+/** The seven recognised config category keys. fanServiceConfig joined the
+ * other six as of the per-theme Fan Service preset system — every
+ * built-in theme now ships its own tuned Super Chat/Membership look (see
+ * shared/theme-presets/helpers.js#defaultThemeFanService and
+ * docs/refactor-superchat-to-fanservice.md Open Question OQ-1) instead of
+ * every theme sharing shared/fan-service-config.js#DEFAULT_FAN_SERVICE_CONFIG. */
 const CONFIG_CATEGORIES = [
   'customizeConfig',
   'layoutConfig',
@@ -51,6 +57,7 @@ const CONFIG_CATEGORIES = [
   'animationConfig',
   'decorationConfig',
   'roleStyleConfig',
+  'fanServiceConfig',
 ];
 
 /** Merge helper mapping category name → merge function. */
@@ -61,6 +68,7 @@ const MERGE_FN = {
   animationConfig: mergeAnimationConfig,
   decorationConfig: mergeDecorationConfig,
   roleStyleConfig: mergeRoleStyleConfig,
+  fanServiceConfig: mergeFanServiceConfig,
 };
 
 /** Default baselines mapping category name → default object. */
@@ -71,6 +79,7 @@ const CATEGORY_DEFAULTS = {
   animationConfig: DEFAULT_ANIMATION_CONFIG,
   decorationConfig: DEFAULT_DECORATION_CONFIG,
   roleStyleConfig: DEFAULT_ROLE_STYLE_CONFIG,
+  fanServiceConfig: DEFAULT_FAN_SERVICE_CONFIG,
 };
 
 // ---------------------------------------------------------------------------
@@ -180,6 +189,7 @@ function ApplyTheme(themeId, store) {
     animationConfig,
     decorationConfig,
     roleStyleConfig,
+    fanServiceConfig,
   } = theme;
 
   store.set({
@@ -190,6 +200,7 @@ function ApplyTheme(themeId, store) {
     animationConfig,
     decorationConfig,
     roleStyleConfig,
+    fanServiceConfig,
   });
 
   return {
@@ -200,6 +211,7 @@ function ApplyTheme(themeId, store) {
     animationConfig,
     decorationConfig,
     roleStyleConfig,
+    fanServiceConfig,
   };
 }
 
@@ -228,6 +240,7 @@ function ResetCurrentTheme(store, resolveThemeState) {
     animationConfig,
     decorationConfig,
     roleStyleConfig,
+    fanServiceConfig,
   } = fresh;
 
   store.set({
@@ -237,6 +250,7 @@ function ResetCurrentTheme(store, resolveThemeState) {
     animationConfig,
     decorationConfig,
     roleStyleConfig,
+    fanServiceConfig,
   });
 
   return {
@@ -247,6 +261,7 @@ function ResetCurrentTheme(store, resolveThemeState) {
     animationConfig,
     decorationConfig,
     roleStyleConfig,
+    fanServiceConfig,
   };
 }
 

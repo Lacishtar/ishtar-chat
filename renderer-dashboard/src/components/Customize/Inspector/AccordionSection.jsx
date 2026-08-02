@@ -7,7 +7,12 @@
  *   section in the Favorites bar.
  * - `matched` is used by the search feature to visually highlight sections
  *   whose title or contents match the current search keyword.
+ * - `headerExtra`, when provided, renders a control (e.g. an EnableToggle)
+ *   in the header row, before the favorite star — for sections that need a
+ *   toggle alongside their expand/collapse chevron (e.g. MaskSection).
  */
+import { ChevronDownIcon } from '../shared/icons.jsx';
+
 export default function AccordionSection({
   id,
   title,
@@ -19,6 +24,7 @@ export default function AccordionSection({
   onToggleFavorite,
   matched,
   dimmed,
+  headerExtra,
 }) {
   return (
     <div
@@ -34,14 +40,11 @@ export default function AccordionSection({
           className="flex-1 flex items-center justify-between gap-2 px-3 py-2 text-left"
         >
           <span className="text-xs font-semibold text-ink uppercase tracking-wide">{title}</span>
-          <svg
-            viewBox="0 0 20 20"
-            fill="none"
+          <ChevronDownIcon
             className={`h-3.5 w-3.5 text-inkMuted transition-transform ${open ? 'rotate-180' : ''}`}
-          >
-            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          </svg>
+          />
         </button>
+        {headerExtra}
         {favoriteKey && (
           <button
             type="button"

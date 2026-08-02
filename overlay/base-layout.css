@@ -96,25 +96,16 @@ body {
   font-size: var(--ovs-slot-author-font-size, calc(var(--ovs-font-size, 16px) * 0.9));
   color: var(--ovs-slot-author-color, var(--ovs-author-color, #6e56f0));
   opacity: var(--ovs-slot-author-opacity, 1);
-  white-space: nowrap;
+  /* Long display names wrap onto a new line instead of forcing the row to
+     grow past .ovs-message's max-width (92%) — same "break-word" treatment
+     .ovs-text already gets below. Previously this was `nowrap`, which let
+     a long single-line name push the whole bubble wider than the chat
+     area since nowrap text can't shrink to fit its flex container. */
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
   text-align: var(--ovs-slot-author-text-align, var(--ovs-text-align, left));
   text-shadow: var(--ovs-slot-author-text-shadow, var(--ovs-text-shadow, none));
-}
-
-.ovs-badges {
-  order: var(--ovs-layout-slot-badges-order, 1);
-  padding: var(--ovs-layout-slot-badges-padding, 0);
-  margin: var(--ovs-layout-slot-badges-margin, 0);
-  display: inline-flex;
-  gap: 4px;
-  font-size: var(--ovs-slot-badges-font-size, calc(var(--ovs-font-size, 16px) * 0.65));
-  opacity: var(--ovs-slot-badges-opacity, 1);
-  color: rgba(255, 255, 255, 0.55);
-}
-
-.ovs-badges:empty,
-.ovs-badges[data-hidden='true'] {
-  display: none;
 }
 
 .ovs-text {
@@ -136,4 +127,20 @@ body {
   width: 1.15em;
   height: 1.15em;
   vertical-align: -0.2em;
+}
+
+/* Dedicated "Hội viên trong N tháng" line — its own row between the name
+   and the message text. Off by default (display: none); Fan Service is
+   the only thing that turns it on (shared/fan-service-config.js), since
+   it only has real content for the 3 events Fan Service targets
+   (membership_new / membership_gift_sent / membership_milestone — see
+   overlay/modules/message-body.js#composeMemberMonthsText). */
+.ovs-member-months {
+  display: none;
+  margin: 0 0 2px 0;
+  font-family: var(--ovs-slot-months-font-family, var(--ovs-font-family));
+  font-weight: var(--ovs-slot-months-font-weight, 700);
+  font-size: var(--ovs-slot-months-font-size, calc(var(--ovs-font-size, 16px) * 0.95));
+  color: var(--ovs-slot-months-color, rgba(255, 255, 255, 0.85));
+  text-align: var(--ovs-slot-months-text-align, var(--ovs-text-align, left));
 }

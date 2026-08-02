@@ -18,15 +18,6 @@
   z-index: var(--ovs-layout-slot-author-z-index, auto);
 }
 
-.ovs-badges {
-  position: var(--ovs-layout-slot-badges-position, static);
-  top: var(--ovs-layout-slot-badges-top, auto);
-  left: var(--ovs-layout-slot-badges-left, auto);
-  right: var(--ovs-layout-slot-badges-right, auto);
-  bottom: var(--ovs-layout-slot-badges-bottom, auto);
-  z-index: var(--ovs-layout-slot-badges-z-index, auto);
-}
-
 .ovs-text {
   position: var(--ovs-layout-slot-message-position, static);
   top: var(--ovs-layout-slot-message-top, auto);

@@ -29,7 +29,7 @@
 
 // Every reset* helper below is deliberately narrow (one job each) so the
 // full resetBubbleNode() pass reads as a checklist matching the one this
-// module was speced against: text, author, badges, avatar, sticker,
+// module was speced against: text, author, avatar, sticker,
 // decoration, texture, animation, dataset, classList, inline style,
 // opacity, transform, visibility, pointer events, aria, data attributes.
 // See the doc comment on resetBubbleNode() below for exactly which helper
@@ -68,7 +68,7 @@ export function captureBubbleBaseline(node) {
   return node;
 }
 
-// `data-slot="avatar|author|badges|message"` is baked directly into every
+// `data-slot="avatar|author|message"` is baked directly into every
 // theme's template.html (see themes/*/template.html) — it's how
 // message-renderer.js finds each slot element in the first place
 // (`node.querySelector('[data-slot="message"]')`, etc.), not per-message
@@ -76,7 +76,7 @@ export function captureBubbleBaseline(node) {
 // (BASE_ROW_CLASS above) — never something a release() should strip.
 // Wiping it (as a blanket "delete every dataset key" pass would) breaks
 // slot lookup on the NEXT build for this exact node: createMessageNode()
-// would silently find no author/badges/message element to write into.
+// would silently find no author/message element to write into.
 const DATASET_KEYS_TO_PRESERVE = new Set(['slot']);
 
 function clearDataset(el) {
@@ -117,14 +117,17 @@ function resetAuthor(node) {
   authorEl.removeAttribute('style');
 }
 
-// reset badge — badges slot text content + its derived visibility flag.
-function resetBadge(node) {
-  const badgesEl = node.querySelector('[data-slot="badges"]');
-  if (!badgesEl) return;
-  badgesEl.textContent = '';
-  badgesEl.removeAttribute('data-hidden');
-  clearDataset(badgesEl);
-  badgesEl.removeAttribute('style');
+// reset member-months — dedicated "Hội viên trong N tháng" line (Fan
+// Service only; see overlay/modules/message-body.js#composeMemberMonthsText).
+// Plain textContent + inline style, no structural wrapper to unwrap (unlike
+// resetAuthor's .ovs-author-area) since this element is never itself
+// rewrapped by anything.
+function resetMemberMonths(node) {
+  const memberMonthsEl = node.querySelector('[data-slot="member-months"]');
+  if (!memberMonthsEl) return;
+  memberMonthsEl.textContent = '';
+  clearDataset(memberMonthsEl);
+  memberMonthsEl.removeAttribute('style');
 }
 
 // reset avatar — avatar.js#applyAvatar() sets src/onload/onerror/data-hidden/
@@ -238,7 +241,7 @@ function resetRootDataset(node, rowEl) {
 // style — can never survive a release() by accident. Nothing in this app
 // currently sets visibility/pointer-events directly (slot show/hide is
 // entirely `data-hidden` + CSS `display:none`, handled by clearDataset()
-// in resetText/resetAuthor/resetBadge/resetAvatar above), so this is the
+// in resetText/resetAuthor/resetAvatar above), so this is the
 // generic safety net for that category, not the primary mechanism.
 function resetInlineStyleCatchAll(node, rowEl) {
   node.removeAttribute('style');
@@ -272,8 +275,7 @@ function resetAriaAttributes(node) {
 // whatever it was the very first time this node was seen (its theme-
 // template baseline, captured by captureBubbleBaseline() before this node
 // was ever built), stripping every ovs-moderator / ovs-member /
-// ovs-superchat* / ovs-event-* / ovs-superchat-youtube class the
-// build path added. Falls back to the current className on the (should-
+// ovs-superchat* / ovs-event-* class the build path added. Falls back to the current className on the (should-
 // never-happen) chance a node reaches release() without ever having gone
 // through captureBubbleBaseline() — better to no-op than to blank the row
 // class out entirely.
@@ -293,7 +295,8 @@ function resetRowClasses(rowEl) {
  * Checklist this pass covers (each mapped to the helper responsible):
  *   - text              -> resetText (message slot innerHTML)
  *   - author            -> resetAuthor (author slot innerHTML + unwrap)
- *   - badges            -> resetBadge (badges slot textContent)
+ *   - member-months     -> resetMemberMonths (dedicated Fan Service line's
+ *                          textContent)
  *   - avatar            -> resetAvatar (src/onload/onerror/data-hidden/dataset)
  *   - sticker           -> resetText — stickers render as an <img> inside
  *                          the message slot's innerHTML, wiped along with it
@@ -303,7 +306,7 @@ function resetRowClasses(rowEl) {
  *                          anim-state dataset, danmaku lane, anim-duration)
  *   - dataset           -> resetRootDataset (root + row) + the per-slot
  *                          clearDataset() calls inside resetText/resetAuthor/
- *                          resetBadge/resetAvatar (each slot's own dataset)
+ *                          resetAvatar (each slot's own dataset)
  *   - classList         -> resetRowClasses (row restored to captured
  *                          baseline) — texture/decoration/bunny-ear elements
  *                          that carried their own classes are removed
@@ -313,7 +316,7 @@ function resetRowClasses(rowEl) {
  *   - opacity           -> resetOpacity + the inline-style catch-all
  *   - transform         -> resetTransform + the inline-style catch-all
  *   - visibility        -> data-hidden attribute, cleared via clearDataset()
- *                          in resetText/resetAuthor/resetBadge/resetAvatar
+ *                          in resetText/resetAuthor/resetAvatar
  *                          (visibility in this app is 100% attribute-driven,
  *                          see overlay/slot-visibility.css) + the inline-
  *                          style catch-all as a generic safety net
@@ -334,7 +337,7 @@ export function resetBubbleNode(node) {
 
   resetText(node);
   resetAuthor(node);
-  resetBadge(node);
+  resetMemberMonths(node);
   resetAvatar(node);
   resetTexture(node);
   resetDecoration(node);

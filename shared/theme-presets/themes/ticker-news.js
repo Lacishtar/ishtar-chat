@@ -2,7 +2,7 @@
  * Theme preset: ticker-news
  */
 
-const { defaultLayout, defaultSlotStyle, emptyDecorations } = require('../helpers');
+const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 
 module.exports = {
   id: 'ticker-news',
@@ -59,7 +59,6 @@ module.exports = {
     bubbleFixedHeight: 0,
     avatarSize: 30,
     showAvatar: true,
-    showBadges: false,
     animationMs: 160,
     position: 'bottom-up',
     maxMessages: 40,
@@ -96,7 +95,6 @@ module.exports = {
     targets: {
       avatar:   { durationMs: null, delayMs: 0, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', translateX: 0, translateY: 0, blur: 0 },
       author:   { durationMs: null, delayMs: 20, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', translateX: -16, translateY: 0, blur: 0 },
-      badges:   { durationMs: null, delayMs: 30, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', translateX: -12, translateY: 0, blur: 0 },
       message:  { durationMs: null, delayMs: 40, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', translateX: -10, translateY: 0, blur: 0 },
     },
   },
@@ -116,14 +114,12 @@ module.exports = {
       earColor: null,
       badgeBefore: null,
       badgeAfter: null,
-      showAmount: null,
       authorFontWeight: 'extrabold',
       messageBorderWidth: null,
       textScale: null,
       memberTiers: [],
     },
       member: {
-      milestoneLayout: 'highlight',
       enabled: true,
       authorColor: '#9E730A',
       authorBorderColor: 'rgba(184, 134, 11, 0.55)',
@@ -136,7 +132,6 @@ module.exports = {
       earColor: null,
       badgeBefore: '📌',
       badgeAfter: null,
-      showAmount: null,
       authorFontWeight: 'bold',
       messageBorderWidth: null,
       textScale: 1.1,
@@ -147,31 +142,10 @@ module.exports = {
         { id: 'tier-12mo', minMonths: 12, color: '#E4001B', badge: '👑' },
       ],
     },
-      superchat: {
-      enabled: true,
-      authorColor: '#FFFFFF',
-      authorBorderColor: 'rgba(228, 0, 27, 0.9)',
-      authorBg: null,
-      messageBg: '#E4001B',
-      messageBorderColor: '#E4001B',
-      messageTextColor: '#FFFFFF',
-      rowBg: '#E4001B',
-      rowBorderColor: '#E4001B',
-      earColor: null,
-      badgeBefore: '🔴',
-      badgeAfter: null,
-      showAmount: true,
-      fontSize: null,
-      authorFontWeight: 'extrabold',
-      messageBorderWidth: 2,
-      textScale: 1.25,
-      memberTiers: [],
-      useTierColor: false,
-      superchatLayout: 'youtube',
-      amountFontSize: null,
-      amountFontWeight: 'extrabold',
-      amountPosition: 'block',
-    },
     },
   },
+  fanServiceConfig: defaultThemeFanService({
+    superchat: { authorColor: '#E4001B', messageColor: '#1A1414' },
+    membership: { authorColor: '#9E730A', messageColor: '#6B4E00', monthsColor: '#9E730A' },
+  }),
 };

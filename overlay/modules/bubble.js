@@ -50,11 +50,13 @@ function removeBunnyEarSpans(el) {
 
 // Resolve màu tai thỏ theo role từ currentRoleStyle config.
 // node có thể mang NHIỀU role class cùng lúc (vd: ovs-moderator + ovs-superchat),
-// nên ưu tiên theo thứ tự superchat > moderator > member — khớp với thứ tự
-// override trong role-styles.css (khối "combined roles + superchat" nằm sau
-// cùng nên thắng cascade so với khối single-role).
+// nên ưu tiên theo thứ tự moderator > member cho phần Identity (Role) —
+// Super Chat không còn nằm trong bảng ưu tiên này nữa (xem
+// resolveEarBgForNode bên dưới): sau refactor Super Chat -> Fan Service,
+// màu tai thỏ của 1 row Super Chat đến từ state.currentFanService.superchat
+// khi group đó enabled, độc lập hoàn toàn với Role — chỉ rơi về bảng
+// ROLE_PRIORITY này (moderator/member) khi Fan Service superchat tắt.
 const ROLE_PRIORITY = [
-  { cls: 'ovs-superchat', key: 'superchat' },
   { cls: 'ovs-moderator', key: 'moderator' },
   { cls: 'ovs-member', key: 'member' },
 ];
@@ -70,10 +72,38 @@ function resolveRoleForNode(node) {
   return null;
 }
 
+// Super Chat ear-color resolution lives further down, right next to
+// resolveEarBgForNode/resolveEarBgForSlot (resolveFanServiceSuperchatEarBg)
+// — see there for how it reads Fan Service instead of Role.
+
 // earColor là field riêng, độc lập với authorColor/messageBg/rowBg — người
 // dùng chọn "Màu tai thỏ" trong panel Vai trò thì LUÔN thắng, không bị suy
 // ra (và trước đây từng bị nhầm) từ màu tên hay nền bubble.
+//
+// Fan Service superchat's ear color, resolved separately from Role: when
+// useTierColor is on (default), reuse the per-message tier bg
+// message-renderer.js already set inline on rowEl
+// (--ovs-superchat-tier-bg) instead of re-deriving anything; when off,
+// fall back to the group's manual authorColor. Returns { matched: true,
+// bg } whenever the row IS a Fan-Service-enabled Super Chat row (even if
+// `bg` itself resolves to null — that still means "don't fall through to
+// Role"), or { matched: false } when the row isn't Super Chat or Fan
+// Service's superchat group is disabled, in which case callers fall
+// through to the ordinary Role (moderator/member) resolution below.
+function resolveFanServiceSuperchatEarBg(node) {
+  if (!node.classList.contains('ovs-superchat')) return { matched: false };
+  const superchatCfg = state.currentFanService?.superchat;
+  if (!superchatCfg || superchatCfg.enabled === false) return { matched: false };
+  const useTierColor = superchatCfg.useTierColor !== false;
+  const bg = useTierColor
+    ? (node.style.getPropertyValue('--ovs-superchat-tier-bg') || superchatCfg.authorColor || null)
+    : (superchatCfg.authorColor || null);
+  return { matched: true, bg: bg || null };
+}
+
 function resolveEarBgForNode(node) {
+  const fsSuperchat = resolveFanServiceSuperchatEarBg(node);
+  if (fsSuperchat.matched) return fsSuperchat.bg;
   const match = resolveRoleForNode(node);
   if (!match) return null; // không có role → dùng CSS var (--ovs-bubble-bg)
   const { roleCfg } = match;
@@ -91,6 +121,8 @@ function resolveEarBgForNode(node) {
 // nền .ovs-author khi có authorBg (pill), nên tai thỏ phải theo đúng 2 quy tắc
 // đó — không phải copy nguyên priority chain của row mode.
 function resolveEarBgForSlot(node, slotName) {
+  const fsSuperchat = resolveFanServiceSuperchatEarBg(node);
+  if (fsSuperchat.matched) return fsSuperchat.bg;
   const match = resolveRoleForNode(node);
   if (!match) return null;
   const { roleCfg } = match;

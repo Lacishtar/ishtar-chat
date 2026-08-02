@@ -25,9 +25,11 @@
 // that didn't actually change — no class re-toggle to restart a CSS
 // animation, no avatar <img> re-pointed at the same URL, etc.
 
-import { state } from './state.js';
-import { resolveMemberTier, quoteCssContent } from '/shared/role-style-config.mjs';
-import { composeMessageBodyHtml } from './message-body.js';
+import { state, listEl } from './state.js';
+import { resolveMemberTier } from '/shared/role-style-config.mjs';
+import { quoteCssContent, isImageUrlValue, getBadgeImageSrc } from '/shared/css-content-helpers.mjs';
+import { applyMemberTierBadgeImage, applyRealBadgeImage } from './message-renderer.js';
+import { composeMessageBodyHtml, composeMemberMonthsText } from './message-body.js';
 import { applyAvatar } from './avatar.js';
 import { applyMessageBunnyEars, applySlotBunnyEars } from './bubble.js';
 import { applyEmojiOnlyStyling } from './emoji.js';
@@ -46,7 +48,7 @@ function rowElOf(node) {
   return node.querySelector('.ovs-message') || node;
 }
 
-// dirty.text — only the text-bearing slots (author name, badges, message
+// dirty.text — only the text-bearing slots (author name, message
 // body/emoji). Never touches texture, decoration hosts, avatar, or role
 // classes — a pure text edit shouldn't re-fetch the avatar or rebuild the
 // decoration layers. Each field is DOM-diffed on its own: e.g. an edit
@@ -56,21 +58,24 @@ function applyTextUpdate(node, msg) {
   const authorTextEl = node.querySelector('[data-slot="author"] .ovs-author-text');
   diffText(authorTextEl, msg.author);
 
-  const badgesEl = node.querySelector('[data-slot="badges"]');
-  if (badgesEl && msg.badges?.length) {
-    diffText(badgesEl, msg.badges.map((b) => `[${b}]`).join(' '));
+  // composeMessageBodyHtml() (message-body.js) is the single place that
+  // decides what the message body should render, same "one resolution
+  // algorithm" pattern the rest of this file already follows for member
+  // tiers, so the diff-update path can never drift out of sync with what
+  // message-renderer.js's full-build path would have produced.
+  const memberRole = msg.roles?.includes('member') ? state.currentRoleStyle?.roles?.member : null;
+
+  const memberMonthsEl = node.querySelector('[data-slot="member-months"]');
+  if (memberMonthsEl) {
+    diffText(memberMonthsEl, composeMemberMonthsText(msg));
   }
 
   const messageEl = node.querySelector('[data-slot="message"]');
   if (messageEl) {
-    // Diffed as one blob (chat text span + milestone text span) rather than
-    // just the .ovs-text-content sub-span, since the milestone span may
+    // Diffed as one blob (chat text span + package-name span) rather than
+    // just the .ovs-text-content sub-span, since the package-name span may
     // need to be added/removed/changed entirely between two messages this
-    // pooled node renders — composeMessageBodyHtml() is the single place
-    // (shared with message-renderer.js's full-build path) that decides
-    // what that combined HTML should be, so the diff-update path can never
-    // drift out of sync with what a fresh build would have produced.
-    const memberRole = msg.roles?.includes('member') ? state.currentRoleStyle?.roles?.member : null;
+    // pooled node renders.
     const wrote = diffHTML(messageEl, composeMessageBodyHtml(msg, memberRole));
     // applyEmojiOnlyStyling() re-walks childNodes and re-wraps glyphs — a
     // real (not cosmetic) DOM operation, so only re-run it when the text
@@ -78,6 +83,85 @@ function applyTextUpdate(node, msg) {
     // this derived pass too, not just the raw HTML write).
     if (wrote) applyEmojiOnlyStyling(rowElOf(node), messageEl.querySelector('.ovs-text-content'));
   }
+}
+
+// Resolves + applies Mốc tháng (member tier) styling for a single already-
+// rendered row: exclusive tier class, dataset, CSS vars, and any image-URL
+// badge <img>s. Standalone (not inlined into applyStyleUpdate) for two
+// reasons: (1) it needs to run for a row whose `msg` object is no longer
+// at hand — refreshAllMemberTiers() below re-resolves purely from
+// rowEl.dataset.ovsMemberMonths + the *new* role-style config, without a
+// message-queue replay — and (2) that's also exactly what keeps the
+// create-path, diff-update path, and config-refresh path all agreeing on
+// "which tier applies to N months" via the one resolveMemberTier() helper,
+// instead of three copies of this logic drifting apart.
+// Returns the resolved tier (or null), same shape resolveMemberTier() does.
+function applyMemberTierToRow(rowEl) {
+  const authorEl = rowEl.querySelector('[data-slot="author"]');
+  let tier = null;
+  if (rowEl.classList.contains('ovs-member')) {
+    const memberRole = state.currentRoleStyle?.roles?.member;
+    const memberTiers = memberRole?.memberTiers;
+    const months = Number(rowEl.dataset.ovsMemberMonths) || 0;
+    tier = resolveMemberTier(memberTiers, months, memberRole?.memberTiersEnabled !== false);
+    diffExclusiveClass(rowEl, 'ovs-member-tier-', tier ? String(tier.index) : null);
+    diffDataset(rowEl, 'ovsMemberTier', tier ? tier.index : null);
+    diffStyleProp(rowEl, '--ovs-member-tier-color', tier?.color || null);
+    diffStyleProp(
+      rowEl,
+      '--ovs-member-tier-badge-before-content',
+      tier && !isImageUrlValue(tier.badgeBefore) ? quoteCssContent(tier.badgeBefore) : null
+    );
+    diffStyleProp(
+      rowEl,
+      '--ovs-member-tier-badge-after-content',
+      tier && !isImageUrlValue(tier.badgeAfter) ? quoteCssContent(tier.badgeAfter) : null
+    );
+  } else {
+    diffExclusiveClass(rowEl, 'ovs-member-tier-', null);
+    diffDataset(rowEl, 'ovsMemberTier', null);
+    diffStyleProp(rowEl, '--ovs-member-tier-color', null);
+    diffStyleProp(rowEl, '--ovs-member-tier-badge-before-content', null);
+    diffStyleProp(rowEl, '--ovs-member-tier-badge-after-content', null);
+  }
+
+  // Image-URL tier badges are real <img> elements (see
+  // applyMemberTierBadgeImage() in message-renderer.js for why), so this
+  // path has to (re)build them too — dom-diff's dataset/style-prop helpers
+  // above only cover text/CSS-var badges. applyMemberTierBadgeImage()
+  // itself already no-ops when the resolved src hasn't changed (data-raw-src
+  // check), matching every other "value giống -> không update" write.
+  applyMemberTierBadgeImage(authorEl, 'before', tier ? getBadgeImageSrc(tier.badgeBefore) : null);
+  applyMemberTierBadgeImage(authorEl, 'after', tier ? getBadgeImageSrc(tier.badgeAfter) : null);
+
+  // "Dùng badge thật" — song song với badge Mốc tháng ở trên, không thay
+  // thế. rowEl.dataset.ovsBadgeIconUrl was stashed by applyStyleUpdate()
+  // (the only place that still has the original `msg`); memberRole here
+  // may be null if this row isn't a member row at all, in which case url
+  // resolves to '' and applyRealBadgeImage() just removes the <img>.
+  const memberRole = state.currentRoleStyle?.roles?.member;
+  const realBadgeUrl = memberRole?.useRealBadge ? (rowEl.dataset.ovsBadgeIconUrl || '') : '';
+  applyRealBadgeImage(authorEl, realBadgeUrl);
+
+  return tier;
+}
+
+// Called whenever the Mốc tháng config itself changes (role-style:updated
+// over the socket) — NOT whenever a message changes. Before this existed,
+// a threshold/color/badge edit only updated the --ovs-role-member-tier-N-*
+// *reference* vars on :root (via applyCssVariables); already-rendered rows
+// keep whichever tier class + resolved --ovs-member-tier-* vars got baked
+// onto them at render time (message-renderer.js / applyStyleUpdate above),
+// and neither of those re-runs just because the config changed — only a
+// per-message dirty.style flag or a fresh message triggers them. So an
+// edited threshold used to only take effect for messages that arrive (or
+// are otherwise touched) *after* the edit, not the ones already on screen.
+// This walks every currently-rendered row and re-resolves its tier against
+// the just-updated config, same "re-apply role-dependent styling on config
+// change" pattern refreshAllSlotBunnyEars() (bubble.js) already uses for
+// bunny-ear colors.
+export function refreshAllMemberTiers() {
+  listEl.querySelectorAll('.ovs-message.ovs-member').forEach(applyMemberTierToRow);
 }
 
 // dirty.style — role classes, superchat tier CSS vars, bunny-ear colors,
@@ -109,27 +193,19 @@ function applyStyleUpdate(node, msg) {
 
   diffExclusiveClass(rowEl, 'ovs-event-', msg.eventType || (msg.isSuperchat ? 'superchat' : 'text'));
   diffDataset(rowEl, 'ovsMemberMonths', msg.memberMonths || 0);
+  // "Dùng badge thật" — msg.badgeIconUrl is per-message captured data (not
+  // config-derived), so it has to be stashed on the row the same way
+  // ovsMemberMonths is, right above: applyMemberTierToRow() below has no
+  // `msg` reference (refreshAllMemberTiers() calls it with only a rowEl,
+  // for a config-only refresh), so it can only ever see the real badge URL
+  // if it's already sitting on the DOM here.
+  diffDataset(rowEl, 'ovsBadgeIconUrl', msg.badgeIconUrl || '');
 
   // Member Tiers — mirrors the Super Chat tier block above. Resolved via
-  // rowEl.dataset.ovsMemberMonths (just diffed into place on the line
-  // above), reusing the exact same resolveMemberTier() helper
-  // message-renderer.js's full-build path uses, so tier resolution never
-  // drifts between the create-path and the diff-update path.
-  if (msg.roles?.includes('member')) {
-    const memberRole = state.currentRoleStyle?.roles?.member;
-    const memberTiers = memberRole?.memberTiers;
-    const months = Number(rowEl.dataset.ovsMemberMonths) || 0;
-    const tier = resolveMemberTier(memberTiers, months, memberRole?.memberTiersEnabled !== false);
-    diffExclusiveClass(rowEl, 'ovs-member-tier-', tier ? String(tier.index) : null);
-    diffDataset(rowEl, 'ovsMemberTier', tier ? tier.index : null);
-    diffStyleProp(rowEl, '--ovs-member-tier-color', tier?.color || null);
-    diffStyleProp(rowEl, '--ovs-member-tier-badge-before-content', tier ? quoteCssContent(tier.badge) : null);
-  } else {
-    diffExclusiveClass(rowEl, 'ovs-member-tier-', null);
-    diffDataset(rowEl, 'ovsMemberTier', null);
-    diffStyleProp(rowEl, '--ovs-member-tier-color', null);
-    diffStyleProp(rowEl, '--ovs-member-tier-badge-before-content', null);
-  }
+  // applyMemberTierToRow(), which reads rowEl.dataset.ovsMemberMonths (just
+  // diffed into place on the line above) — see that function for why it's
+  // a standalone export instead of being inlined here.
+  const tier = applyMemberTierToRow(rowEl);
 
   // Bunny ears read role/earColor config off the DOM classes just written
   // above, so they still need to be (re-)evaluated whenever style is

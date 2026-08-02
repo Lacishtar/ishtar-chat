@@ -2,7 +2,7 @@
  * Theme preset: cute-bubble
  */
 
-const { defaultLayout, defaultSlotStyle, emptyDecorations } = require('../helpers');
+const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 
 module.exports = {
   id: 'cute-bubble',
@@ -59,7 +59,6 @@ module.exports = {
     bubbleFixedHeight: 0,
     avatarSize: 34,
     showAvatar: true,
-    showBadges: false,
     animationMs: 300,
     position: 'bottom-up',
     maxMessages: 35,
@@ -83,7 +82,6 @@ module.exports = {
     targets: {
       avatar:   { durationMs: null, delayMs: 0, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', translateX: 0, translateY: 16, blur: 0 },
       author:   { durationMs: null, delayMs: 40, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', translateX: -12, translateY: 0, blur: 0 },
-      badges:   { durationMs: null, delayMs: 60, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', translateX: -8, translateY: 0, blur: 0 },
       message:  { durationMs: null, delayMs: 80, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', translateX: 0, translateY: 12, blur: 0 },
     },
   },
@@ -92,7 +90,7 @@ module.exports = {
     roles: {
       moderator: {
       enabled: true,
-      authorColor: '#FF4081',
+      authorColor: '#5E1830',
       authorBorderColor: 'rgba(255, 64, 129, 0.6)',
       authorBg: null,
       messageBg: 'rgba(255, 64, 129, 0.9)',
@@ -103,17 +101,12 @@ module.exports = {
       earColor: null,
       badgeBefore: null,
       badgeAfter: null,
-      showAmount: null,
       authorFontWeight: null,
       messageBorderWidth: null,
       textScale: null,
       memberTiers: [],
     },
       member: {
-      // Renewal ("Gia hạn") stand-out layout — glowing bubble, not the
-      // two-tier YouTube card, so it reads as "special" without breaking
-      // the theme's own bubble silhouette.
-      milestoneLayout: 'highlight',
       enabled: true,
       authorColor: '#052D19',
       authorBorderColor: 'rgba(105, 240, 174, 0.55)',
@@ -126,7 +119,6 @@ module.exports = {
       earColor: null,
       badgeBefore: null,
       badgeAfter: null,
-      showAmount: null,
       authorFontWeight: null,
       messageBorderWidth: null,
       textScale: 1.15,
@@ -137,31 +129,10 @@ module.exports = {
         { id: 'tier-12mo', minMonths: 12, color: '#2B2700', badge: '👑' },
       ],
     },
-      superchat: {
-      enabled: true,
-      authorColor: '#FFEB3B',
-      authorBorderColor: 'rgba(255, 235, 59, 0.6)',
-      authorBg: null,
-      messageBg: 'rgba(255, 235, 59, 0.92)',
-      messageBorderColor: 'rgba(255, 235, 59, 0.5)',
-      messageTextColor: '#786E1C',
-      rowBg: 'rgba(255, 235, 59, 0.92)',
-      rowBorderColor: 'rgba(255, 235, 59, 0.5)',
-      earColor: null,
-      badgeBefore: null,
-      badgeAfter: null,
-      showAmount: true,
-      fontSize: null,
-      authorFontWeight: null,
-      messageBorderWidth: 2,
-      textScale: 1.3,
-      memberTiers: [],
-      useTierColor: false,
-      superchatLayout: 'youtube',
-      amountFontSize: null,
-      amountFontWeight: 'extrabold',
-      amountPosition: 'block',
-    },
     },
   },
+  fanServiceConfig: defaultThemeFanService({
+    superchat: { authorColor: '#FF6FA5', messageColor: '#FFFFFF' },
+    membership: { authorColor: '#052D19', messageColor: '#042314', monthsColor: '#052D19' },
+  }),
 };

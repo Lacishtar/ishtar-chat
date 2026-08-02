@@ -1,6 +1,6 @@
 /**
- * LayoutConfig — user-tunable layout properties for the four chat slots
- * (Avatar, Username, Badges, Message). Stored as the layoutConfig field on
+ * LayoutConfig — user-tunable layout properties for the three chat slots
+ * (Avatar, Username, Message). Stored as the layoutConfig field on
  * a theme in shared/theme-presets/ (index.js + themes/*.js) and persisted in config.json as
  * layoutConfig. Compiled to CSS custom properties by this module's own
  * compileLayoutToCssVariables() (mirrored in overlay/modules/css-variables.js
@@ -41,7 +41,6 @@ const DEFAULT_LAYOUT_CONFIG = {
   slots: {
     avatar: createSlotLayout({ order: 0 }),
     author: createSlotLayout({ order: 0 }),
-    badges: createSlotLayout({ order: 1 }),
     message: createSlotLayout({ order: 1 }),
   },
   screen: {
@@ -59,7 +58,7 @@ const DEFAULT_LAYOUT_CONFIG = {
     bubbleWrapAuthor: null, // null | boolean — bọc tên (khi bubbleWrapRow === false)
     bubbleWrapMessage: null, // null | boolean — bọc nội dung chat
     // Header/body split — only meaningful when bubbleWrapRow is true (one
-    // unified bubble). Puts avatar + username (+ badges) on a header row
+    // unified bubble). Puts avatar + username on a header row
     // (avatar left, name beside — Discord-card style) and the chat message
     // on its own full-width row underneath, separated by a thin divider.
     headerSplit: false,
@@ -148,7 +147,6 @@ function mergeLayoutConfig(base, overrides) {
     slots: {
       avatar: { ...b.slots.avatar, ...(o.slots?.avatar || {}) },
       author: { ...b.slots.author, ...(o.slots?.author || {}) },
-      badges: { ...b.slots.badges, ...(o.slots?.badges || {}) },
       message: { ...b.slots.message, ...(o.slots?.message || {}) },
     },
     screen: normalizeBubbleWrapScreen(mergedScreen),
@@ -241,11 +239,6 @@ function compileLayoutToCssVariables(layout) {
     '--ovs-layout-slot-author-margin': px(slots.author.margin),
     ...compileSlotPositionVars('author', slots.author),
 
-    '--ovs-layout-slot-badges-order': String(slots.badges.order ?? 1),
-    '--ovs-layout-slot-badges-padding': px(slots.badges.padding),
-    '--ovs-layout-slot-badges-margin': px(slots.badges.margin),
-    ...compileSlotPositionVars('badges', slots.badges),
-
     '--ovs-layout-slot-message-order': String(slots.message.order ?? 1),
     '--ovs-layout-slot-message-padding': px(slots.message.padding),
     '--ovs-layout-slot-message-margin': px(slots.message.margin),
@@ -288,10 +281,6 @@ function contractSimpleLayout(layout) {
   if (l.messageRow.direction === 'vertical') avatarPosition = 'top';
   else if ((l.slots.avatar.order ?? 0) > 0) avatarPosition = 'right';
 
-  let nameBadges = 'inline-after';
-  if (l.metaRow.direction === 'vertical') nameBadges = 'badges-below';
-  else if ((l.slots.badges.order ?? 1) < (l.slots.author.order ?? 0)) nameBadges = 'inline-before';
-
   const messagePosition = l.bodyColumn.direction === 'horizontal' ? 'beside' : 'below';
 
   const slotPositionFields = (key) => ({
@@ -305,7 +294,6 @@ function contractSimpleLayout(layout) {
 
   return {
     avatarPosition,
-    nameBadges,
     messagePosition,
     gap: l.messageRow.gap ?? 10,
     padding: l.messageRow.padding ?? 8,
@@ -326,17 +314,13 @@ function contractSimpleLayout(layout) {
     avatarMargin: l.slots.avatar?.margin ?? 0,
     authorPadding: l.slots.author?.padding ?? 0,
     authorMargin: l.slots.author?.margin ?? 0,
-    badgesPadding: l.slots.badges?.padding ?? 0,
-    badgesMargin: l.slots.badges?.margin ?? 0,
     messagePadding: l.slots.message?.padding ?? 0,
     messageMargin: l.slots.message?.margin ?? 0,
     showAvatarSlot: l.slots.avatar?.visible ?? null,
     showAuthorSlot: l.slots.author?.visible ?? null,
-    showBadgesSlot: l.slots.badges?.visible ?? null,
     showMessageSlot: l.slots.message?.visible ?? null,
     ...slotPositionFields('avatar'),
     ...slotPositionFields('author'),
-    ...slotPositionFields('badges'),
     ...slotPositionFields('message'),
   };
 }
@@ -358,11 +342,11 @@ function expandSimpleLayout(simple) {
   };
 
   const metaRow = {
-    direction: s.nameBadges === 'badges-below' ? 'vertical' : 'horizontal',
+    direction: 'horizontal',
     gap: 6,
     align: 'center',
     padding: 0,
-    margin: s.nameBadges === 'badges-below' ? 0 : 2,
+    margin: 2,
   };
 
   const bodyColumn = {
@@ -388,8 +372,7 @@ function expandSimpleLayout(simple) {
 
   const slots = {
     avatar: slotFromSimple('avatar', s.avatarPosition === 'right' ? 1 : 0),
-    author: slotFromSimple('author', s.nameBadges === 'inline-before' ? 1 : 0),
-    badges: slotFromSimple('badges', s.nameBadges === 'inline-before' ? 0 : 1),
+    author: slotFromSimple('author', 0),
     message: slotFromSimple('message', 1),
   };
 

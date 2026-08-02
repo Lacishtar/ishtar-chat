@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useEditorState } from '../state/EditorStateContext.jsx';
 import { Field, inputClass, EnableToggle } from './Customize/shared/fields.jsx';
+import { ChevronDownIcon } from './Customize/shared/icons.jsx';
+import AccordionSection from './Customize/Inspector/AccordionSection.jsx';
+import { AccordionBody } from './Customize/shared/accordionParts.jsx';
 import { MASK_TARGETS, VISIBILITY_ROLES, STACK_LAYERS, IDLE_ANIMATIONS } from '../../../shared/decoration-config.js';
 
 const ANCHOR_OPTIONS = [
@@ -270,6 +273,9 @@ function VisibilitySection({ layer, set }) {
   const roles = Array.isArray(layer.visibilityRoles) ? layer.visibilityRoles : [];
   const memberMonthsMin = layer.memberMonthsMin ?? 0;
   const memberChecked = roles.includes('member');
+  // Mở sẵn nếu layer đã có điều kiện hiển thị từ trước; đóng theo mặc định
+  // khi trống để đỡ chiếm diện tích (đa số layer không set điều kiện).
+  const [open, setOpen] = useState(roles.length > 0);
 
   function toggleRole(role) {
     const next = roles.includes(role)
@@ -282,16 +288,21 @@ function VisibilitySection({ layer, set }) {
   }
 
   return (
-    <div className="rounded-lg border border-line bg-panel/60 overflow-hidden">
-      <div className="flex items-center gap-1.5 px-3 py-2">
-        <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5 shrink-0 text-inkMuted">
-          <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M10 6v4l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-        <span className="text-xs font-semibold text-inkMuted">Điều kiện hiển thị</span>
-      </div>
-
-      <div className="flex flex-col gap-2.5 px-3 pb-3">
+    <AccordionSection
+      id="visibility-section"
+      title={
+        <span className="inline-flex items-center gap-1.5">
+          <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5 shrink-0 normal-case">
+            <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M10 6v4l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          Điều kiện hiển thị
+        </span>
+      }
+      open={open}
+      onToggle={() => setOpen((o) => !o)}
+    >
+      <AccordionBody>
         {/* Role checkboxes */}
         <div className="flex flex-col gap-1.5">
           {VISIBILITY_ROLES.map((role) => (
@@ -329,8 +340,8 @@ function VisibilitySection({ layer, set }) {
             </p>
           </div>
         )}
-      </div>
-    </div>
+      </AccordionBody>
+    </AccordionSection>
   );
 }
 
@@ -380,13 +391,9 @@ function LayerCard({ layer, index, count, open, onToggleOpen, onChange, onRemove
           </IconButton>
           <DeleteLayerButton onConfirm={() => onRemove(index)} />
           <IconButton title={open ? 'Thu gọn' : 'Mở rộng'} onClick={onToggleOpen}>
-            <svg
-              viewBox="0 0 20 20"
-              fill="none"
+            <ChevronDownIcon
               className={`h-4 w-4 pointer-events-none transition-transform ${open ? 'rotate-180' : ''}`}
-            >
-              <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
+            />
           </IconButton>
         </div>
       </div>
@@ -518,18 +525,12 @@ function MaskSection({ layer, set }) {
   const [open, setOpen] = useState(maskEnabled);
 
   return (
-    <div className="rounded-lg border border-line bg-panel/60 overflow-hidden">
-      <div className="flex items-center justify-between gap-2 px-3 py-2">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-inkMuted"
-        >
-          Mask (khuôn cắt)
-          <svg viewBox="0 0 20 20" fill="none" className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`}>
-            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          </svg>
-        </button>
+    <AccordionSection
+      id="mask-section"
+      title="Mask (khuôn cắt)"
+      open={open}
+      onToggle={() => setOpen((o) => !o)}
+      headerExtra={
         <EnableToggle
           label=""
           checked={maskEnabled}
@@ -538,10 +539,10 @@ function MaskSection({ layer, set }) {
             if (e.target.checked) setOpen(true);
           }}
         />
-      </div>
-
-      {open && (
-        <fieldset disabled={!maskEnabled} className="flex flex-col gap-3 px-3 pb-3 disabled:opacity-40">
+      }
+    >
+      <AccordionBody>
+        <fieldset disabled={!maskEnabled} className="flex flex-col gap-3 disabled:opacity-40">
           <Field label="Đối tượng áp Mask">
             <select className={inputClass} value={layer.maskTarget || 'avatar'} onChange={(e) => set({ maskTarget: e.target.value })}>
               {MASK_TARGET_OPTIONS.map((opt) => (
@@ -569,8 +570,8 @@ function MaskSection({ layer, set }) {
 
           <EnableToggle label="Đảo ngược Mask" checked={layer.maskInvert === true} onChange={(e) => set({ maskInvert: e.target.checked })} />
         </fieldset>
-      )}
-    </div>
+      </AccordionBody>
+    </AccordionSection>
   );
 }
 

@@ -54,7 +54,6 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   bubbleFixedHeight: 0, // 0 = auto
   avatarSize: 32, // px
   showAvatar: true,
-  showBadges: false,
   animationMs: 220,
   position: 'bottom-up', // 'bottom-up' | 'top-down'
   maxMessages: 40,

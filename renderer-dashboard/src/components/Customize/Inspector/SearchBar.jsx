@@ -1,5 +1,6 @@
 import { searchSections } from './searchIndex.js';
 import { OBJECTS } from '../shared/constants.js';
+import { SearchIcon } from '../shared/icons.jsx';
 
 export default function SearchBar({ keyword, onKeywordChange, onJumpTo }) {
   const results = searchSections(keyword);
@@ -7,14 +8,7 @@ export default function SearchBar({ keyword, onKeywordChange, onJumpTo }) {
   return (
     <div className="relative">
       <div className="relative">
-        <svg
-          viewBox="0 0 20 20"
-          fill="none"
-          className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-inkMuted"
-        >
-          <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="1.4" />
-          <path d="M13 13L17 17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-        </svg>
+        <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-inkMuted" />
         <input
           type="text"
           value={keyword}

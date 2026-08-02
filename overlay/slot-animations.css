@@ -10,11 +10,6 @@
     var(--ovs-anim-author-delay, 40ms) both;
 }
 
-.ovs-badges.ovs-slot-enter {
-  animation: ovs-slot-badges-in var(--ovs-anim-badges-duration, 220ms) var(--ovs-anim-badges-easing, ease-out)
-    var(--ovs-anim-badges-delay, 60ms) both;
-}
-
 .ovs-text.ovs-slot-enter {
   animation: ovs-slot-message-in var(--ovs-anim-message-duration, 220ms) var(--ovs-anim-message-easing, ease-out)
     var(--ovs-anim-message-delay, 80ms) both;
@@ -56,26 +51,6 @@
     filter: blur(0px);
     transform: translate(var(--ovs-slot-author-translate-x, 0), var(--ovs-slot-author-translate-y, 0))
       rotate(var(--ovs-slot-author-rotate, 0deg))
-      scale(1);
-  }
-}
-
-@keyframes ovs-slot-badges-in {
-  from {
-    opacity: 0;
-    filter: blur(var(--ovs-anim-badges-blur, 0px));
-    transform: translate(
-        calc(var(--ovs-anim-badges-translate-x, -4px) + var(--ovs-slot-badges-translate-x, 0px)),
-        calc(var(--ovs-anim-badges-translate-y, 0px) + var(--ovs-slot-badges-translate-y, 0px))
-      )
-      rotate(var(--ovs-slot-badges-rotate, 0deg))
-      scale(var(--ovs-anim-badges-scale, 1));
-  }
-  to {
-    opacity: 1;
-    filter: blur(0px);
-    transform: translate(var(--ovs-slot-badges-translate-x, 0), var(--ovs-slot-badges-translate-y, 0))
-      rotate(var(--ovs-slot-badges-rotate, 0deg))
       scale(1);
   }
 }

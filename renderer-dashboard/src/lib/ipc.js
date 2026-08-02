@@ -11,7 +11,6 @@ const hasElectronApi = typeof window !== 'undefined' && !!window.api;
 const MOCK_BASE_TARGET_DIRECTIONS = {
   avatar: { delayMs: 0, translateX: 0, translateY: 8 },
   author: { delayMs: 40, translateX: -6, translateY: 0 },
-  badges: { delayMs: 60, translateX: -4, translateY: 0 },
   message: { delayMs: 80, translateX: 0, translateY: 6 },
 };
 const MOCK_ANIMATION_STYLE_PRESETS = {
@@ -55,7 +54,6 @@ function createMock() {
     bubbleOpacity: 1,
     avatarSize: 32,
     showAvatar: true,
-    showBadges: false,
     animationMs: 220,
     position: 'bottom-up',
     maxMessages: 40,
@@ -70,7 +68,6 @@ function createMock() {
     slots: {
       avatar: { order: 0, padding: 0, margin: 0 },
       author: { order: 0, padding: 0, margin: 0 },
-      badges: { order: 1, padding: 0, margin: 0 },
       message: { order: 1, padding: 0, margin: 0 },
     },
   };
@@ -80,8 +77,34 @@ function createMock() {
     roles: {
       moderator: { enabled: true, authorColor: '#fca5a5', badge: 'MOD', fontSize: null },
       member: { enabled: true, authorColor: '#93c5fd', badge: '★', fontSize: null },
-      superchat: { enabled: true, authorColor: '#fde047', badge: '✦', showAmount: true, fontSize: null },
     },
+  };
+  // Mirrors shared/fan-service-config.js#createGroupConfig's shape exactly —
+  // kept in sync by hand since the mock runs in a plain browser tab and
+  // doesn't bundle the CJS shared/ modules used by the real Electron
+  // backend (same constraint as MOCK_ANIMATION_STYLE_PRESETS above).
+  const mockGroupDefaults = {
+    enabled: false,
+    showAvatar: true, showAuthor: true, showMessage: true,
+    avatarPosition: 'left', authorAlign: 'left', messagePosition: 'below',
+    gapScale: 1,
+    paddingTopScale: 1, paddingRightScale: 1, paddingBottomScale: 1, paddingLeftScale: 1,
+    avatarScale: 1,
+    authorFontScale: 1, authorColor: '#6e56f0',
+    messageFontScale: 1, messageColor: '#eaecef',
+    showMemberMonths: true, monthsAlign: 'left', monthsFontScale: 1.25, monthsColor: '#ffd166',
+    // superchat-only — moved from role-style-config.js during the Super
+    // Chat -> Fan Service refactor (docs/refactor-superchat-to-fanservice.md).
+    // Present on both groups for shape consistency (real schema does the
+    // same); only the superchat group's editor UI reads them.
+    badgeBefore: null, badgeAfter: null,
+    useTierColor: true,
+    showAmount: true, amountPosition: 'inline', amountAlign: 'center', amountFontScale: 1, amountFontWeight: 'bold',
+    amountStyle: 'pill',
+  };
+  let fanServiceConfig = {
+    superchat: { ...mockGroupDefaults },
+    membership: { ...mockGroupDefaults },
   };
   let animationConfig = {
     enabled: true,
@@ -89,7 +112,6 @@ function createMock() {
     targets: {
       avatar: { durationMs: 220, delayMs: 0, translateY: 8 },
       author: { durationMs: 220, delayMs: 40, translateX: -6 },
-      badges: { durationMs: 220, delayMs: 60, translateX: -4 },
       message: { durationMs: 220, delayMs: 80, translateY: 6 },
     },
   };
@@ -105,6 +127,7 @@ function createMock() {
   const animationListeners = new Set();
   const decorationListeners = new Set();
   const roleStyleListeners = new Set();
+  const fanServiceListeners = new Set();
   const themeChangedListeners = new Set();
 
   function customPresetMetaList() {
@@ -120,6 +143,7 @@ function createMock() {
       slotStyleConfig,
       decorationConfig,
       roleStyleConfig,
+      fanServiceConfig,
       animationConfig,
       lastSessionUrl: '',
       overlayUrl: 'http://localhost:3000/overlay',
@@ -263,6 +287,14 @@ function createMock() {
       roleStyleListeners.forEach((cb) => cb(roleStyleConfig));
       return { ok: true, roleStyleConfig };
     },
+    updateFanServiceConfig: async (partial) => {
+      fanServiceConfig = {
+        superchat: { ...fanServiceConfig.superchat, ...(partial.superchat || {}) },
+        membership: { ...fanServiceConfig.membership, ...(partial.membership || {}) },
+      };
+      fanServiceListeners.forEach((cb) => cb(fanServiceConfig));
+      return { ok: true, fanServiceConfig };
+    },
 
     // ── Custom Presets (mock — in-memory only) ─────────────────────────────
 
@@ -341,6 +373,10 @@ function createMock() {
     onDecorationUpdated: (cb) => {
       decorationListeners.add(cb);
       return () => decorationListeners.delete(cb);
+    },
+    onFanServiceUpdated: (cb) => {
+      fanServiceListeners.add(cb);
+      return () => fanServiceListeners.delete(cb);
     },
     onRoleStyleUpdated: (cb) => {
       roleStyleListeners.add(cb);

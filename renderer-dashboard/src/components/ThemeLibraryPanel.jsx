@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ChevronDownIcon, SearchIcon } from './Customize/shared/icons.jsx';
 
 /**
  * ThemeLibraryPanel — standalone panel for browsing/applying theme presets.
@@ -184,14 +185,7 @@ export default function ThemeLibraryPanel({ api, resetPreset }) {
 
       {/* ── Search ── */}
       <div className="relative">
-        <svg
-          viewBox="0 0 20 20"
-          fill="none"
-          className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-inkMuted"
-        >
-          <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" strokeWidth="1.4" />
-          <path d="M13 13L17 17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-        </svg>
+        <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-inkMuted" />
         <input
           type="text"
           value={search}
@@ -245,13 +239,7 @@ export default function ThemeLibraryPanel({ api, resetPreset }) {
             className="rounded-lg border border-line bg-panel hover:bg-panelAlt text-inkMuted hover:text-ink text-xs py-1.5 px-2.5 flex items-center gap-1 transition-colors"
           >
             Reset
-            <svg
-              viewBox="0 0 20 20"
-              fill="none"
-              className={`h-3 w-3 transition-transform ${resetOpen ? 'rotate-180' : ''}`}
-            >
-              <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
+            <ChevronDownIcon className={`h-3 w-3 transition-transform ${resetOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {/* Reset dropdown menu */}
