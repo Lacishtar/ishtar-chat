@@ -1,6 +1,4 @@
-/**
- * Theme preset: default
- */
+// Theme preset: default
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

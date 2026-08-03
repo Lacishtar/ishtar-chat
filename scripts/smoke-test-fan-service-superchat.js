@@ -1,8 +1,3 @@
-// Verifies shared/fan-service-config.js's `superchat` group — the fields
-// moved wholesale from shared/role-style-config.js's old Super Chat role
-// during the Super Chat -> Fan Service refactor
-// (docs/refactor-superchat-to-fanservice.md): badge, tier-color/manual-
-// color, and amount display (position/scale/weight).
 const {
   DEFAULT_FAN_SERVICE_CONFIG,
   mergeFanServiceConfig,
@@ -60,9 +55,6 @@ assert(cssManualBubble.includes('#445566'), 'manualBorderColor overrides the row
 assert(cssManual.includes('rgba(104, 87, 34, 0.8)'), 'manualBgColor null falls back to the original hardcoded bg');
 assert(cssManual.includes('rgba(255, 202, 40, 0.45)'), 'manualBorderColor null falls back to the original hardcoded border');
 
-// Bubble shape/border-width/opacity/shadow/glow — independent of
-// useTierColor (applies whether tier color is on or off), unlike
-// manualBgColor/manualBorderColor above which only matter when it's off.
 const bubbleShape = mergeFanServiceConfig(DEFAULT_FAN_SERVICE_CONFIG, {
   superchat: {
     enabled: true,
@@ -85,10 +77,6 @@ assert(cssBubbleShape.includes('filter: drop-shadow(0 0 8px #ff00ff)'), 'bubbleG
 // Still on tier color for bg/border (not manual), since useTierColor: true here.
 assert(cssBubbleShape.includes('var(--ovs-superchat-tier-bg'), 'bg still reads the tier var when useTierColor stays true');
 
-// ── Amount display: showAmount has no off switch any more ──────────────────
-// There is no user-facing toggle for this — mergeGroupConfig always forces
-// showAmount back to true, so even an explicit `showAmount: false` override
-// must NOT hide .ovs-superchat-amount.
 const amountOff = mergeFanServiceConfig(DEFAULT_FAN_SERVICE_CONFIG, {
   superchat: { enabled: true, showAmount: false },
 });

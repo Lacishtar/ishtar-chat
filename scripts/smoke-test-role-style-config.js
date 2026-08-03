@@ -52,20 +52,14 @@ const disabled = compileRoleStyleToCssVariables({
 });
 assert(disabled.rootFlags['data-ovs-role-mod-enabled'] === 'false', 'mod disabled flag');
 
-// ── Member Tiers ────────────────────────────────────────────────────────────
 // (Membership Event Emphasis — per-event color/badge/glow for Hội viên mới /
 // Gia hạn / Tặng quà / Nhận quà — was removed entirely: no dashboard UI, no
-// role-level glow either. Member Tiers below is the one member-only override
-// mechanism left, and it still needs to compile correctly on its own.)
 const withTiers = mergeRoleStyleConfig(defaults, {
   roles: {
     member: {
       enabled: true,
       memberTiers: [
         { id: 't1', minMonths: 6, color: '#ffd700', badgeBefore: '💎', badgeAfter: '♥' },
-        // Legacy shape (pre-badgeBefore/After): singular `badge`, before-only.
-        // normalizeMemberTierEntry() must still migrate this into badgeBefore
-        // so configs saved before this change keep rendering correctly.
         { id: 't2', minMonths: 1, color: '#93c5fd', badge: '★' },
       ],
     },
@@ -89,11 +83,6 @@ assert(
   'legacy tier `badge` field migrates into badgeBefore',
 );
 
-// Image-URL badge — auto-detected by quoteCssContent() and rendered as
-// `content: url(...)` instead of quoted text. The host below isn't on
-// image-url.js's ALLOWED_IMAGE_HOSTS allowlist, so toImageProxyUrl()
-// returns '' and this falls back to the raw URL (same "best effort"
-// fallback shared/customize-config.js uses for bubbleTextureUrl).
 const withImageBadge = mergeRoleStyleConfig(defaults, {
   roles: {
     member: {

@@ -1,9 +1,4 @@
-/**
- * CustomizeConfig — the set of user-tunable visual properties that every
- * theme exposes. Themes may add extra keys in their own default-config.json,
- * but every theme MUST support this base set so the Customize Panel works
- * the same way regardless of which theme is active.
- */
+// CustomizeConfig — the set of user-tunable visual properties that every
 const { toImageProxyUrl } = require('./image-url');
 
 const DEFAULT_CUSTOMIZE_CONFIG = {
@@ -57,33 +52,10 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   animationMs: 220,
   position: 'bottom-up', // 'bottom-up' | 'top-down'
   maxMessages: 40,
-  // Pool Warmup — how many Bubble DOM nodes overlay/modules/pool/PoolManager.js
-  // pre-builds into the Object Pool right after the app boots, so the very
-  // first messages (and the very first messages after a theme switch) reuse
-  // an already-built, hidden bubble node instead of paying factory() cost
-  // inline once the stream starts. This is a floor, not a ceiling: if the
-  // Pool ever runs dry mid-stream it's still allowed to grow past this by
-  // building new nodes on demand (see BubblePool#acquire) — there's no hard
-  // cap on live growth, only on how much stays IDLE long-term. See
-  // overlay/modules/pool/PoolConfig.js#DEFAULT_WARMUP_SIZE for the
-  // engine-level fallback used when this is unset.
   poolWarmupSize: 20,
-  // 'stack' = normal chat feed (bubbles stack up/down, see `position`).
-  // 'danmaku' = bullet-comment mode: each message flies across the screen
-  // once (Niconico/Bilibili style) instead of stacking.
-  // 'ticker' = continuous horizontal scrolling marquee/ticker with queuing.
-  // Handled client-side by overlay/modules/special-modes.js — see
-  // overlay/modules/state.js#getDisplayMode / #syncThemeModeClass for the
-  // switch-over logic.
   displayMode: 'stack', // 'stack' | 'danmaku' | 'ticker'
   danmakuSpeed: 1, // speed multiplier for danmaku flight — 1 = default, >1 faster, <1 slower
   danmakuLanes: 12, // number of horizontal lanes danmaku bullets cycle through
-  // How much of the screen height danmaku lanes are allowed to use, as a
-  // margin (%) kept clear at the top and bottom respectively. Raising these
-  // shrinks the flyable band so bullets can't land right at the very edge
-  // (e.g. behind a webcam/alert overlay, or just too close together near
-  // the top/bottom for comfortable reading). Independent top/bottom values
-  // let users protect only the edge that actually overlaps other overlays.
   danmakuAreaTopPct: 4,
   danmakuAreaBottomPct: 4,
   tickerSpeed: 1, // speed multiplier for ticker scroll — 1 = default (~120px/s)
@@ -95,12 +67,6 @@ const DEFAULT_CUSTOMIZE_CONFIG = {
   idleShimmerEnabled: false, // independent on/off — can run at the same time as float or slidex
   idleShimmerSpeed: 3, // duration in seconds — smaller = faster
   idleShimmerIntensity: 5, // 0-20, mapped to a 0-0.2 opacity range for the sweep highlight
-  // Emoji-only messages get each glyph wrapped in its own square "chip"
-  // (see overlay/modules/emoji.js + overlay/layout-text.css .ovs-emoji-glyph).
-  // These four fields are the chip's full customizable surface: background
-  // (color/gradient via the same rgba/gradient string bubbleBg uses),
-  // corner rounding, overall opacity, and an optional glow halo (same
-  // `filter: drop-shadow(...)` string shape as bubbleGlow/textGlow).
   emojiGlyphEnabled: true, // master on/off for the chip decoration — false strips bg/radius/opacity/glow but never touches the emoji glyph itself (size/position/content are set directly in CSS, not via these vars)
   emojiGlyphBg: 'rgba(255, 255, 255, 0.1)',
   emojiGlyphRadius: 6, // px
@@ -123,31 +89,7 @@ function clampPct(value, fallback) {
   return Math.min(Math.max(n, 0), 100);
 }
 
-/**
- * Builds a combined CSS text-shadow value from glow + stroke config.
- *
- * Replaces the old `filter: drop-shadow()` + `-webkit-text-stroke` approach:
- *  - filter: collides with --ovs-bubble-glow / --ovs-slot-*-bubble-glow in
- *    wrap-bubble mode (bubble-wrap.css applies `filter` directly on .ovs-author
- *    and .ovs-text with higher specificity, completely clobbering any text-glow
- *    filter set by the theme)
- *  - -webkit-text-stroke: renders inconsistently/jaggedly across fonts and
- *    eats into the glyph interior rather than extending outward
- *
- * Both effects are expressed as text-shadow layers instead — a separate CSS
- * property that never conflicts with filter.
- *
- * Stroke is rendered as an 8-direction offset faux-outline, which extends
- * outside the glyph (unlike -webkit-text-stroke which cuts inward), so even
- * thick strokes don't affect letterform readability.
- *
- * @param {string|null} glow        - CSS filter drop-shadow() string, e.g.
- *                                    "drop-shadow(0 0 8px rgba(100,200,255,0.8))"
- *                                    (same format used by the bubble glow UI)
- * @param {number}      strokeWidth - outline thickness in px (0 = no stroke)
- * @param {string|null} strokeColor - outline color; defaults to '#000000'
- * @returns {string} CSS text-shadow value, or 'none'
- */
+// Builds a combined CSS text-shadow value from glow + stroke config.
 function buildTextShadow(glow, strokeWidth, strokeColor) {
   const parts = [];
 
@@ -162,10 +104,6 @@ function buildTextShadow(glow, strokeWidth, strokeColor) {
     ].forEach(([dx, dy]) => parts.push(`${dx}px ${dy}px 0 ${sc}`));
   }
 
-  // Glow — text-shadow uses the same "x y blur color" syntax as drop-shadow(),
-  // so just strip the function wrapper to reuse the stored filter string.
-  // Walk paren depth manually because the color may itself be rgba(...) or
-  // oklch(...), which would trip up a naive [^)]+ regex.
   if (glow && typeof glow === 'string') {
     const prefix = 'drop-shadow(';
     const start = glow.indexOf(prefix);
@@ -196,20 +134,6 @@ function compileBubbleDecorationToCssVariables(config) {
   if (isSet(c.bubbleBoxShadow)) vars['--ovs-bubble-box-shadow'] = c.bubbleBoxShadow;
   if (isSet(c.bubbleGlow)) vars['--ovs-bubble-glow'] = c.bubbleGlow;
 
-  // Emoji chip (.ovs-emoji-glyph) — bg/radius/opacity/glow are ALWAYS emitted
-  // (never conditionally omitted) so that toggling any of them off actually
-  // resets the live CSS variable on :root. The applier (css-variables.js)
-  // only calls setProperty for keys present in the compiled vars object; a
-  // key that's skipped here just leaves whatever value was set on a
-  // *previous* render sitting on :root forever — e.g. turning "glow" off
-  // used to leave the old drop-shadow() filter applied indefinitely because
-  // this used to only emit the key when emojiGlyphGlow was non-null.
-  //
-  // emojiGlyphEnabled is the master switch for the chip's *decoration* only
-  // — it never touches the emoji glyph itself (the glyph's size/position/
-  // content come from fixed rules in layout-text.css, not from these vars),
-  // so flipping it off just strips the chip's background/radius/opacity/glow
-  // back to neutral values while the emoji stays exactly where it was.
   const emojiChipEnabled = c.emojiGlyphEnabled !== false;
   vars['--ovs-emoji-glyph-bg'] = emojiChipEnabled ? (isSet(c.emojiGlyphBg) ? c.emojiGlyphBg : 'rgba(255, 255, 255, 0.1)') : 'transparent';
   vars['--ovs-emoji-glyph-radius'] = emojiChipEnabled ? px(isSet(c.emojiGlyphRadius) ? c.emojiGlyphRadius : 6) : '0px';
@@ -244,21 +168,11 @@ function compileBubbleDecorationToCssVariables(config) {
   if (isSet(c.bubbleBunnyEarsRotate)) vars['--ovs-bunny-ears-rotate'] = `${Number(c.bubbleBunnyEarsRotate) || 0}deg`;
   if (isSet(c.bubbleBunnyEarsZIndex)) vars['--ovs-bunny-ears-z'] = String(Math.round(Number(c.bubbleBunnyEarsZIndex) || 0));
 
-  // Bubble texture — single source of truth for the global texture layer.
-  // Previously this exact mapping was hand-duplicated in toCssVariables()
-  // below AND in overlay/modules/css-variables.js (the client-side applier),
-  // which meant any new texture field had to be added in three places to
-  // actually work end-to-end. It's compiled once here now; both call sites
-  // just spread compileBubbleDecorationToCssVariables(cfg) and pick it up.
   vars['--ovs-bubble-texture-url'] = c.bubbleTextureUrl && typeof c.bubbleTextureUrl === 'string' && c.bubbleTextureUrl.trim()
     ? `url("${toImageProxyUrl(c.bubbleTextureUrl) || c.bubbleTextureUrl.trim()}")`
     : 'none';
   vars['--ovs-bubble-texture-repeat'] = c.bubbleTextureRepeat || 'repeat';
   vars['--ovs-bubble-texture-size'] = typeof c.bubbleTextureSize === 'number' ? px(c.bubbleTextureSize) : (c.bubbleTextureSize || 'auto');
-  // Opacity is stored as a 0-1 float but the UI now round-trips it through a
-  // whole-percent number field, so snap to 2 decimal places here — without
-  // this, repeated slider/number-field edits could accumulate float noise
-  // like 0.6699999999999999 in the saved config.
   vars['--ovs-bubble-texture-opacity'] = String(Math.round(clampPct(Number(c.bubbleTextureOpacity ?? 1) * 100, 100)) / 100);
   // X/Y axis position, each independently clamped to 0-100%.
   const texPosX = clampPct(c.bubbleTexturePositionX, 50);
@@ -269,17 +183,12 @@ function compileBubbleDecorationToCssVariables(config) {
   return vars;
 }
 
-/**
- * Maps a CustomizeConfig object to the CSS custom properties the overlay
- * page and every theme's style.css read from. Keeping this mapping in one
- * place means adding a theme never requires touching the customize logic.
- */
+// Maps a CustomizeConfig object to the CSS custom properties the overlay
 function toCssVariables(config) {
   const c = { ...DEFAULT_CUSTOMIZE_CONFIG, ...config };
 
   // Idle animation amplitude — px, float/slidex only now.
   const idleIntensity = Number.isFinite(Number(c.idleAnimationIntensity)) ? Number(c.idleAnimationIntensity) : 5;
-  // Shimmer has its own independent speed/intensity — see idleShimmerEnabled comment above.
   const idleShimmerIntensity = Number.isFinite(Number(c.idleShimmerIntensity)) ? Number(c.idleShimmerIntensity) : 5;
   const idleShimmerOpacity = Math.round(Math.min(Math.max(idleShimmerIntensity, 0), 20) * 10) / 1000; // 0–0.2 range
 
@@ -304,12 +213,7 @@ function toCssVariables(config) {
   };
 }
 
-/**
- * Theme default-config.json files may carry metadata keys (currently just
- * `_label`, the display name) alongside real CustomizeConfig fields. Strip
- * those before merging into the live config so they don't leak into what
- * gets persisted to config.json or broadcast to the overlay/Customize Panel.
- */
+// Theme default-config.json files may carry metadata keys (currently just
 function sanitizeThemeDefaults(themeDefaults) {
   const clean = {};
   Object.entries(themeDefaults || {}).forEach(([key, value]) => {

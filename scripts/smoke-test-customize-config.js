@@ -48,9 +48,6 @@ const merged = toCssVariables({
 assert(merged['--ovs-bubble-border-width'] === '1px', 'toCssVariables merges decoration');
 assert(merged['--ovs-bubble-pad-y'] === '8px', 'toCssVariables pad y');
 
-// Emoji glyph chip — bg/radius/opacity/glow are ALWAYS emitted now (never
-// conditionally skipped), so that turning any of them off actually resets
-// the live CSS var instead of leaving a stale value applied forever.
 assert(base['--ovs-emoji-glyph-bg'] === 'rgba(255, 255, 255, 0.1)', 'emoji glyph bg default emitted');
 assert(base['--ovs-emoji-glyph-radius'] === '6px', 'emoji glyph radius default emitted');
 assert(base['--ovs-emoji-glyph-opacity'] === '1', 'emoji glyph opacity default emitted');
@@ -70,16 +67,9 @@ assert(
   'emoji glyph glow',
 );
 
-// Turning glow back off (emojiGlyphGlow: null) after it was previously set
-// must produce an explicit 'none', not omit the key — this is exactly the
-// bug being fixed: omitting the key left the old drop-shadow() filter
-// stuck on :root since the applier only setProperty()s keys it sees.
 const emojiGlowOff = compileBubbleDecorationToCssVariables({ emojiGlyphGlow: null });
 assert(emojiGlowOff['--ovs-emoji-glyph-glow'] === 'none', 'emoji glyph glow explicitly reset to none');
 
-// emojiGlyphEnabled=false is the master switch for the chip's decoration
-// only — it must neutralize bg/radius/opacity/glow, but has no field that
-// touches glyph size/position/content (those live in fixed CSS rules).
 const emojiChipOff = compileBubbleDecorationToCssVariables({
   emojiGlyphEnabled: false,
   emojiGlyphBg: '#ff00ff',

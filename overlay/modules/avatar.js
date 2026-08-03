@@ -51,9 +51,6 @@ export function applyAvatar(avatarEl, rawUrl) {
   if (proxied) {
     avatarEl.onload = () => avatarEl.removeAttribute('data-hidden');
     avatarEl.onerror = () => {
-      // Proxy failed (502, token expired, rate-limit) — fall back to the
-      // raw URL before giving up entirely. This keeps avatars visible even
-      // when the local proxy can't reach the upstream CDN.
       avatarEl.onerror = () => avatarEl.setAttribute('data-hidden', 'true');
       avatarEl.onload = () => avatarEl.removeAttribute('data-hidden');
       avatarEl.referrerPolicy = 'no-referrer';

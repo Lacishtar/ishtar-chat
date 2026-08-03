@@ -1,6 +1,4 @@
-/**
- * Theme preset: minimal-white
- */
+// Theme preset: minimal-white
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

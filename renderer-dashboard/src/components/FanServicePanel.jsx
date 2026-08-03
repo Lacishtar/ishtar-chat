@@ -1,55 +1,14 @@
-// ─── "Fan Service" tab ───────────────────────────────────────────────────
-// Dedicated, from-scratch layout + typography customization for the four
-// events that matter most for viewer support: Super Chat, and the three
 // membership events (Hội viên mới / Gia hạn / Tặng hội viên). Two
-// independent groups — Super Chat has its own settings, the three
-// membership events share one set — each with its own on/off toggle so
 // turning a group off falls straight back to the normal Bố cục / Vai trò
-// styling every other message uses. See shared/fan-service-config.js for
-// the schema and how it's compiled into scoped overlay CSS.
-//
-// As of the Super Chat -> Fan Service refactor
-// (docs/refactor-superchat-to-fanservice.md), the superchat group also owns
-// Super Chat's tier-color/manual-color toggle, badge, and amount display —
-// moved wholesale from the old Role "Super Chat" tab (see
-// RoleStylesPanel.jsx, which no longer has one). Role is Identity-only now.
-//
-// Layout note: "💰 Số tiền" sits inside the same "🔤 Cỡ chữ & màu sắc"
-// accordion group (next to the message content font/color fields), not in
-// its own section — amount is part of the message content, so it lives
-// next to the other content settings instead of after Badge. "Cỡ dòng số
-// tháng" (membership) follows the same idea, moved here from its old spot
-// after 🖼️ Hoạ tiết riêng for the same reason.
-//
+// Layout note: "💰 Số tiền" is split across two accordion groups — position
+// (Vị trí số tiền / Căn lề số tiền) and display style (Kiểu hiển thị số
+// tiền) live in "Bố cục" next to the other layout/position fields, while
+// size/weight (Cỡ chữ số tiền / Độ đậm số tiền) stay in "Cỡ chữ & màu sắc"
+// actually matches. "Cỡ dòng số tháng" (membership) stays in typography
+// 🖼️ Hoạ tiết riêng for the same reason.
 // "🎨 Màu theo tier" also carries manualBgColor/manualBorderColor now — when
-// useTierColor is off, bubble bg/border used to be permanently locked to a
-// hardcoded fallback with nothing to actually design (see
-// shared/fan-service-config.js's manualBgColor comment for how that field
-// got dropped during the refactor); these two ColorPickers bring it back.
-//
 // "🖌️ Bubble riêng" (border/radius/opacity/shadow/glow) used to only render
-// for the superchat group even though the underlying fields
-// (bubbleBorderWidth etc.) already existed on every group's config object —
-// membership had nowhere to set them. It now renders for both groups
-// (shared/fan-service-config.js's compileFanServiceCss applies that CSS
-// unconditionally too); only the background/border-color driven by
-// tier/manual color stays superchat-only, since membership has no tier
-// concept.
-//
-// ─── Accordion layout ──────────────────────────────────────────────────
-// Previously every section here was a flat, always-expanded `<h3>` block —
 // with "🖌️ Bubble riêng" now shown for both groups, that made this one of
-// the longest single-scroll panels in the app. Switched to the same
-// collapsible AccordionSection chrome + open/close persistence
-// RoleStylesPanel.jsx already uses (see useFanServiceAccordion below, a
-// copy of that file's useRoleAccordion scoped to its own localStorage key
-// so the two panels' expand/collapse state don't collide). AccordionBody
-// is reused as-is — same reasoning as RoleStylesPanel's own comment on it:
-// this panel's controls skew wide, so each group's body opts back into a
-// stacked single column instead of the accordion's default 2-col grid
-// (meant for the Inspector's small paired controls). Imported from
-// Customize/shared/ (not from RoleStylesPanel.jsx) so this is a normal
-// shared-UI dependency instead of one panel file reaching into another's.
 import { useState } from 'react';
 import { useEditorState } from '../state/EditorStateContext.jsx';
 import ColorPicker from './Customize/shared/ColorPicker.jsx';
@@ -59,9 +18,6 @@ import GlowSection from './Customize/Appearance/GlowSection.jsx';
 import AccordionSection from './Customize/Inspector/AccordionSection.jsx';
 import { AccordionBody, SectionDivider } from './Customize/shared/accordionParts.jsx';
 
-// Mirrors RoleStylesPanel.jsx's useRoleAccordion (see that file's own
-// comment for why this is a small local hook instead of shared
-// useCustomizeState machinery) — separate localStorage key so expanding a
 // section here never touches the Vai trò tab's own saved state.
 const FAN_SERVICE_EXPANDED_KEY = 'ovs.fanService.expanded';
 
@@ -154,12 +110,6 @@ const GROUP_META = {
   },
 };
 
-// ─── Super Chat tier color preview, badge, amount ──────────────────────────
-// Moved here from RoleStylesPanel.jsx during the Super Chat -> Fan Service
-// refactor (docs/refactor-superchat-to-fanservice.md) — Super Chat's
-// color-by-amount tier table (SUPERCHAT_TIER_TABLE in
-// shared/chat-message.js, untouched by this refactor) is read-only display
-// data with no editor of its own; this preview is just a legend for what
 // "Tự động dùng màu theo tier tiền YouTube" (below) does when it's on.
 const TIER_TABLE = [
   { tier: 7, label: '≥ $100', color: '#e53935', label2: 'Đỏ' },
@@ -238,9 +188,7 @@ const MESSAGE_POSITION_OPTIONS = [
   { value: 'beside', label: 'Cùng hàng' },
 ];
 
-/** Every size knob is a scale (multiplier of the feature's own original px
- *  default) rather than an absolute px value — 1.00x always reproduces the
- *  original look. */
+// Every size knob is a scale (multiplier of the feature's own original px
 function ScaleField({ label, value, onChange, min = 0.5, max = 2, step = 0.05 }) {
   const v = typeof value === 'number' ? value : 1;
   return (
@@ -250,14 +198,9 @@ function ScaleField({ label, value, onChange, min = 0.5, max = 2, step = 0.05 })
   );
 }
 
-// Mirrors shared/fan-service-config.js#BASE_SIZES's padding<Side> values —
-// keep these two in sync (used only to show the resulting px next to each
-// slider; the actual compile happens on the backend/overlay side).
 const PADDING_BASE_PX = { top: 8, right: 12, bottom: 8, left: 12 };
 
-/** Same scale idea as ScaleField, but shows the resulting px (computed from
- *  that side's own base) instead of the raw multiplier — easier to read
- *  than "1.00x" when four of these sit side by side. */
+// Same scale idea as ScaleField, but shows the resulting px (computed from
 function PaddingSideField({ label, side, value, onChange, min = 0, max = 4, step = 0.05 }) {
   const v = typeof value === 'number' ? value : 1;
   const resultPx = Math.round(PADDING_BASE_PX[side] * v);
@@ -268,29 +211,12 @@ function PaddingSideField({ label, side, value, onChange, min = 0, max = 4, step
   );
 }
 
-/** One group's full editor (layout + typography). No general badge/amount
- *  controls, no package-name section — see shared/fan-service-config.js
- *  header comment. The membership group additionally gets a dedicated "Số
- *  tháng hội viên" line: visibility toggle, alignment, size, color — see
- *  shared/fan-service-config.js#composeMemberMonthsText-adjacent fields
- *  (showMemberMonths/monthsAlign/monthsFontScale/monthsColor). Not shown
- *  for the superchat group since superchat rows never carry a real month
- *  count.
- *  The superchat group, in turn, gets sections MEMBERSHIP doesn't:
- *  tier-color/manual color, badge, and amount display — moved wholesale
- *  from the old Role "Super Chat" tab (RoleStylesPanel.jsx) during the
- *  Super Chat -> Fan Service refactor (docs/refactor-superchat-to-fanservice.md).
- *  "🖌️ Bubble riêng" (border/radius/opacity/shadow/glow) is NOT in that
- *  superchat-only list — both groups get it, since the fields it edits
- *  already exist on every group's config object.
- *
- *  Each `<h3>` block used to render flat and always-expanded; now each one
- *  is its own AccordionSection so the panel doesn't turn into one long
- *  scroll (see file header comment for why). Section ids are shared
- *  between the two groups (accordion open/close state is keyed by
- *  `${groupKey}:${sectionId}`, same convention RoleStylesPanel.jsx uses),
- *  so opening e.g. "Bố cục" on Super Chat doesn't also open it on Hội
- *  viên — each group remembers its own sections independently. */
+// One group's full editor (layout + typography). No general badge/amount
+// header comment. The membership group additionally gets a dedicated "Số
+// tháng hội viên" line: visibility toggle, alignment, size, color — see
+// "🖌️ Bubble riêng" (border/radius/opacity/shadow/glow) is NOT in that
+// so opening e.g. "Bố cục" on Super Chat doesn't also open it on Hội
+// viên — each group remembers its own sections independently. */
 function GroupEditor({ groupKey, group, onChange, memberRoleStyle, accordion }) {
   const g = group || {};
   const patch = (p) => onChange(p);
@@ -408,6 +334,48 @@ function GroupEditor({ groupKey, group, onChange, memberRoleStyle, accordion }) 
                   />
                 </div>
               </div>
+
+              {groupKey === 'superchat' && (
+                <>
+                  <SectionDivider label="Số tiền" />
+
+                  <SegmentedField
+                    label="Vị trí số tiền"
+                    value={g.amountPosition ?? 'inline'}
+                    onChange={(v) => patch({ amountPosition: v })}
+                    options={[
+                      { value: 'inline', label: 'Cạnh tên' },
+                      { value: 'block', label: 'Dòng riêng' },
+                    ]}
+                    columns={2}
+                  />
+
+                  {g.amountPosition === 'block' && (
+                    <SegmentedField
+                      label="Căn lề số tiền"
+                      value={g.amountAlign ?? 'center'}
+                      onChange={(v) => patch({ amountAlign: v })}
+                      options={[
+                        { value: 'left', label: 'Trái' },
+                        { value: 'center', label: 'Giữa' },
+                        { value: 'right', label: 'Phải' },
+                      ]}
+                      columns={3}
+                    />
+                  )}
+
+                  <SegmentedField
+                    label="Kiểu hiển thị số tiền"
+                    value={g.amountStyle ?? 'pill'}
+                    onChange={(v) => patch({ amountStyle: v })}
+                    options={[
+                      { value: 'pill', label: 'Khung pill' },
+                      { value: 'plain', label: 'Chỉ chữ' },
+                    ]}
+                    columns={2}
+                  />
+                </>
+              )}
             </AccordionBody>
           </AccordionSection>
 
@@ -469,42 +437,6 @@ function GroupEditor({ groupKey, group, onChange, memberRoleStyle, accordion }) 
               {groupKey === 'superchat' && (
                 <>
                   <SectionDivider label="Số tiền" />
-
-                  <SegmentedField
-                    label="Vị trí số tiền"
-                    value={g.amountPosition ?? 'inline'}
-                    onChange={(v) => patch({ amountPosition: v })}
-                    options={[
-                      { value: 'inline', label: 'Cạnh tên' },
-                      { value: 'block', label: 'Dòng riêng' },
-                    ]}
-                    columns={2}
-                  />
-
-                  {g.amountPosition === 'block' && (
-                    <SegmentedField
-                      label="Căn lề số tiền"
-                      value={g.amountAlign ?? 'center'}
-                      onChange={(v) => patch({ amountAlign: v })}
-                      options={[
-                        { value: 'left', label: 'Trái' },
-                        { value: 'center', label: 'Giữa' },
-                        { value: 'right', label: 'Phải' },
-                      ]}
-                      columns={3}
-                    />
-                  )}
-
-                  <SegmentedField
-                    label="Kiểu hiển thị số tiền"
-                    value={g.amountStyle ?? 'pill'}
-                    onChange={(v) => patch({ amountStyle: v })}
-                    options={[
-                      { value: 'pill', label: 'Khung pill' },
-                      { value: 'plain', label: 'Chỉ chữ' },
-                    ]}
-                    columns={2}
-                  />
 
                   <ScaleField
                     label="Cỡ chữ số tiền"
@@ -733,6 +665,36 @@ function GroupEditor({ groupKey, group, onChange, memberRoleStyle, accordion }) 
               <div className="grid grid-cols-2 gap-3">
                 <GlowSection value={g.bubbleGlow} onChange={(v) => patch({ bubbleGlow: v })} allowCustomCss />
               </div>
+            </AccordionBody>
+          </AccordionSection>
+
+          <AccordionSection
+            id={`section-fs-${groupKey}-bunny`}
+            title="Tai thỏ (Bunny Ears)"
+            {...sec('bunny', false)}
+          >
+            <AccordionBody>
+              <p className="text-[11px] text-inkMuted leading-relaxed">
+                Bật/tắt tai thỏ riêng cho {GROUP_META[groupKey].title} — độc lập với cài đặt tai thỏ chung (tab
+                Bubble). {GROUP_META[groupKey].title} luôn ép về 1 bubble duy nhất (không tách tên/nội dung ra
+                riêng), nên dù Bố cục chung đang để "bọc chung" hay "bọc từng phần" thì cũng chỉ có{' '}
+                <b>đúng 1 cặp tai thỏ</b> ở toàn bộ khung, không tách theo từng phần. Chọn "Kế thừa" để dùng lại đúng
+                trạng thái bật/tắt của cài đặt tai thỏ chung.
+              </p>
+              <Field label="Tai thỏ cho nhóm này">
+                <select
+                  className={inputClass}
+                  value={g.bubbleBunnyEars === true ? 'true' : g.bubbleBunnyEars === false ? 'false' : 'default'}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    patch({ bubbleBunnyEars: v === 'true' ? true : v === 'false' ? false : null });
+                  }}
+                >
+                  <option value="default">Kế thừa chung</option>
+                  <option value="true">Bật</option>
+                  <option value="false">Tắt</option>
+                </select>
+              </Field>
             </AccordionBody>
           </AccordionSection>
         </div>

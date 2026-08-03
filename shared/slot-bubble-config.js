@@ -1,6 +1,4 @@
-/**
- * Per-slot bubble decoration (author / message). Values fall back to CustomizeConfig.
- */
+// Per-slot bubble decoration (author / message). Values fall back to CustomizeConfig.
 
 const { DEFAULT_CUSTOMIZE_CONFIG } = require('./customize-config');
 const { toImageProxyUrl } = require('./image-url');
@@ -103,10 +101,6 @@ function compileSlotBubbleDecoration(prefix, slot, globalConfig) {
     vars[`--ovs-slot-${prefix}-bubble-texture-opacity`] = String(Math.round(clampPct(Number(texOpacity) * 100, 100)) / 100);
   }
 
-  // X/Y axis position — each axis resolves independently (slot override
-  // falls back to the global value for that axis, not the pair as a whole),
-  // so e.g. overriding just the vertical axis on the author bubble doesn't
-  // require re-specifying the horizontal one too.
   const texPosX = resolveSlotBubbleValue(slot, 'bubbleTexturePositionX', globalConfig);
   const texPosY = resolveSlotBubbleValue(slot, 'bubbleTexturePositionY', globalConfig);
   const texBlend = resolveSlotBubbleValue(slot, 'bubbleTextureBlendMode', globalConfig);

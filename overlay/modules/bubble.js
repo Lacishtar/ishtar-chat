@@ -1,6 +1,3 @@
-// Bubble texture overlay + "bunny ears" decoration (real DOM spans, not
-// ::before/::after, so they don't conflict with custom badges on
-// .ovs-author — see the original inline comment below).
 
 import { state, listEl } from './state.js';
 import { texturePoolManager } from './pool/TexturePool.js';
@@ -21,7 +18,6 @@ export function ensureBubbleTexture(parent) {
   }
 }
 
-// ── Bunny Ears: Real DOM span injection ──────────────────────────────────
 // Dùng <span class="ovs-bunny-ear ovs-bunny-ear--left/right"> thật thay vì
 // ::before/::after để không xung đột với custom badges trên .ovs-author.
 
@@ -72,24 +68,10 @@ function resolveRoleForNode(node) {
   return null;
 }
 
-// Super Chat ear-color resolution lives further down, right next to
-// resolveEarBgForNode/resolveEarBgForSlot (resolveFanServiceSuperchatEarBg)
-// — see there for how it reads Fan Service instead of Role.
 
 // earColor là field riêng, độc lập với authorColor/messageBg/rowBg — người
 // dùng chọn "Màu tai thỏ" trong panel Vai trò thì LUÔN thắng, không bị suy
 // ra (và trước đây từng bị nhầm) từ màu tên hay nền bubble.
-//
-// Fan Service superchat's ear color, resolved separately from Role: when
-// useTierColor is on (default), reuse the per-message tier bg
-// message-renderer.js already set inline on rowEl
-// (--ovs-superchat-tier-bg) instead of re-deriving anything; when off,
-// fall back to the group's manual authorColor. Returns { matched: true,
-// bg } whenever the row IS a Fan-Service-enabled Super Chat row (even if
-// `bg` itself resolves to null — that still means "don't fall through to
-// Role"), or { matched: false } when the row isn't Super Chat or Fan
-// Service's superchat group is disabled, in which case callers fall
-// through to the ordinary Role (moderator/member) resolution below.
 function resolveFanServiceSuperchatEarBg(node) {
   if (!node.classList.contains('ovs-superchat')) return { matched: false };
   const superchatCfg = state.currentFanService?.superchat;
@@ -99,6 +81,41 @@ function resolveFanServiceSuperchatEarBg(node) {
     ? (node.style.getPropertyValue('--ovs-superchat-tier-bg') || superchatCfg.authorColor || null)
     : (superchatCfg.authorColor || null);
   return { matched: true, bg: bg || null };
+}
+
+// Trả về group config Fan Service (superchat/membership) đang ÁP DỤNG cho
+// row này, hoặc null nếu row không thuộc nhóm nào / nhóm đó đang tắt.
+function resolveFanServiceGroupConfig(node) {
+  if (node.classList.contains('ovs-superchat')) {
+    const cfg = state.currentFanService?.superchat;
+    return cfg && cfg.enabled !== false ? cfg : null;
+  }
+  if (
+    node.classList.contains('ovs-event-membership_new')
+    || node.classList.contains('ovs-event-membership_gift_sent')
+    || node.classList.contains('ovs-event-membership_milestone')
+  ) {
+    const cfg = state.currentFanService?.membership;
+    return cfg && cfg.enabled !== false ? cfg : null;
+  }
+  return null;
+}
+
+// Fan Service (Super Chat / Hội viên) luôn ép row về 1 bubble duy nhất —
+// không tách author/message ra riêng — kể cả khi bố cục chung đang ở chế
+// độ "bọc từng phần". Vì vậy tai thỏ của các row này KHÔNG được tách theo
+// slot: luôn đúng 1 cặp ở cấp row. Trả về true/false (đã resolve, không
+// còn tri-state) khi row thuộc 1 nhóm Fan Service đang bật, hoặc undefined
+// nếu row không thuộc nhóm nào — khi đó rơi về logic tai thỏ thông thường
+// (theo Bubble chung / theo slot).
+function resolveFanServiceBunnyEnabled(node) {
+  const group = resolveFanServiceGroupConfig(node);
+  if (!group) return undefined;
+  if (group.bubbleBunnyEars === true) return true;
+  if (group.bubbleBunnyEars === false) return false;
+  // Kế thừa: dùng cài đặt tai thỏ CHUNG (không phải theo slot), vì Fan
+  // Service không có khái niệm "slot riêng" để kế thừa từ.
+  return Boolean(state.currentConfig.bubbleBunnyEars);
 }
 
 function resolveEarBgForNode(node) {
@@ -140,7 +157,16 @@ function resolveEarBgForSlot(node, slotName) {
 
 export function applyMessageBunnyEars(node) {
   if (!node) return;
-  const enabled = state.currentConfig.bubbleBunnyEars;
+  const fsEnabled = resolveFanServiceBunnyEnabled(node);
+  const isFanService = fsEnabled !== undefined;
+  const enabled = isFanService ? fsEnabled : state.currentConfig.bubbleBunnyEars;
+  // Fan Service row: đánh dấu để CSS luôn hiện cặp tai cấp row, bất kể bố
+  // cục chung đang "bọc chung" hay "bọc từng phần" (xem bubble-wrap.css).
+  if (isFanService) {
+    node.setAttribute('data-bunny-ears-force-row', 'true');
+  } else {
+    node.removeAttribute('data-bunny-ears-force-row');
+  }
   if (!enabled) {
     removeBunnyEarSpans(node);
     node.removeAttribute('data-bunny-ears');
@@ -161,6 +187,16 @@ export function applyMessageBunnyEars(node) {
 
 export function applySlotBunnyEars(el, slotName) {
   if (!el) return;
+  const rowNode = el.closest('.ovs-message');
+  const fsEnabled = rowNode ? resolveFanServiceBunnyEnabled(rowNode) : undefined;
+  // Fan Service không bao giờ tách tai thỏ theo slot (author/message) —
+  // luôn chỉ có 1 cặp duy nhất ở cấp row (xem applyMessageBunnyEars), kể
+  // cả khi bố cục chung đang ở chế độ "bọc từng phần".
+  if (fsEnabled !== undefined) {
+    removeBunnyEarSpans(el);
+    el.removeAttribute('data-bunny-ears');
+    return;
+  }
   const slotCfg = state.currentSlotStyle?.slots?.[slotName];
   const enabled = slotCfg?.bubbleBunnyEars !== undefined && slotCfg.bubbleBunnyEars !== null
     ? slotCfg.bubbleBunnyEars
@@ -174,7 +210,6 @@ export function applySlotBunnyEars(el, slotName) {
   const { left, right } = ensureBunnyEarSpans(el);
   // Role class nằm trên .ovs-message cha (author/message slot không tự mang
   // class role), nên phải tìm ngược lên để biết message này thuộc role nào.
-  const rowNode = el.closest('.ovs-message');
   const bg = rowNode ? resolveEarBgForSlot(rowNode, slotName) : null;
   if (bg) {
     left.style.background = bg;

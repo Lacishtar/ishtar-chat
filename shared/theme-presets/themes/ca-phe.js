@@ -1,6 +1,4 @@
-/**
- * Theme preset: ca-phe
- */
+// Theme preset: ca-phe
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

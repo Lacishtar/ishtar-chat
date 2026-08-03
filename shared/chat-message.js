@@ -1,43 +1,7 @@
-/**
- * ChatMessage schema (shared reference — plain JS, no build step needed).
- *
- * {
- *   id: string,                    // dedupe key (derived from YouTube's DOM node id when possible)
- *   author: string,
- *   avatarUrl: string,
- *   badges: string[],              // raw badge labels as captured, e.g. ["Moderator", "Member (6 months)"]
- *   badgeIconUrl: string,          // real YouTube member-badge icon image URL as captured (https:// only,
- *                                  // '' otherwise), for the "Dùng badge thật" (useRealBadge) feature —
- *                                  // shown in the overlay ALONGSIDE the custom Mốc tháng badge, not instead of it.
- *   roles: string[],                // derived from badges: subset of "moderator" | "member" | "verified"
- *   memberMonths: number,           // parsed from a "Member (N months|years)" badge, 0 if not a member / not parseable
- *   membershipTierName: string,     // channel's own membership tier/package name (e.g. "Dead Beat +"),
- *                                   // read from YouTube's '#header-subtext' element. Static per tier —
- *                                   // identical across every membership event at that tier, not per-event
- *                                   // data. '' when absent (non-membership events, or channels with a
- *                                   // single unnamed tier).
- *   eventType: 'text' | 'superchat' | 'sticker' | 'membership_new' | 'membership_gift' | 'membership_gift_sent' | 'membership_gift_received' | 'membership_milestone',
- *     // 'membership_gift' is retained only for backward compatibility with
- *     // any already-captured/stored data — capture-preload.js no longer
- *     // emits it. New Gift Membership captures are always one of the two
- *     // more specific events: 'membership_gift_sent' (the gifter buying
- *     // memberships for the community) or 'membership_gift_received' (a
- *     // viewer redeeming one of those gifted memberships).
- *   messageText: string,            // plain-text mirror of messageHtml (emoji alt text lost, tags stripped)
- *   messageHtml: string,            // message text, emoji already resolved to <img> tags
- *   language: string | null,        // best-effort script hint, e.g. "ja" | "zh" | "ko" | "ar" | "he" | null
- *   direction: 'ltr' | 'rtl',
- *   timestamp: number,               // ms epoch, set on the main-process side (capture time)
- *   isSuperchat: boolean,
- *   superchatAmountUsd: number,       // 0 unless currency was unambiguously recognized as USD (see parseSuperchatAmount)
- *   superchatCurrencyRaw: string | null   // original display string, e.g. "€10.00", whenever isSuperchat is true
- * }
- *
- * NOTE: roles/memberMonths/eventType/language/direction/superchatAmountUsd/superchatCurrencyRaw
- * are additive fields (added for the Rule Engine groundwork in the theme-system
- * redesign doc, §5.6). Anything reading only the older subset of this shape
- * keeps working unchanged — every new field has a safe default.
- */
+// ChatMessage schema (shared reference — plain JS, no build step needed).
+// // '' otherwise), for the "Dùng badge thật" (useRealBadge) feature —
+// // shown in the overlay ALONGSIDE the custom Mốc tháng badge, not instead of it.
+// NOTE: roles/memberMonths/eventType/language/direction/superchatAmountUsd/superchatCurrencyRaw
 
 const crypto = require('crypto');
 
@@ -46,28 +10,16 @@ const VALID_EVENT_TYPES = new Set([
   'superchat',
   'sticker',
   'membership_new',
-  // 'membership_gift' kept for backward compatibility (older captures /
-  // anything already persisted with this value); capture-preload.js now
-  // emits the two more specific events below instead.
   'membership_gift',
   'membership_gift_sent',
   'membership_gift_received',
   'membership_milestone',
 ]);
 
-// Keyword substrings (lowercased) used to derive coarse "roles" from
-// YouTube's own badge aria-labels. Intentionally a simple, easily-extended
-// keyword map rather than parsing badge icon classes — aria-label text is
-// the most stable signal we get from the captured DOM, but it IS still
-// YouTube's own UI copy, so a reworded/relocalized label can silently stop
-// matching. Ship fixes as an update to this map, same spirit as
-// selectors.config.json's "edit data, not code" philosophy.
 const ROLE_KEYWORDS = {
   // 'kiểm duyệt' / 'kiem duyet' added: YouTube's actual Vietnamese-locale
   // badge label for this role is "Người kiểm duyệt", not "điều hành" or
   // "quản trị" (neither of those is YouTube's own wording, so they never
-  // matched a real badge — moderator detection silently failed on any
-  // Vietnamese-language channel/viewer session).
   moderator: [
     'moderator',
     'mod',
@@ -82,13 +34,6 @@ const ROLE_KEYWORDS = {
   verified: ['verified', 'xác minh', 'xac minh'],
 };
 
-// Unicode script ranges used for a lightweight language/direction hint. This
-// is NOT a real language detector — it only recognizes a handful of
-// non-Latin scripts with confidence. Everything else (including most
-// Latin-script languages: en, es, fr, vi, ...) intentionally resolves to
-// `language: null` rather than guessing "en", since a wrong guess is worse
-// than an honest "unknown" for anything that later branches on it (e.g. a
-// future Rule Engine). direction only flips to 'rtl' for the scripts below.
 const SCRIPT_RANGES = [
   { language: 'ar', direction: 'rtl', ranges: [[0x0600, 0x06ff], [0x0750, 0x077f], [0x08a0, 0x08ff]] },
   { language: 'he', direction: 'rtl', ranges: [[0x0590, 0x05ff]] },
@@ -97,18 +42,8 @@ const SCRIPT_RANGES = [
   { language: 'zh', direction: 'ltr', ranges: [[0x4e00, 0x9fff]] }, // Han ideographs w/o kana => best-effort "zh"
 ];
 
-/**
- * Normalizes a raw message payload coming from the injected capture script
- * into the canonical ChatMessage shape. Anything captured from the page is
- * treated as untrusted text, so we defensively coerce types here.
- */
-// Normalizes to NFC (precomposed) form. Vietnamese text can arrive from the
+// Normalizes a raw message payload coming from the injected capture script
 // DOM as either precomposed characters ("ế" as one code point) or decomposed
-// sequences (base letter + separate combining tone-mark code points) — both
-// render identically but decomposed text is fragile: slice()ing a raw string
-// at a fixed length can land between a base letter and its combining mark
-// (visually detaching the accent) and some fonts/consumers mis-render
-// decomposed sequences even when unsliced. Normalizing up front avoids both.
 function toNfc(str) {
   return typeof str === 'string' && str.normalize ? str.normalize('NFC') : str;
 }
@@ -154,12 +89,7 @@ function normalizeMessage(raw) {
   const id = raw.id ? String(raw.id) : hashFallbackId(author, messageHtml, raw.avatarUrl);
   const badges = Array.isArray(raw.badges) ? raw.badges.slice(0, 5).map((b) => toNfc(String(b))) : [];
   const membershipTierName = toNfc(String(raw.membershipTierName || '')).slice(0, 120);
-  // Real YouTube badge icon (captured verbatim by capture-preload.js) —
   // only meaningful when the streamer turns on "Dùng badge thật"
-  // (useRealBadge, shared/role-style-config.js). Same trust posture as
-  // avatarUrl below: must be an actual https:// image URL, never
-  // javascript:/data: or arbitrary markup, since it ends up as an <img
-  // src> in the overlay (message-renderer.js).
   const badgeIconUrlRaw = typeof raw.badgeIconUrl === 'string' ? raw.badgeIconUrl.trim() : '';
   const badgeIconUrl = /^https:\/\//i.test(badgeIconUrlRaw) ? badgeIconUrlRaw.slice(0, 500) : '';
 
@@ -215,8 +145,6 @@ function deriveRoles(badges) {
   );
 }
 
-// Looks for a "Member (N months|years)" style badge or header text and returns total
-// months, or 0 if there's no member badge / it doesn't parse cleanly.
 // Matches both "Member (6 months)", "Member for 6 months", "Thành viên (6 tháng)", "Thành viên 6 tháng", "Hội viên (1 năm)".
 const MEMBER_BADGE_RE = /(member|th[aà]nh\s*vi[eê]n|h[ộo]i\s*vi[eê]n)[^0-9\(\)]*(?:\(|for\s+)?(\d+\s*(?:month|tháng|thang|year|năm|nam)[s]?)\)?/i;
 
@@ -246,12 +174,6 @@ function detectLanguageDirection(text) {
   return { language: null, direction: 'ltr' };
 }
 
-// Best-effort superchat amount parse. Only ever fills superchatAmountUsd
-// when the currency is unambiguously USD ($ / US$ / USD prefix) — any other
-// currency keeps superchatAmountUsd at 0 and preserves the original string
-// in superchatCurrencyRaw, rather than silently mislabeling e.g. a €50
-// pledge as if it were $50. Real multi-currency -> USD conversion needs a
-// live FX rate and is left as a future improvement.
 function parseSuperchatAmount(rawText) {
   if (!rawText) return { superchatAmountUsd: 0, superchatCurrencyRaw: null };
 
@@ -260,9 +182,6 @@ function parseSuperchatAmount(rawText) {
 
   // Strip currency marks, keep digits/separators: "$1,234.50" -> "1,234.50"
   const numeric = rawText.replace(/[^\d.,]/g, '');
-  // Assume the LAST separator is the decimal point (handles both
-  // "1,234.50" and, more rarely, "1.234,50") — anything before it is a
-  // thousands separator and gets stripped.
   const decimalIndex = Math.max(numeric.lastIndexOf(','), numeric.lastIndexOf('.'));
   let normalized = numeric;
   if (decimalIndex !== -1) {

@@ -1,6 +1,4 @@
-/**
- * Theme preset: cute-bubble
- */
+// Theme preset: cute-bubble
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

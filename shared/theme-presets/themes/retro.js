@@ -1,6 +1,4 @@
-/**
- * Theme preset: retro
- */
+// Theme preset: retro
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

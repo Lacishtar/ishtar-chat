@@ -22,21 +22,7 @@ function saveJSON(key, value) {
   }
 }
 
-/**
- * Everything the Inspector needs, split into two clearly separate buckets:
- *
- *  - overlay data: `local` / `slotLocal` / `animLocal` come straight from
- *    EditorStateContext — the single authoritative editing buffer shared
- *    with LayoutPanel, DecorationsPanel, RoleStylesPanel, and
- *    CustomPresetsPanel. This hook does not keep its own copy of this data
- *    and does not debounce anything itself; pushUpdate/pushSlotUpdate/
- *    pushAnimationUpdate delegate straight to the context, which updates
- *    the shared buffer synchronously and only debounces the IPC call.
- *
- *  - Inspector UI state: `selectedObject`, `expanded`, `searchKeyword`,
- *    `favorites`. This never touches overlay data and is persisted (if
- *    possible) only to make the *tool* nicer to use across sessions.
- */
+// Everything the Inspector needs, split into two clearly separate buckets:
 export default function useCustomizeState() {
   const {
     local,

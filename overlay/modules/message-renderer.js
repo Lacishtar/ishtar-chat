@@ -1,16 +1,3 @@
-// Builds individual message DOM nodes (createMessageNode, used by both
-// this module's stack-mode path AND special-modes.js's danmaku/ticker
-// paths) and owns history tracking + top-level mode dispatch.
-//
-// IMPORTANT (post-refactor): this module no longer appends/removes stack-
-// mode nodes itself. renderMessage() decides history tracking + which
-// mode a message belongs to, but for stack mode it now hands the message
-// off to render-queue.js's enqueueStackMessage() instead of touching
-// listEl directly — render-queue.js is the only place stack-mode
-// appendChild/prepend/removeChild happens, batched on requestAnimationFrame.
-// Danmaku/ticker are unaffected by this refactor: appendDanmakuMessage()/
-// appendTickerMessage() (special-modes.js) already own their own
-// timing/queueing model and were out of scope for this pass.
 
 import { state, listEl, getDisplayMode, syncThemeModeClass } from './state.js';
 import { resolveEffectiveSlotStyle } from './css-variables.js';
@@ -40,16 +27,6 @@ export function applySlotVisibility(el, slotKey) {
   }
 }
 
-// Image-URL member-tier badges (badgeBefore/badgeAfter) are real <img>
-// elements inside .ovs-author, not CSS `content: url(...)` on ::before/
-// ::after — see getBadgeImageSrc() (shared/css-content-helpers.js) for why.
-// Text/emoji badges are untouched by this and keep using the ::before/
-// ::after CSS var (role-styles.css); this only ever adds/removes/updates
-// the two <img> siblings around .ovs-author-text. Called by both the
-// full-build path (createMessageNode) and the diff-update path
-// (bubble-updater.js's applyStyleUpdate) so there's exactly one place
-// that decides "image badge -> <img> element, text badge -> nothing to
-// do here".
 export function applyMemberTierBadgeImage(authorEl, side, url) {
   if (!authorEl) return;
   const cls = `ovs-member-badge ovs-member-badge--${side}`;
@@ -76,18 +53,8 @@ export function applyMemberTierBadgeImage(authorEl, side, url) {
 }
 
 // "Dùng badge thật" (role.useRealBadge, shared/role-style-config.js) — a
-// real <img> for YouTube's own captured member badge icon
-// (msg.badgeIconUrl, main/capture-preload.js). Deliberately its own
-// element/class (ovs-real-badge), completely separate from the
-// ovs-member-badge--before/after pair applyMemberTierBadgeImage() manages
-// above: the two are meant to show AT THE SAME TIME ("song song") — this
 // is an ADDITION next to the custom Mốc tháng badge, never a replacement
-// for it. Always placed at the very start of .ovs-author (before the
-// Mốc tháng "before" badge, if any) so the real YouTube badge reads first,
-// closest to where YouTube itself shows it, with the custom badge(s)
-// following. Same create-if-missing / remove-if-empty shape as
-// applyMemberTierBadgeImage so both can be called unconditionally on every
-// render without extra branching at call sites.
+// after any Mốc tháng "after" badge) so it reads as trailing the display
 export function applyRealBadgeImage(authorEl, url) {
   if (!authorEl) return;
   let img = authorEl.querySelector(':scope > img.ovs-real-badge');
@@ -99,7 +66,7 @@ export function applyRealBadgeImage(authorEl, url) {
     img = document.createElement('img');
     img.className = 'ovs-real-badge';
     img.alt = '';
-    authorEl.insertBefore(img, authorEl.firstChild);
+    authorEl.appendChild(img);
   }
   if (img.dataset.rawSrc !== url) {
     img.dataset.rawSrc = url;
@@ -151,21 +118,6 @@ function applySlotEnterAnimation(node, skip) {
 }
 
 export function createMessageNode(msg, options = {}) {
-  // `node` is the root returned to callers: the MOVEMENT layer (.ovs-slot).
-  // It's the element ticker/danmaku/stack actually append and position.
-  // `rowEl` is the RENDER layer (.ovs-message) nested two levels inside —
-  // every class/attribute/texture/decoration that visually belongs to the
-  // bubble itself must be applied there, not on the outer wrapper, or it
-  // would silently detach from the idle-wobble + bubble box (see the
-  // architecture doc: each DOM layer has exactly one job).
-  // `options.node`, if given, is an already-neutral node handed to us by
-  // BubblePoolManager (overlay/modules/pool/PoolManager.js) via
-  // acquire() — reused instead of cloning a fresh one from the template.
-  // This function doesn't need to know whether that node is pooled or
-  // brand-new; it just builds onto whatever root it's given, exactly the
-  // way it always built onto a fresh clone. Callers that don't pass
-  // options.node (danmaku/ticker — see special-modes.js) keep the
-  // original clone-every-time behavior unchanged.
   const node = options.node || state.messageTemplate.content.firstElementChild.cloneNode(true);
   const rowEl = node.querySelector('.ovs-message') || node;
 
@@ -215,9 +167,6 @@ export function createMessageNode(msg, options = {}) {
     }
   }
 
-  // Attach eventType class hook (e.g. ovs-event-text, ovs-event-superchat, ovs-event-sticker,
-  // ovs-event-membership_new, ovs-event-membership_gift_sent, ovs-event-membership_gift_received,
-  // ovs-event-membership_milestone) — driven entirely by msg.eventType, no event names hardcoded here.
   const eventCls = `ovs-event-${msg.eventType || (msg.isSuperchat ? 'superchat' : 'text')}`;
   rowEl.classList.add(eventCls);
 
@@ -226,19 +175,8 @@ export function createMessageNode(msg, options = {}) {
   rowEl.dataset.ovsMemberMonths = String(msg.memberMonths || 0);
   // Same reason: bubble-updater.js's applyMemberTierToRow() runs the "Dùng
   // badge thật" real-badge lookup with no `msg` reference at hand
-  // (refreshAllMemberTiers()), so the captured URL has to live on the row
-  // too, not just be read from msg here.
   rowEl.dataset.ovsBadgeIconUrl = msg.badgeIconUrl || '';
 
-  // Member Tiers — same pattern as the Super Chat tier block above: resolve
-  // which configured tier (if any) this row qualifies for, then stamp an
-  // exclusive class + inline CSS vars onto the row. The lookup is keyed off
-  // rowEl.dataset.ovsMemberMonths (just set above), not off msg.badges/text
-  // again — deriveMemberMonths() (shared/chat-message.js) already did that
-  // parsing once, and resolveMemberTier() is the single shared helper for
-  // "which tier does this months value qualify for" (also used by
-  // bubble-updater.js's diff-update path, so there is exactly one
-  // resolution algorithm for the whole app).
   const memberRole = msg.roles?.includes('member') ? state.currentRoleStyle?.roles?.member : null;
   let memberTier = null;
 
@@ -276,15 +214,8 @@ export function createMessageNode(msg, options = {}) {
     ensureBubbleTexture(authorEl);
     applySlotBunnyEars(authorEl, 'author');
   }
-  // messageHtml originates from YouTube's own already-sanitized chat
-  // renderer (plain text + their emoji <img> tags) — that's what lets us
-  // safely use innerHTML here instead of losing the emoji.
   if (messageEl) {
     messageEl.innerHTML = composeMessageBodyHtml(msg, memberRole);
-    // If the message is nothing but emoji (unicode chars and/or YouTube's
-    // own custom emoji <img> tags), mark the row and wrap each glyph so
-    // layout-text.css can scale the text up a touch and give every emoji
-    // its own square backdrop chip.
     applyEmojiOnlyStyling(rowEl, messageEl.querySelector('.ovs-text-content'));
     ensureBubbleTexture(messageEl);
     applySlotBunnyEars(messageEl, 'message');
@@ -314,13 +245,6 @@ export function createMessageNode(msg, options = {}) {
   return node;
 }
 
-// `onEvict(node)`, if given, is called with each overflowing node INSTEAD
-// of this function detaching it itself — e.g. render-queue.js passes
-// bubblePoolManager.release() so an evicted stack-mode bubble goes back to
-// the pool (detached + reset) rather than being destroyed outright.
-// Without an onEvict callback, falls back to the original behavior
-// (target.remove()) — used by nothing in this app anymore but kept as a
-// safe default for any other caller.
 export function trimToMax(onEvict) {
   const max = state.currentConfig.maxMessages || 40;
   while (listEl.children.length > max) {
@@ -336,12 +260,6 @@ export function trimToMax(onEvict) {
   }
 }
 
-// Stamps --ovs-idle-index on every current child, for staggered idle
-// animation delay. Pulled out of renderMessage() so render-queue.js can
-// call it exactly once per animation frame for however many messages
-// landed that frame, instead of the old behavior of re-stamping the
-// entire list once per individual message (O(n) per message, O(n^2)
-// over a burst of n messages).
 export function stampIdleIndexes() {
   Array.from(listEl.children).forEach((el, i) => {
     el.style.setProperty('--ovs-idle-index', String(i));
@@ -352,11 +270,6 @@ export function renderMessage(msg, options = {}) {
   const trackHistory = options.trackHistory !== false;
   if (!state.messageTemplate) return;
 
-  // `trackHistory` is only false during a history replay (renderHistory());
-  // a real *live* message (trackHistory: true) means chat has actually
-  // started, so any leftover mock preview bubbles (see theme-loader.js)
-  // need to go now — otherwise they'd sit in the feed forever, with real
-  // messages just piling up next to them instead of replacing them.
   if (trackHistory && state.isMockHistory) {
     clearStackList();
     state.messageHistory = [];
@@ -384,12 +297,6 @@ export function renderMessage(msg, options = {}) {
     return;
   }
 
-  // Node creation, insertion, decoration masking, trimming, and the
-  // idle-index stamp all used to happen right here, synchronously, for
-  // every single message. They now happen together, batched, inside
-  // render-queue.js's flush() on the next animation frame — see that
-  // file for the full read/write-batching rationale. This function's
-  // job for stack mode ends at handing the message off to the queue.
   enqueueStackMessage(msg, { skipEnterAnimation: options.skipEnterAnimation });
 }
 
@@ -403,30 +310,13 @@ export function renderHistory(history) {
     renderTickerHistory(history);
     return;
   }
-  // `history` (state.messageHistory) is stored newest-first for top-down
-  // (built via unshift in renderMessage() above) and oldest-first for
-  // bottom-up (built via push). Replaying it must always feed renderMessage()
-  // in chronological (oldest-first) order — exactly like live arrival does —
-  // since renderMessage()'s own prepend/append already places each message
-  // correctly for the current position mode. Skipping this normalization
-  // double-reverses top-down history on every reconnect / theme switch /
-  // display-mode change: replaying newest-first via prepend ends up
-  // prepending the OLDEST message last, flipping the whole stack upside
-  // down. Same fix already applied to the danmaku/ticker replay paths below.
   const chronological = state.currentConfig.position === 'top-down' ? [...history].reverse() : history;
   chronological.forEach((msg) => renderMessage(msg, { trackHistory: false }));
 }
 
-// Wipes all rendered chat messages from the DOM and clears the in-memory
-// history. Called when a new stream connection starts so stale messages
-// from the previous session never bleed through in OBS.
 export function clearAllMessages() {
   resetDanmaku();
   resetTicker();
-  // clearStackList() drops any stack-mode messages already handed to
-  // render-queue.js but not yet flushed (still waiting on the next
-  // requestAnimationFrame) before wiping the DOM — otherwise they'd still
-  // get appended right after the list is cleared, silently undoing this.
   clearStackList();
   state.messageHistory = [];
   state.isMockHistory = false;

@@ -1,10 +1,3 @@
-// Pure helpers with no dependency on shared state or the DOM (aside from
-// applyInlineStyle, which just writes to an element it's handed).
-//
-// toImageProxyUrl and compileLayerInlineStyle used to be hand-copied mirrors
-// of shared/image-url.js and shared/decoration-config.js (see git history).
-// They're now re-exported straight from the generated ESM bridge at /shared
-// (see main/server/shared-esm-bridge.js) so there's exactly one implementation.
 
 export { toImageProxyUrl } from '/shared/image-url.mjs';
 export { compileLayerInlineStyle } from '/shared/decoration-config.mjs';

@@ -1,28 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDownIcon, SearchIcon } from './Customize/shared/icons.jsx';
 
-/**
- * ThemeLibraryPanel — standalone panel for browsing/applying theme presets.
- *
- * Lives as its own top-level panel in App.jsx (right column), separate from
- * the Customize/Inspector panel on the left — picking a theme is a distinct
- * action from fine-tuning individual settings, so it gets its own space.
- *
- * Responsibilities (UI only):
- *   - Load the theme list via api.getThemeList()
- *   - Filter by search keyword
- *   - Apply a selected theme via api.applyTheme()
- *   - Trigger resetPreset() / resetCategory() (passed in from App.jsx)
- *
- * ThemeManager owns the data logic. App.jsx's onThemeChanged listener
- * already re-syncs every panel's props when a theme is applied/reset, so
- * this component doesn't need to manually push state anywhere else.
- *
- * The picker itself is a thumbnail grid rather than a text <select> — each
- * card renders a tiny mock chat bubble using the theme's own preview colors
- * (shared/theme-presets/ (index.js + themes/*.js) → { bubbleBg, authorColor, textColor }) so users
- * can recognize a theme by how it looks, not just by name.
- */
+// ThemeLibraryPanel — standalone panel for browsing/applying theme presets.
 
 const RESET_CATEGORIES = [
   { value: 'customizeConfig',  label: 'Màu sắc & Kiểu chữ' },
@@ -39,9 +18,7 @@ const FALLBACK_PREVIEW = {
   textColor: '#EAECEF',
 };
 
-/** Tiny mock chat bubble rendered from a theme's preview colors — an avatar
- *  dot, a name bar, and two message-line bars, sitting on the same
- *  checkerboard pattern ChatPreview uses to signal "transparent in OBS". */
+// Tiny mock chat bubble rendered from a theme's preview colors — an avatar
 function ThemeThumb({ preview }) {
   const p = { ...FALLBACK_PREVIEW, ...preview };
   return (
@@ -163,9 +140,6 @@ export default function ThemeLibraryPanel({ api, resetPreset }) {
     flashStatus('ok');
   }
 
-  // Description shown below the grid: whatever's hovered/focused takes
-  // priority so users can preview text before committing, falling back to
-  // the last applied theme.
   const describedTheme = themes.find((t) => t.id === (previewId ?? selectedId));
 
   return (

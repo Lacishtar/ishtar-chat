@@ -1,20 +1,16 @@
 // sticker-reset.js — factory() + reset() cho một "Sticker" node
-// (`.ovs-decoration-layer` > `.ovs-decoration-anim` > `img.ovs-decoration-img`)
 // dùng bởi StickerPool.js.
-//
 // NO IMPORTS, cùng nguyên tắc với bubble-reset.js: chỉ thao tác trên cấu
 // trúc DOM/class/attribute đã là contract ổn định giữa decoration.js và
-// CSS (`.ovs-decoration-layer`, `.ovs-decoration-anim`, `.ovs-decoration-img`).
 // Không đổi class name, không đổi cấu trúc lồng nhau -> giao diện/CSS/animation
 // giữ nguyên y hệt trước khi có Pool.
 
-/**
- * Dựng một Sticker node "trắng" — cấu trúc DOM giống hệt những gì
- * decoration.js#applyDecorationLayers() từng tự tay document.createElement()
- * trong nhánh tạo layer mới. Không gán bất kỳ thuộc tính động nào theo
- * message/layer (src, dataset, style...) — những cái đó do decoration.js
- * gán sau khi acquire().
- */
+// Dựng một Sticker node "trắng" — cấu trúc DOM giống hệt những gì
+// Dựng một Sticker node "trắng" — cấu trúc DOM giống hệt những gì
+// decoration.js#applyDecorationLayers() từng tự tay document.createElement()
+// trong nhánh tạo layer mới. Không gán bất kỳ thuộc tính động nào theo
+// message/layer (src, dataset, style...) — những cái đó do decoration.js
+// gán sau khi acquire().
 export function createBareStickerNode() {
   const layerWrap = document.createElement('div');
   layerWrap.className = 'ovs-decoration-layer';
@@ -37,16 +33,13 @@ function clearDataset(el) {
   Object.keys(el.dataset).forEach((key) => delete el.dataset[key]);
 }
 
-/**
- * Scrub một Sticker node về trạng thái trung lập để có thể acquire() lại
- * cho một layer/message khác — không được mang theo BẤT KỲ state nào của
- * lần dùng trước: id, placement, transform/style, animation, ảnh, mask,
- * event handler.
- *
- * Cố tình KHÔNG đụng vào className của layerWrap/animWrap/img (đó là phần
- * cấu trúc cố định mà CSS bám vào — animation/CSS phải giữ nguyên) và
- * KHÔNG đụng cấu trúc lồng nhau (layerWrap > animWrap > img).
- */
+// Scrub một Sticker node về trạng thái trung lập để có thể acquire() lại
+// Scrub một Sticker node về trạng thái trung lập để có thể acquire() lại
+// cho một layer/message khác — không được mang theo BẤT KỲ state nào của
+// lần dùng trước: id, placement, transform/style, animation, ảnh, mask,
+// Cố tình KHÔNG đụng vào className của layerWrap/animWrap/img (đó là phần
+// cấu trúc cố định mà CSS bám vào — animation/CSS phải giữ nguyên) và
+// KHÔNG đụng cấu trúc lồng nhau (layerWrap > animWrap > img).
 export function resetStickerNode(node) {
   if (!node) return node;
 
@@ -87,10 +80,9 @@ export function resetStickerNode(node) {
   return node;
 }
 
-/**
- * Hủy thật sự một Sticker node (pool đầy / clear()) — chỉ cần đảm bảo nó
- * rời khỏi DOM, phần còn lại để GC lo.
- */
+// Hủy thật sự một Sticker node (pool đầy / clear()) — chỉ cần đảm bảo nó
+// Hủy thật sự một Sticker node (pool đầy / clear()) — chỉ cần đảm bảo nó
+// rời khỏi DOM, phần còn lại để GC lo.
 export function destroyStickerNode(node) {
   if (node && node.parentNode) {
     node.parentNode.removeChild(node);

@@ -1,6 +1,4 @@
-/**
- * Theme preset: night-sky
- */
+// Theme preset: night-sky
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

@@ -1,6 +1,4 @@
-/**
- * Theme preset: cute
- */
+// Theme preset: cute
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

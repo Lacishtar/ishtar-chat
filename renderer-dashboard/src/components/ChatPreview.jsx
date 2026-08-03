@@ -1,22 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { inputClass } from './Customize/shared/fields.jsx';
 
-// The point of all this is to render the overlay's iframe at the SAME pixel
-// size a real OBS Browser Source would use, then visually scale that down to
-// fit the dashboard panel — rather than letting the iframe stretch to
-// whatever width the panel happens to be. The overlay leans on vw/vh and %
-// positioning (danmaku lanes, layout margins, .ovs-message's 92% max-width,
-// ...), so previewing at the panel's own (arbitrary, resizable) size gives
-// numbers that don't match what OBS will actually show.
-//
-// IMPORTANT: this is the size of the Browser Source itself — i.e. the chat
-// frame — NOT the streamer's monitor/canvas resolution. A Browser Source in
-// OBS doesn't have to match the stream canvas; for a chat overlay it's
-// usually its own small box (e.g. ~500×800) cropped to just the chat and
-// positioned in a corner of the scene. The presets below default to that
 // realistic chat-frame sizing. "Toàn màn hình" is kept as an option for the
-// less common setup where the Browser Source is stretched to the full
-// canvas and the chat is anchored inside it via chatAlign/chatOffset.
 const CANVAS_PRESETS = [
   { id: 'chat-sm', label: 'Khung chat nhỏ gọn — 400 × 700', width: 400, height: 700 },
   { id: 'chat-md', label: 'Khung chat vừa — 500 × 800', width: 500, height: 800 },
@@ -60,15 +45,6 @@ export default function ChatPreview({ overlayUrl, previewKey, onRefresh }) {
   const [canvasWidth, setCanvasWidth] = useState(stored?.width || DEFAULT_WIDTH);
   const [canvasHeight, setCanvasHeight] = useState(stored?.height || DEFAULT_HEIGHT);
 
-  // The custom width/height <input>s are backed by their OWN string state
-  // instead of being bound straight to canvasWidth/canvasHeight. If they
-  // were bound directly and we clamped into [MIN_DIM, MAX_DIM] on every
-  // keystroke, typing "600" would clamp the very first "6" up to 100
-  // immediately (100 > 6), stomping the digit before the user could finish
-  // typing. These buffers hold whatever the user is literally typing
-  // (including "", a bare "6", etc.) and only get clamped/normalized on
-  // blur; canvasWidth/canvasHeight still update live off any parseable
-  // number so the preview keeps responding as you type.
   const [widthText, setWidthText] = useState(String(stored?.width || DEFAULT_WIDTH));
   const [heightText, setHeightText] = useState(String(stored?.height || DEFAULT_HEIGHT));
 
@@ -95,10 +71,6 @@ export default function ChatPreview({ overlayUrl, previewKey, onRefresh }) {
     }
   }
 
-  // Free typing: accept literally whatever's in the box (so "", "6", "60"
-  // all pass through untouched) and only push a live canvasWidth/Height
-  // update when it currently parses to a real number, unclamped, so the
-  // preview still tracks what's typed without fighting the caret.
   function handleCustomDimChange(dim, raw) {
     if (dim === 'width') setWidthText(raw);
     else setHeightText(raw);
@@ -108,9 +80,6 @@ export default function ChatPreview({ overlayUrl, previewKey, onRefresh }) {
     else setCanvasHeight(n);
   }
 
-  // Only clamp into [MIN_DIM, MAX_DIM] once the user is done typing
-  // (leaves the field), so an in-progress "6" on its way to "600" never
-  // gets snapped up to 100 mid-keystroke.
   function handleCustomDimBlur(dim) {
     const current = dim === 'width' ? canvasWidth : canvasHeight;
     const raw = dim === 'width' ? widthText : heightText;
@@ -126,11 +95,6 @@ export default function ChatPreview({ overlayUrl, previewKey, onRefresh }) {
     }
   }
 
-  // Measures the available space inside the checkerboard "stage" area so we
-  // can compute a scale factor that fits the full canvasWidth x
-  // canvasHeight iframe inside it — same idea as OBS Studio's own preview
-  // pane, which scales the real canvas down (or up) to fit the window
-  // instead of re-flowing content at a different resolution.
   const stageWrapRef = useRef(null);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
 
@@ -149,7 +113,7 @@ export default function ChatPreview({ overlayUrl, previewKey, onRefresh }) {
 
   const scale = useMemo(() => {
     if (!stageSize.width || !stageSize.height || !canvasWidth || !canvasHeight) return 1;
-    return Math.min(stageSize.width / canvasWidth, stageSize.height / canvasHeight);
+    return Math.min(stageSize.width / canvasWidth, stageSize.height / canvasHeight, 1);
   }, [stageSize, canvasWidth, canvasHeight]);
 
   const scaledWidth = Math.round(canvasWidth * scale);

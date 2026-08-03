@@ -1,10 +1,3 @@
-// Shared mutable state + DOM refs + theme-mode helpers.
-//
-// `state` is a single mutable object (not several exported `let`s) because
-// ES module bindings are read-only from importing modules — other modules
-// need to *write* currentTheme/currentConfig/etc (socket updates, theme
-// switches, history tracking), so a shared object with mutable properties
-// is the pattern that actually allows that.
 
 const initial = window.__OVS_INITIAL_STATE__ || {};
 
@@ -19,12 +12,6 @@ export const state = {
   currentFanService: initial.fanServiceConfig || { superchat: {}, membership: {} },
   messageTemplate: null,
   messageHistory: Array.isArray(initial.history) ? [...initial.history] : [],
-  // True only while `.ovs-message` nodes on screen are the synthetic
-  // "A Viewer / B Viewer / ..." placeholder that theme-loader.js injects
-  // for the dashboard's disconnected preview (?preview=1) when there's no
-  // real chat history yet. Lets renderMessage() purge that placeholder the
-  // moment a real message arrives, instead of leaving mock bubbles stuck
-  // in the feed permanently once real chat starts flowing in.
   isMockHistory: false,
 };
 
@@ -35,9 +22,6 @@ export const initialHistory = initial.history;
 export const listEl = document.getElementById('ovs-chat-list');
 export const messageTemplateEl = document.getElementById('ovs-message-template');
 
-// 'stack' is the normal chat feed (bubbles stack up/down per
-// currentConfig.position). 'danmaku' flies each message across the screen
-// once instead — see overlay/modules/special-modes.js.
 let currentDisplayMode = 'stack';
 
 export function getDisplayMode() {
@@ -47,13 +31,6 @@ export function getDisplayMode() {
   return 'stack';
 }
 
-// Reflects the active display mode onto #ovs-chat-list via a dataset
-// attribute — decoration-layers.css keys off `[data-ovs-theme-mode='stack']`,
-// and overlay/danmaku.css keys off `[data-ovs-theme-mode='danmaku']` — and
-// wipes the list whenever the mode actually changes so the two rendering
-// paths (flex stack vs absolutely-positioned flying bullets) never mix
-// leftover DOM nodes. Returns true when the mode changed, so callers know
-// whether the message history needs replaying into the new mode.
 export function syncThemeModeClass() {
   if (!listEl) return false;
   const mode = getDisplayMode();

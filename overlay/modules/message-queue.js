@@ -1,36 +1,10 @@
-// Smooths bursts of incoming chat messages.
-//
-// Why this exists: every incoming message is rendered by cloning a DOM
-// node AND (for non-flythrough themes) computing decoration masks via
-// getBoundingClientRect, which forces a synchronous layout. That's cheap
-// for one message, but when the capturer's batch delivers a burst (e.g.
-// a dozen messages arriving within the same tick during a fast chat),
-// rendering all of them synchronously in one JS turn causes exactly the
-// "chat can't keep up" jank this module fixes.
-//
-// The fix is NOT a flat multi-second delay — that would just move the
-// same burst to a later, bigger pile-up and add real latency for every
-// single message. Instead we queue messages and drain a few at a time on
-// a short interval, so a lone message still renders immediately (no
-// perceptible delay) while a burst gets spread across several ticks. If
-// the queue backs up further than BACKLOG_SKIP_ANIM_THRESHOLD, we stop
-// entry animations to fast-forward through the backlog rather than
-// falling further behind.
-//
-// This is a WHEN-to-render throttle, separate from render-queue.js's
-// WHEN/HOW-to-write-DOM batching. renderMessage() (called below) no
-// longer writes to the DOM itself for stack-mode messages — it hands off
-// to render-queue.js, which batches the actual DOM writes for whatever
-// lands within the same animation frame. This module still controls the
-// overall pacing (how many messages become visible per DRAIN_INTERVAL_MS);
-// render-queue.js only controls how the messages due in a given moment
-// get written to the DOM without interleaved reads/writes.
 
 import { renderMessage } from './message-renderer.js';
 
 const DRAIN_INTERVAL_MS = 120;
 const MAX_PER_TICK = 4;
 const BACKLOG_SKIP_ANIM_THRESHOLD = 10;
+const MAX_QUEUE_SIZE = 50;
 
 const queue = [];
 let timerId = null;
@@ -49,12 +23,12 @@ function drain() {
 }
 
 export function enqueueMessage(msg) {
+  if (queue.length >= MAX_QUEUE_SIZE) {
+    queue.shift(); // backlog full — drop the oldest to keep the 50 newest
+  }
   queue.push(msg);
   if (timerId) return; // already draining on the interval, it'll pick this up
 
-  // Drain immediately so the common case (one message, no burst) still
-  // renders with ~0 added latency. Only start the interval if this pass
-  // didn't clear the queue (i.e. we're mid-burst).
   drain();
   if (queue.length > 0 && !timerId) {
     timerId = setInterval(drain, DRAIN_INTERVAL_MS);
@@ -65,9 +39,6 @@ export function pendingMessageCount() {
   return queue.length;
 }
 
-// Discards every pending message without rendering — called by
-// clearAllMessages() so a burst of stale messages buffered right
-// before a new connection does not re-appear after the DOM clear.
 export function flushQueue() {
   queue.length = 0;
   if (timerId) {

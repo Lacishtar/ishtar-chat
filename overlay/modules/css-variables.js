@@ -1,12 +1,3 @@
-// Applies layout/slot-style/animation/role-style/decoration config objects
-// to :root as CSS custom properties.
-//
-// The compile* functions used to be hand-copied mirrors of shared/*-config.js
-// (each one previously carried a "Keep in sync with shared/X.js#fn" comment).
-// They're now imported straight from the generated ESM bridge at /shared
-// (see main/server/shared-esm-bridge.js), which serves shared/*.js — the same
-// source the main process and dashboard use — converted to ES modules. There
-// is now exactly one implementation of each; nothing here needs manual sync.
 
 import { state, listEl } from './state.js';
 import { syncThemeModeClass } from './state.js';
@@ -30,14 +21,7 @@ export { normalizeBubbleWrapScreen, isRowBubbleWrap, resolveEffectiveSlotStyle }
 
 const FAN_SERVICE_STYLE_ID = 'ovs-fan-service-style';
 
-/**
- * Fan Service (see shared/fan-service-config.js) works by injecting a
- * *scoped* <style> block instead of writing to :root like the rest of this
- * file — its whole point is styling only Super Chat / membership rows
- * without touching everyone else's. A single <style> tag is created once
- * and its textContent replaced on every update, so re-applying doesn't leak
- * duplicate tags.
- */
+// Fan Service (see shared/fan-service-config.js) works by injecting a
 export function applyFanServiceStyle(fanServiceConfig) {
   let styleEl = document.getElementById(FAN_SERVICE_STYLE_ID);
   if (!styleEl) {
@@ -69,10 +53,6 @@ const RESET_WHEN_UNSET = new Set([
 
 function applyRoleStyleFlags(rootFlags) {
   const root = document.documentElement;
-  // rootFlags keys coming from shared/role-style-config.js are already the
-  // real `data-ovs-role-*` attribute names, so no lookup table is needed here
-  // (the old hand-copied version kept its own camelCase -> attribute map,
-  // which was one more place to drift out of sync).
   Object.entries(rootFlags).forEach(([attr, value]) => {
     if (value !== undefined) root.setAttribute(attr, value);
   });
@@ -119,8 +99,6 @@ export function applyCssVariables(config, layout, slotStyle, animationConfig, ro
     '--ovs-idle-animation-duration': cfg.idleAnimationSpeed != null ? `${cfg.idleAnimationSpeed}s` : '3s',
     '--ovs-idle-float-amplitude': cfg.idleAnimationIntensity != null ? `-${Math.abs(cfg.idleAnimationIntensity)}px` : '-5px',
     '--ovs-idle-slidex-amplitude': cfg.idleAnimationIntensity != null ? `${Math.abs(cfg.idleAnimationIntensity)}px` : '5px',
-    // Shimmer — independent on/off + own speed/intensity, can run alongside float/slidex
-    // (see shared/customize-config.js idleShimmerEnabled comment for why this is safe).
     '--ovs-idle-shimmer-duration': cfg.idleShimmerSpeed != null ? `${cfg.idleShimmerSpeed}s` : '3s',
     '--ovs-idle-shimmer-opacity': cfg.idleShimmerIntensity != null
       ? String(Math.round(Math.min(Math.max(cfg.idleShimmerIntensity, 0), 20) * 10) / 1000)
@@ -135,11 +113,6 @@ export function applyCssVariables(config, layout, slotStyle, animationConfig, ro
   });
   applyRoleStyleFlags(roleCompiled.rootFlags);
 
-  // Overflow is only clipped on a bubble when it actually has a max/fixed
-  // height cap in effect — clipping unconditionally would make flex items'
-  // default content-protecting `min-height: auto` resolve to 0 instead
-  // (per the flexbox spec, that automatic minimum only applies when
-  // overflow is visible), collapsing bubbles that have no cap at all.
   root.dataset.ovsRowHeightCapped =
     map['--ovs-bubble-max-height'] != null || map['--ovs-bubble-fixed-height'] != null ? 'true' : 'false';
   root.dataset.ovsAuthorHeightCapped =

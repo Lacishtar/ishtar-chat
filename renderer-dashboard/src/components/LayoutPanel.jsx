@@ -7,10 +7,6 @@ const inputClass =
   'w-full rounded-lg bg-panelAlt border border-line px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-focusAccent';
 
 function Field({ label, children }) {
-  // Plain wrapper, not <label> -- an unassociated <label> around
-  // multi-control content can cause the browser to auto-forward a
-  // phantom click to whichever labelable descendant is currently first
-  // in DOM order. See shared/fields.jsx for the full writeup.
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-xs text-inkMuted">{label}</span>
@@ -19,8 +15,7 @@ function Field({ label, children }) {
   );
 }
 
-/** Segmented icon-button group — replaces plain <select> for a few choices where a
- *  visual cue (alignment, position) communicates faster than reading text. */
+// Segmented icon-button group — replaces plain <select> for a few choices where a
 function SegmentedField({ label, value, options, onChange }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -255,16 +250,21 @@ function expandSimpleLayout(simple) {
 }
 
 export default function LayoutPanel() {
-  // `layoutLocal` (full expanded shape) is the single authoritative editing
-  // buffer, shared with CustomPresetsPanel — there's no separate "local"
-  // copy here anymore. We only contract it into the simple shape this UI
-  // is built around, purely for rendering.
-  const { layoutLocal, pushLayoutUpdate } = useEditorState();
+  const { layoutLocal, pushLayoutUpdate, roleLocal, pushRoleUpdate } = useEditorState();
   const local = useMemo(() => contractSimpleLayout(layoutLocal), [layoutLocal]);
 
   function pushUpdate(partial) {
     const next = { ...local, ...partial };
     pushLayoutUpdate(expandSimpleLayout(next));
+  }
+
+  // "Dùng badge thật" sống ở role 'member' (shared/role-style-config.js),
+  // nhưng được điều khiển từ đây như một ô tick ẩn/hiện layout thông thường.
+  const memberRole = roleLocal?.roles?.member;
+  const useRealBadge = memberRole?.useRealBadge !== false;
+
+  function toggleRealBadge(checked) {
+    pushRoleUpdate('member', { ...memberRole, useRealBadge: checked });
   }
 
   if (!layoutLocal) return null;
@@ -486,6 +486,16 @@ export default function LayoutPanel() {
             className="accent-focusAccent"
           />
           Nội dung
+        </label>
+        <label className="flex items-center gap-2" title="Hiện huy hiệu (icon) hội viên gốc mà YouTube đã cấp, capture trực tiếp từ khung chat — hiển thị song song cùng badge Mốc tháng tự thiết kế, không thay thế.">
+          <input
+            type="checkbox"
+            checked={useRealBadge}
+            onChange={(e) => toggleRealBadge(e.target.checked)}
+            disabled={!memberRole}
+            className="accent-focusAccent"
+          />
+          Badge
         </label>
       </div>
     </section>

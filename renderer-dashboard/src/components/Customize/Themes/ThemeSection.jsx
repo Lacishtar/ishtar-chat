@@ -1,19 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDownIcon, SearchIcon } from '../shared/icons.jsx';
 
-/**
- * ThemeSection — theme picker that lives at the top of the Inspector panel.
- *
- * Responsibilities (UI only):
- *   - Load the theme list via api.getThemeList()
- *   - Filter by search keyword
- *   - Apply a selected theme via api.applyTheme()
- *   - Trigger resetPreset() / resetCategory() from the parent state
- *
- * ThemeManager owns the data logic.
- * The renderer (App.jsx → onThemeChanged) owns the live-preview update.
- * This component owns ONLY the interaction.
- */
+// ThemeSection — theme picker that lives at the top of the Inspector panel.
 
 const RESET_CATEGORIES = [
   { value: 'customizeConfig',  label: 'Màu sắc & Kiểu chữ' },

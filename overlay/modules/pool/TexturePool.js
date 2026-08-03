@@ -16,21 +16,19 @@ const enginePool = new BubblePool({
 });
 
 export const texturePoolManager = {
-  /**
-   * Trả về một Texture Layer node sẵn sàng dùng (đã reset, hoặc mới tinh
-   * nếu Pool đang rỗng). acquire() tự ưu tiên lấy từ IDLE trước khi
-   * factory() — không tự tạo mới nếu Pool còn object rảnh.
-   */
+  // Trả về một Texture Layer node sẵn sàng dùng (đã reset, hoặc mới tinh
+  // Trả về một Texture Layer node sẵn sàng dùng (đã reset, hoặc mới tinh
+  // nếu Pool đang rỗng). acquire() tự ưu tiên lấy từ IDLE trước khi
+  // factory() — không tự tạo mới nếu Pool còn object rảnh.
   acquire(key = null) {
     return enginePool.acquire(key);
   },
 
-  /**
-   * Trả một Texture Layer node về Pool: reset toàn bộ state (xem
-   * texture-reset.js) và detach khỏi DOM. An toàn khi gọi với node không
-   * do Pool này quản lý (fallback: vẫn đảm bảo nó rời khỏi DOM, giống
-   * hành vi `.remove()` cũ).
-   */
+  // Trả một Texture Layer node về Pool: reset toàn bộ state (xem
+  // Trả một Texture Layer node về Pool: reset toàn bộ state (xem
+  // texture-reset.js) và detach khỏi DOM. An toàn khi gọi với node không
+  // do Pool này quản lý (fallback: vẫn đảm bảo nó rời khỏi DOM, giống
+  // hành vi `.remove()` cũ).
   release(node) {
     if (!node) return false;
     const released = enginePool.release(node);

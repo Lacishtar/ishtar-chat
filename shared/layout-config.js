@@ -1,11 +1,4 @@
-/**
- * LayoutConfig — user-tunable layout properties for the three chat slots
- * (Avatar, Username, Message). Stored as the layoutConfig field on
- * a theme in shared/theme-presets/ (index.js + themes/*.js) and persisted in config.json as
- * layoutConfig. Compiled to CSS custom properties by this module's own
- * compileLayoutToCssVariables() (mirrored in overlay/modules/css-variables.js
- * for the overlay's runtime) and applied without changing the DOM renderer.
- */
+// LayoutConfig — user-tunable layout properties for the three chat slots
 
 function createRowLayout(overrides = {}) {
   return {
@@ -47,9 +40,6 @@ const DEFAULT_LAYOUT_CONFIG = {
     chatAlign: 'left', // 'left' | 'center' | 'right'
     contentDirection: 'ltr', // 'ltr' | 'rtl'
     chatGap: 10,
-    // Fine-tune position of the whole chat frame on screen, applied as a
-    // translate() on top of the chatAlign anchor. Positive x moves right,
-    // positive y moves down.
     chatOffsetX: 0,
     chatOffsetY: 0,
     /** @deprecated use bubbleWrapRow / bubbleWrapAuthor / bubbleWrapMessage */
@@ -57,10 +47,6 @@ const DEFAULT_LAYOUT_CONFIG = {
     bubbleWrapRow: null, // null | true = bọc cả hàng; false = bọc riêng slot
     bubbleWrapAuthor: null, // null | boolean — bọc tên (khi bubbleWrapRow === false)
     bubbleWrapMessage: null, // null | boolean — bọc nội dung chat
-    // Header/body split — only meaningful when bubbleWrapRow is true (one
-    // unified bubble). Puts avatar + username on a header row
-    // (avatar left, name beside — Discord-card style) and the chat message
-    // on its own full-width row underneath, separated by a thin divider.
     headerSplit: false,
     headerDividerColor: 'rgba(255, 255, 255, 0.14)',
     headerDividerWidth: 1, // px (thickness)
@@ -82,22 +68,11 @@ function directionToFlex(direction) {
   return direction === 'vertical' ? 'column' : 'row';
 }
 
-/**
- * Flips a start/end-ish align value so content hugs the correct physical side
- * once the layout has been horizontally mirrored (RTL). Only meaningful for
- * containers that stack VERTICALLY (column) — their align-items controls the
- * horizontal cross-axis, which is exactly what mirroring flips. Containers
- * that stack horizontally (row/row-reverse) already get their mirroring from
- * flexDirectionForRow, so their align (a vertical concern) must NOT be touched.
- */
+// Flips a start/end-ish align value so content hugs the correct physical side
 function mirrorAlign(align, shouldMirror) {
   if (!shouldMirror) return align;
   if (align === 'start' || align === 'left') return 'end';
   if (align === 'end' || align === 'right') return 'start';
-  // 'stretch' (the default) renders like flex-start here — no theme gives
-  // .ovs-meta/.ovs-body their own background, so nothing relies on the
-  // literal stretch-to-full-width box. Flip it too or content still hugs
-  // the wrong (far-from-avatar) side after mirroring.
   if (align === 'stretch') return 'end';
   return align; // 'center' has no side to flip
 }
@@ -133,9 +108,7 @@ function compileSlotPositionVars(prefix, slot) {
   };
 }
 
-/**
- * Deep-merges user overrides onto defaults. Arrays are replaced, not merged.
- */
+// Deep-merges user overrides onto defaults. Arrays are replaced, not merged.
 function mergeLayoutConfig(base, overrides) {
   const b = base || DEFAULT_LAYOUT_CONFIG;
   const o = overrides || {};
@@ -196,11 +169,7 @@ function isRowBubbleWrap(screen) {
   return normalizeBubbleWrapScreen(screen).bubbleWrapRow === true;
 }
 
-/**
- * Compiles a LayoutConfig into CSS custom properties every theme's style.css
- * can read. Fallback values in each theme preserve its original look when a
- * variable is unset.
- */
+// Compiles a LayoutConfig into CSS custom properties every theme's style.css
 function compileLayoutToCssVariables(layout) {
   const l = mergeLayoutConfig(DEFAULT_LAYOUT_CONFIG, layout);
   const mr = l.messageRow;
@@ -253,11 +222,6 @@ function compileLayoutToCssVariables(layout) {
     '--ovs-bubble-wrap-author': !isRowBubbleWrap(screen) && screen.bubbleWrapAuthor ? '1' : '0',
     '--ovs-bubble-wrap-message': !isRowBubbleWrap(screen) && screen.bubbleWrapMessage ? '1' : '0',
 
-    // Header/body split (see DEFAULT_LAYOUT_CONFIG.screen comment). Only
-    // takes visual effect while row-wrap is active — the '--ovs-header-split'
-    // flag itself still compiles either way so the data attribute stays a
-    // pure reflection of the setting; overlay/bubble-wrap.css gates the
-    // actual grid layout on both flags together.
     '--ovs-header-split': screen.headerSplit ? '1' : '0',
     '--ovs-header-divider-color': screen.headerDividerColor || 'rgba(255, 255, 255, 0.14)',
     '--ovs-header-divider-width': px(screen.headerDividerWidth ?? 1),
@@ -269,10 +233,7 @@ function compileLayoutToCssVariables(layout) {
   };
 }
 
-/**
- * Derives a small, user-facing layout shape from the full LayoutConfig.
- * Used by the Layout Panel so sliders map 1:1 to visible changes.
- */
+// Derives a small, user-facing layout shape from the full LayoutConfig.
 function contractSimpleLayout(layout) {
   const l = mergeLayoutConfig(DEFAULT_LAYOUT_CONFIG, layout);
   const screen = l.screen || {};
@@ -325,11 +286,7 @@ function contractSimpleLayout(layout) {
   };
 }
 
-/**
- * Expands the simplified panel controls into the full LayoutConfig the
- * compiler and overlay expect. Every UI change goes through here so there
- * is exactly one code path — no duplicate/conflicting sliders.
- */
+// Expands the simplified panel controls into the full LayoutConfig the
 function expandSimpleLayout(simple) {
   const s = { ...contractSimpleLayout(DEFAULT_LAYOUT_CONFIG), ...(simple || {}) };
 

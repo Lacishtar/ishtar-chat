@@ -1,6 +1,4 @@
-/**
- * Theme preset: discord
- */
+// Theme preset: discord
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

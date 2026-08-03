@@ -1,6 +1,4 @@
-/**
- * External decoration image URLs — proxied for OBS Browser Source compatibility.
- */
+// External decoration image URLs — proxied for OBS Browser Source compatibility.
 
 const ALLOWED_IMAGE_HOSTS = [
   'i.ibb.co',
@@ -18,18 +16,10 @@ const ALLOWED_IMAGE_HOSTS = [
   'lh3.googleusercontent.com',
 ];
 
-/**
- * Automatically converts Google Drive share/view links into direct Google
- * UserContent image CDN links. Leaves non-Drive URLs untouched.
- */
+// Automatically converts Google Drive share/view links into direct Google
 function normalizeGoogleDriveImageUrl(urlString) {
   if (!urlString || typeof urlString !== 'string') return urlString;
   const trimmed = urlString.trim();
-  // Match Google Drive share/view/open URLs:
-  // - https://drive.google.com/file/d/FILE_ID/view...
-  // - https://drive.google.com/open?id=FILE_ID
-  // - https://drive.google.com/uc?id=FILE_ID
-  // - https://drive.google.com/uc?export=view&id=FILE_ID
   const driveRegex = /(?:drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^&]+&)*id=))([a-zA-Z0-9_-]+)/i;
   const match = trimmed.match(driveRegex);
   if (match && match[1]) {

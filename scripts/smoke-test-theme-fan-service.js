@@ -1,12 +1,4 @@
-// Smoke test for the per-theme Fan Service preset system added on top of
-// the existing 6-category theme baseline (see
-// shared/theme-presets/helpers.js#defaultThemeFanService and
-// docs/refactor-superchat-to-fanservice.md Open Question OQ-1).
-//
 // NOTE: requires a stub `electron` module on NODE_PATH/node_modules (only
-// app.getPath('userData') is used) since config-store.js requires it at
-// module load time — see scripts/smoke-test-superchat-migration.js /
-// smoke-test-theme-baseline.js for the same pattern.
 
 const assert = require('assert');
 const { BUILTIN_THEMES } = require('../shared/theme-presets');
@@ -40,10 +32,6 @@ BUILTIN_THEMES.forEach((theme) => {
   });
   ok(theme.fanServiceConfig.membership.monthsAlign === 'center', `${theme.id}.membership: monthsAlign should default to center`);
   ok(theme.fanServiceConfig.superchat.amountAlign === 'center', `${theme.id}.superchat: amountAlign should default to center`);
-  // Contrast sanity: a group's message color must not equal the theme's own
-  // bubbleBg-adjacent text color's opposite-of-itself trap — concretely,
-  // just assert author/message colors differ from each other and from
-  // literal black/white placeholders nobody set on purpose.
   ok(theme.fanServiceConfig.membership.messageColor !== theme.fanServiceConfig.membership.authorColor
     || theme.fanServiceConfig.membership.messageColor.length > 0, `${theme.id}.membership: message/author colors present`);
 });

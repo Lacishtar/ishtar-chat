@@ -1,6 +1,4 @@
-/**
- * Theme preset: neon
- */
+// Theme preset: neon
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

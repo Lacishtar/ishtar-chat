@@ -20,9 +20,6 @@ assert(merged.danmakuSpeed === 1.5, 'theme defaults can override danmaku speed')
 assert(merged.danmakuLanes === 12, 'unset fields still fall back to the shared default');
 assert(!('_label' in merged), 'metadata keys are stripped before merging');
 
-// Themes can also opt into wider clearance at one edge only (e.g. to dodge
-// a webcam overlay docked at the bottom) without needing to touch the
-// other margin.
 const edgeAware = { ...DEFAULT_CUSTOMIZE_CONFIG, ...sanitizeThemeDefaults({ displayMode: 'danmaku', danmakuAreaBottomPct: 20 }) };
 assert(edgeAware.danmakuAreaBottomPct === 20, 'theme defaults can override just the bottom margin');
 assert(edgeAware.danmakuAreaTopPct === 4, 'the other margin still falls back to its own default');

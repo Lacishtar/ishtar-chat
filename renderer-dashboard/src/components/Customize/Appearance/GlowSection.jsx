@@ -3,11 +3,6 @@ import { GLOW_PRESETS } from '../shared/constants.js';
 import { rgbaToHexAlpha, hexAlphaToRgba } from '../shared/colorUtils.js';
 import ColorPicker from '../shared/ColorPicker.jsx';
 
-// Glow is stored as a CSS `filter: drop-shadow(...)` string (see constants.js /
-// overlay/bubble-wrap.css). The "custom" editor below never asks the user to type
-// that CSS by hand — it reads the offset/blur/color straight out of whatever
-// single-layer drop-shadow is currently set and drives it with a real color
-// picker + range inputs, then re-serializes to the same string shape.
 const CUSTOM_GLOW_RE = /drop-shadow\(\s*0\s+0\s+([\d.]+)px\s+(rgba?\([^)]*\))\s*\)/i;
 const DEFAULT_GLOW_HEX = '#6E56F0';
 const DEFAULT_GLOW_ALPHA = 0.65;

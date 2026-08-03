@@ -2,49 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useEditorState } from '../state/EditorStateContext.jsx';
 
-/**
- * CustomPresetsPanel — lets users snapshot every current customization setting
- * into a named preset, then apply, rename, overwrite, or delete those presets.
- *
- * Lives directly below ThemeLibraryPanel in the right column of App.jsx.
- *
- * Architecture notes:
- *   - Custom presets are stored server-side in `userData/custom-presets.json`
- *     via the `custom-preset:*` IPC channel family (main/store/custom-presets-store.js).
- *   - This panel owns its preset list state locally; it gets the initial list
- *     on mount and refreshes it from each mutating API response (save, import).
- *     Delete and rename patch local state directly without a server round-trip.
- *   - Applying a preset calls `custom-preset:apply`, which updates configStore
- *     and broadcasts `theme:changed` — the same bus EditorStateContext already
- *     listens to via `onThemeChanged`, so every sibling panel re-syncs
- *     automatically.
- *   - Export / Import delegate file-dialog I/O to the main process; the UI only
- *     receives a result object and shows a status message.
- *   - Saving/overwriting reads `buildPresetSnapshot()` from EditorStateContext,
- *     which serializes the live editing buffers (the same state the
- *     Inspector/LayoutPanel/DecorationsPanel/RoleStylesPanel are rendering
- *     right now) — never a copy that's waiting on a debounced IPC round-trip.
- *   - Delete confirmation is a portaled in-app modal (`ConfirmDialog`), NOT
- *     `window.confirm()`. A native confirm() is a blocking dialog fired
- *     synchronously from a click handler whose own target (the "🗑 Xoá" row
- *     inside the portaled "⋯" menu) is unmounted in that same tick — on
- *     Electron this reliably leaves the BrowserWindow's focus manager in a
- *     broken state where no input anywhere in the window can receive
- *     keyboard focus again until the window is blurred/refocused. Every
- *     other confirmation surface in this app already avoids this (Export/
- *     Import use the main-process `dialog` module over IPC); this component
- *     now follows the same rule with a fully in-renderer, non-blocking modal.
- */
+// CustomPresetsPanel — lets users snapshot every current customization setting
+// Architecture notes:
+// synchronously from a click handler whose own target (the "🗑 Xoá" row
 
 // ── ConfirmDialog ────────────────────────────────────────────────────────────
 
-/**
- * Small in-app replacement for `window.confirm()`. Portaled to document.body
- * (same reasoning as PresetCardMenu — escapes the scrolling preset list),
- * but crucially it never blocks the JS thread: it's just React state, so it
- * can't corrupt Electron's window focus the way a native confirm() dialog
- * can when triggered from an element that's unmounting in the same tick.
- */
+// Small in-app replacement for `window.confirm()`. Portaled to document.body
 function ConfirmDialog({ message, confirmLabel = 'Xoá', onConfirm, onCancel }) {
   const dialogRef = useRef(null);
 
@@ -100,16 +64,7 @@ const MENU_WIDTH = 144; // matches w-36
 const MENU_GAP = 4;
 const VIEWPORT_MARGIN = 8;
 
-/**
- * The "⋯" dropdown, portaled to document.body.
- *
- * The preset list scrolls (`overflow-y-auto max-h-48`), and an `absolute`
- * menu nested inside that container gets clipped for any row near the
- * bottom of the visible area — Overwrite/Delete become partially or fully
- * unreachable. Rendering the menu into the body and positioning it with
- * `fixed` coordinates escapes that clipping entirely; it also lets the menu
- * flip upward automatically when there isn't room below.
- */
+// The "⋯" dropdown, portaled to document.body.
 function PresetCardMenu({ anchorRef, onClose, children }) {
   const menuRef = useRef(null);
   const [coords, setCoords] = useState(null);
@@ -182,11 +137,7 @@ function PresetCardMenu({ anchorRef, onClose, children }) {
   );
 }
 
-/**
- * One row in the preset list.  Clicking the name applies the preset; the "⋯"
- * button opens a small dropdown with Rename / Overwrite / Delete options.
- * Rename enters an inline-edit mode that replaces the name text with an input.
- */
+// One row in the preset list.  Clicking the name applies the preset; the "⋯"
 function PresetCard({ preset, isApplying, onApply, onRename, onOverwrite, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -357,9 +308,6 @@ export default function CustomPresetsPanel() {
     try {
       const result = await api.applyCustomPreset?.(id);
       if (result?.ok) {
-        // EditorStateContext's onThemeChanged listener re-syncs every
-        // editing buffer (and every panel reading from it) automatically —
-        // no manual state update needed here.
         flashStatus('ok', 'Đã áp dụng');
       } else {
         flashStatus('error', 'Áp dụng thất bại');
@@ -392,9 +340,6 @@ export default function CustomPresetsPanel() {
   }
 
   function handleDelete(id, name) {
-    // Opens the in-app ConfirmDialog instead of blocking with window.confirm()
-    // — see the module docblock for why. Actual deletion happens in
-    // performDelete() once the user confirms.
     setPendingDelete({ id, name });
   }
 

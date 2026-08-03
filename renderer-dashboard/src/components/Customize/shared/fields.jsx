@@ -3,17 +3,6 @@ export const inputClass =
 
 export function Field({ label, children, full }) {
   // NOTE: intentionally a <div>, not a <label>. `children` here is often a
-  // multi-control block (ColorPicker's tab buttons + inputs, a <select>,
-  // etc.), not a single form control this text is "for". A <label> with no
-  // `htmlFor` implicitly associates itself with the first labelable
-  // descendant in DOM order, and the browser auto-forwards a synthetic
-  // click to that element whenever a click bubbles through the label. If a
-  // click handler swaps which element is "first" mid-click (e.g. switching
-  // ColorPicker between solid/gradient tabs), that phantom forwarded click
-  // lands on a *different* control than the user actually clicked and can
-  // immediately undo the action. Use a plain wrapper here; pair real
-  // <label htmlFor> with a specific input id where single-control labeling
-  // is actually needed.
   return (
     <div className={`flex flex-col gap-1.5 min-w-0 ${full ? 'col-span-2' : ''}`}>
       <span className="text-xs text-inkMuted">{label}</span>
@@ -51,9 +40,6 @@ export function SlotToggle({ label, checked, onChange }) {
   );
 }
 
-// Used for progressive disclosure ("Enable Border", "Enable Shadow", ...).
-// Visually distinct from SlotToggle (which toggles visibility of an object)
-// so the two concepts don't get confused at a glance.
 export function EnableToggle({ label, checked, onChange }) {
   return (
     <label className="flex items-center justify-between gap-2 text-sm cursor-pointer select-none">

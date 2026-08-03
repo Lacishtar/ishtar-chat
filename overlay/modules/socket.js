@@ -56,13 +56,13 @@ export function connectSocket() {
       // Refresh ear colors vì màu phụ thuộc vào role config
       refreshAllSlotBunnyEars();
       // Re-resolve Mốc tháng (member tier) for every row already on screen —
-      // otherwise an edited threshold/color/badge only shows up on messages
-      // that arrive (or are otherwise re-rendered) after this point, not the
-      // ones already rendered. See refreshAllMemberTiers() for details.
       refreshAllMemberTiers();
     } else if (payload.type === 'fan-service:updated') {
       state.currentFanService = payload.data || { superchat: {}, membership: {} };
       applyFanServiceStyle(state.currentFanService);
+      // Bunny ears có thể bị group Fan Service ghi đè bật/tắt riêng — cần
+      // refresh ngay để những row đang hiển thị phản ánh đúng thay đổi.
+      refreshAllSlotBunnyEars();
     }
   });
 

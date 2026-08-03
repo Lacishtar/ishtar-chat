@@ -1,6 +1,4 @@
-/**
- * Theme preset: vtuber-cute
- */
+// Theme preset: vtuber-cute
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

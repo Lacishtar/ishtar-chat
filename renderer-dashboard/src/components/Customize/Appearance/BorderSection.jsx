@@ -2,23 +2,9 @@ import { Field, inputClass, EnableToggle } from '../shared/fields.jsx';
 import { BORDER_STYLE_OPTIONS, DEFAULT_BORDER_COLOR } from '../shared/constants.js';
 import ColorPicker from '../shared/ColorPicker.jsx';
 
-/**
- * Fully generic: the caller decides what "width/style/color" mean (global
- * config field, slot-style field, or slot-bubble field) by supplying
- * `values` + `onChange`. This is what lets the same component back the
- * global "Bubble cả tin nhắn" border, the Avatar border, and the per-slot
- * "Bubble riêng" border without duplicating logic three times.
- *
- * `offset` — CSS outline-offset equivalent (px). Only rendered when the
- * caller passes this prop (some border targets don't have an outline-based
- * box, so the slider is opt-in per call site).
- *
- * Turning the toggle on writes BOTH width and color into config in the same
- * patch (color defaults to DEFAULT_BORDER_COLOR — white). This means the
- * color field is never silently null right after enabling the border: what
- * the picker shows is always exactly what's stored, no separate "this is
- * just a fallback, not a real choice" state to track or explain.
- */
+// Fully generic: the caller decides what "width/style/color" mean (global
+// global "Bubble cả tin nhắn" border, the Avatar border, and the per-slot
+// "Bubble riêng" border without duplicating logic three times.
 export default function BorderSection({
   width,
   style,

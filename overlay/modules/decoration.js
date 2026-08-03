@@ -1,14 +1,3 @@
-// Decoration layers (per-message repeating/anchored images) + the SVG
-// clipping-mask system that lets a layer clip itself to the avatar/bubble/
-// username/message shape.
-//
-// Render order stays: Avatar -> Sticker Decoration -> Apply Mask -> Glow
-// -> Border -> Foreground Decorations. The mask is realized as a CSS
-// mask-image on the decoration <img> itself (applied right after the
-// decoration is created, before it's appended), so it never touches the
-// theme's own glow/border layers or their stacking order. When a layer's
-// mask is disabled (the default), none of this code path runs and the
-// decoration renders exactly as it did before this feature existed.
 
 import { state, listEl } from './state.js';
 import { applyInlineStyle, compileLayerInlineStyle, toImageProxyUrl } from './utils.js';
@@ -32,18 +21,7 @@ function resolveBubbleAnchor(messageNode) {
   return messageNode;
 }
 
-/**
- * Resolves which element is the actual visible "bubble" shape for
- * masking purposes. Unlike resolveBubbleAnchor() (used for decoration
- * *placement*, which only special-cases the message-wrap mode), this
- * checks all three bubble-wrap flags so the mask always follows whichever
- * element is really rendering the rounded bubble:
- *   - row wrap    -> the whole message row (.ovs-message)
- *   - message wrap-> the message/text bubble (.ovs-text)
- *   - author wrap -> the username bubble (.ovs-author)
- * If none are active, .ovs-message is used as a harmless fallback (it
- * simply won't have any border-radius to clip to).
- */
+// Resolves which element is the actual visible "bubble" shape for
 function resolveBubbleMaskElement(messageNode) {
   if (!messageNode) return null;
   const root = document.documentElement;
@@ -102,20 +80,7 @@ function ensureDecorationHost(anchorEl, anchorName, stackLayer) {
     host.dataset.forAnchor = anchorName;
     host.dataset.stackLayer = sl;
     if (sl === 'background') {
-      // For background layers: ensure the anchor creates a stacking context so
-      // z-index: 0 on this host is contained within the bubble and renders
-      // BETWEEN the bubble's own background/texture (step 1) and its
-      // block-flow children / text (step 3), not behind the entire ancestor tree.
       anchorEl.style.isolation = 'isolate';
-      // Insert directly after .ovs-bubble-texture (if present) rather than as
-      // the very first child. Both this host and the texture share z-index: 0,
-      // so at that tie, paint order falls back to DOM order — texture first
-      // (bottom), host right after it (on top of the texture, still below the
-      // z-index: 1 text/content). Inserting the host BEFORE the texture would
-      // put it under the texture instead, which is the "sticker hides behind
-      // texture" bug this fixes. If there's no texture element yet, fall back
-      // to first-child (ensureBubbleTexture forces the texture back in front
-      // on the next render pass regardless, so order self-corrects either way).
       const texture = anchorEl.querySelector(':scope > .ovs-bubble-texture');
       if (texture) {
         texture.insertAdjacentElement('afterend', host);
@@ -138,27 +103,10 @@ export function clearDecorationLayers(messageNode) {
   messageNode.querySelectorAll('[data-has-decoration]').forEach((el) => delete el.dataset.hasDecoration);
 }
 
-// Cache of generated SVG mask data-URLs, keyed by a signature of every
-// input that can change the mask's pixels. Avoids rebuilding/re-parsing
-// an SVG string (and forcing a style recalc) on every render pass when
-// nothing about the shape actually changed.
 const maskDataUrlCache = new Map();
 const MASK_CACHE_LIMIT = 200;
 
-/**
- * Maps a maskTarget name to the DOM element that currently renders that
- * target's visible shape.
- *
- * - 'avatar'        -> [data-slot="avatar"] (existing avatar image)
- * - 'bubble'        -> whatever element currently renders the visible
- *                      chat bubble (see resolveBubbleMaskElement): the
- *                      row, the message/text bubble, or the username
- *                      bubble — whichever bubble-wrap mode is active.
- * - 'username'      -> [data-slot="author"] (the username's own bubble,
- *                      see SlotBubbleSection / bubble-wrap.css .ovs-author)
- * - 'chatContainer' -> [data-slot="message"] (the chat message's own
- *                      bubble/text box, .ovs-text in bubble-wrap.css)
- */
+// Maps a maskTarget name to the DOM element that currently renders that
 function resolveMaskTargetElement(messageNode, target) {
   if (!messageNode) return null;
   if (target === 'avatar') return messageNode.querySelector('[data-slot="avatar"]');
@@ -168,12 +116,7 @@ function resolveMaskTargetElement(messageNode, target) {
   return null;
 }
 
-/**
- * Resolves a maskTarget's current visible shape for a message: its box
- * size/position and effective border-radius. Reads the real computed
- * style rather than assuming a circle, so circle / rounded-rect /
- * squircle / fully-custom radii are all honored, for any wired target.
- */
+// Resolves a maskTarget's current visible shape for a message: its box
 function resolveMaskShapeRect(messageNode, target, debugLayerId) {
   const targetEl = resolveMaskTargetElement(messageNode, target);
   if (!targetEl) {
@@ -194,9 +137,6 @@ function resolveMaskShapeRect(messageNode, target, debugLayerId) {
   const cs = getComputedStyle(targetEl);
   return {
     rect,
-    // border-radius can be "50%", "12px", or a 4-corner shorthand like
-    // "8px 8px 4px 4px" (squircle-ish custom shapes) — the raw computed
-    // string is reused as-is inside the generated SVG <rect rx/ry>.
     borderRadius: cs.borderRadius || (target === 'avatar' ? '50%' : '0px'),
   };
 }
@@ -216,15 +156,7 @@ function maskSignature(imgRect, targetShape, mask) {
   ].join('|');
 }
 
-/**
- * Builds (or reuses from cache) an SVG mask-image data-URL that clips a
- * decoration image to a mask target's visible shape (avatar, bubble,
- * username, or chat message — see resolveMaskTargetElement).
- *
- * The mask is expressed in the decoration image's own local box: the
- * target rectangle is translated into that coordinate space so the two
- * can be different sizes/positions and still line up correctly on screen.
- */
+// Builds (or reuses from cache) an SVG mask-image data-URL that clips a
 function buildTargetMaskDataUrl(imgRect, targetShape, mask) {
   const sig = maskSignature(imgRect, targetShape, mask);
   const cached = maskDataUrlCache.get(sig);
@@ -242,12 +174,6 @@ function buildTargetMaskDataUrl(imgRect, targetShape, mask) {
   const shapeW = Math.max(0, a.width + padding * 2);
   const shapeH = Math.max(0, a.height + padding * 2);
 
-  // White = visible, black = hidden, per the SVG mask spec.
-  // maskMode picks the base behavior: 'clipInside' keeps the decoration
-  // visible only where it overlaps the avatar shape (avatar = window);
-  // 'clipOutside' does the opposite (avatar = a hole punched through the
-  // decoration). maskInvert then flips whichever of those was chosen —
-  // it's a modifier on top of the mode, not a replacement for it.
   const outside = mask.maskMode === 'clipOutside';
   let shapeFill = outside ? '#000' : '#fff';
   let bgFill = outside ? '#fff' : '#000';
@@ -279,20 +205,10 @@ function buildTargetMaskDataUrl(imgRect, targetShape, mask) {
   return dataUrl;
 }
 
-/**
- * Applies (or clears) a layer's clipping mask on its rendered <img>.
- * No-op — and leaves the element with no mask styles at all — when the
- * layer has masking disabled, its target isn't wired up yet, or the
- * target shape can't currently be resolved (e.g. avatar hidden).
- */
+// Applies (or clears) a layer's clipping mask on its rendered <img>.
 function applyDecorationMask(img, messageNode, layer) {
   if (!layer.maskEnabled || layer.maskMode === 'none') return;
 
-  // 'avatar', 'bubble', 'username', and 'chatContainer' are the only
-  // values in MASK_TARGETS (shared/decoration-config.js) — all of them
-  // real, wired-up mask sources. If a shape still can't be resolved
-  // (missing element, zero size, etc.), resolveMaskShapeRect() warns and
-  // returns null rather than crashing.
   const targetShape = resolveMaskShapeRect(messageNode, layer.maskTarget, layer.id);
   if (!targetShape) return; // resolveMaskShapeRect already logged why
 
@@ -312,23 +228,16 @@ function applyDecorationMask(img, messageNode, layer) {
   img.style.maskSize = '100% 100%';
   img.style.webkitMaskSize = '100% 100%';
   img.setAttribute('data-mask-applied', 'true');
-  console.info(`[OVS mask] layer "${layer.id}": mask applied ✔ (mode=${layer.maskMode}, invert=${layer.maskInvert})`);
 }
 
-/**
- * Returns true when a message node satisfies a layer's visibility condition.
- *
- * Logic:
- *   - visibilityRoles empty (default) → hiện với tất cả, không lọc.
- *   - Non-empty → OR across selected tokens:
- *       'moderator' — node có class ovs-moderator
- *       'member'    — node có class ovs-member VÀ memberMonths >= memberMonthsMin
- *                     (memberMonthsMin = 0 → chấp nhận tất cả member bất kể tháng)
- *       'chat'      — không có moderator lẫn member (người xem thường)
- *
- * memberMonths được đọc từ node.dataset.ovsMemberMonths, được gán trong
- * message-renderer.js#createMessageNode() ngay sau khi thêm role classes.
- */
+// Returns true when a message node satisfies a layer's visibility condition.
+// - visibilityRoles empty (default) → hiện với tất cả, không lọc.
+// 'moderator' — node có class ovs-moderator
+// 'member'    — node có class ovs-member VÀ memberMonths >= memberMonthsMin
+// (memberMonthsMin = 0 → chấp nhận tất cả member bất kể tháng)
+// 'chat'      — không có moderator lẫn member (người xem thường)
+// memberMonths được đọc từ node.dataset.ovsMemberMonths, được gán trong
+// message-renderer.js#createMessageNode() ngay sau khi thêm role classes.
 function messageMatchesLayer(messageNode, layer) {
   const roles = layer.visibilityRoles;
   if (!Array.isArray(roles) || roles.length === 0) return true; // no filter

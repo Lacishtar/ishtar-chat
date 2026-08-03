@@ -29,12 +29,7 @@ function formatStatusError(status, localError) {
   return friendlyErrorMessage(status.error);
 }
 
-/**
- * ConnectPanel — connect/disconnect controls for the livestream chat source.
- *
- * Renders as a single horizontal row meant to sit inline in the app
- * header, next to StatusBadge.
- */
+// ConnectPanel — connect/disconnect controls for the livestream chat source.
 export default function ConnectPanel({ api, status, lastSessionUrl, onConnected }) {
   const [url, setUrl] = useState('');
   const [connectedUrl, setConnectedUrl] = useState('');

@@ -1,7 +1,4 @@
-/**
- * AnimationConfig — per-slot entrance animation (Avatar, Username, Message).
- * Compiled to --ovs-anim-* CSS variables. Falls back to CustomizeConfig.animationMs.
- */
+// AnimationConfig — per-slot entrance animation (Avatar, Username, Message).
 
 const { DEFAULT_CUSTOMIZE_CONFIG } = require('./customize-config');
 
@@ -28,22 +25,13 @@ const DEFAULT_ANIMATION_CONFIG = {
   },
 };
 
-// Base entrance direction per slot at translateScale=1 — the "shape" every
-// style preset scales up/down/away from. Keeps the avatar dropping in from
-// above, author sliding in from the left, and message rising up,
-// regardless of which style is active.
 const BASE_TARGET_DIRECTIONS = {
   avatar: { delayMs: 0, translateX: 0, translateY: 8 },
   author: { delayMs: 40, translateX: -6, translateY: 0 },
   message: { delayMs: 80, translateX: 0, translateY: 6 },
 };
 
-/**
- * Named animation "styles" pickable from the Customize Panel. Each one is a
- * small transform on top of BASE_TARGET_DIRECTIONS: how far things travel,
- * what they scale from, how blurry they start, and what easing sells the
- * motion (e.g. a back-out curve for the bounce/zoom overshoot).
- */
+// Named animation "styles" pickable from the Customize Panel. Each one is a
 const ANIMATION_STYLE_PRESETS = {
   slide: { label: 'Trượt nhẹ', easing: 'ease-out', translateScale: 1, scale: 1, blur: 0 },
   bounce: { label: 'Nảy', easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', translateScale: 2, scale: 0.85, blur: 0 },
@@ -60,8 +48,6 @@ function expandAnimationStyle(style) {
   Object.entries(BASE_TARGET_DIRECTIONS).forEach(([slot, dir]) => {
     targets[slot] = createSlotAnimDefaults({
       // durationMs stays null (not a fixed snapshot) so the "Tốc độ hiệu ứng"
-      // slider (customizeConfig.animationMs) keeps driving speed even after
-      // a style has been picked — see resolveEffectiveAnimation's fallback.
       delayMs: dir.delayMs,
       easing: preset.easing,
       translateX: dir.translateX * preset.translateScale,
@@ -78,9 +64,6 @@ function mergeAnimationConfig(base, overrides) {
   const b = base || DEFAULT_ANIMATION_CONFIG;
   let o = overrides || {};
 
-  // Picking a new named style (without explicit per-slot overrides) expands
-  // it into concrete targets so the CSS vars/keyframes below have real
-  // numbers to animate — the caller just needs to send `{ style: 'bounce' }`.
   if (o.style && o.style !== b.style && !o.targets) {
     o = { ...o, targets: expandAnimationStyle(o.style).targets };
   }

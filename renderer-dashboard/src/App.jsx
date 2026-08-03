@@ -11,13 +11,11 @@ import ThemeLibraryPanel from './components/ThemeLibraryPanel.jsx';
 import CustomPresetsPanel from './components/CustomPresetsPanel.jsx';
 import ChatPreview from './components/ChatPreview.jsx';
 import StatusBadge from './components/StatusBadge.jsx';
+import PortSelectorDropdown from './components/PortSelectorDropdown.jsx';
 
-// Tabs for the five "settings" panels — ConnectPanel stays outside this list
-// and is always rendered above, since connection status matters regardless
-// of which settings tab the user is working in.
 const TABS = [
-  { id: 'customize', label: 'Tuỳ chỉnh' },
   { id: 'layout', label: 'Bố cục' },
+  { id: 'customize', label: 'Tuỳ chỉnh' },
   { id: 'decorations', label: 'Trang trí' },
   { id: 'roles', label: 'Vai trò' },
   { id: 'fanService', label: 'Fan Service' },
@@ -53,12 +51,6 @@ function TabBar({ active, onChange }) {
   );
 }
 
-// All customize/layout/slot-style/animation/decoration/role-style data now
-// lives in EditorStateContext (see state/EditorStateContext.jsx) — the one
-// authoritative buffer that the Inspector, LayoutPanel, DecorationsPanel,
-// RoleStylesPanel, and CustomPresetsPanel all read from and write to
-// directly. AppShell only owns things that aren't part of that editing
-// buffer: connection status, the preview iframe, and which tab is active.
 function AppShell() {
   const {
     loading,
@@ -72,7 +64,7 @@ function AppShell() {
     bumpPreviewKey,
     resetPreset,
   } = useEditorState();
-  const [activeTab, setActiveTab] = useState('customize');
+  const [activeTab, setActiveTab] = useState('layout');
 
   if (loading) {
     return (
@@ -106,10 +98,13 @@ function AppShell() {
           lastSessionUrl={lastSessionUrl}
           onConnected={(url) => setLastSessionUrl(url)}
         />
-        <StatusBadge status={status.status} />
+        <div className="flex items-center gap-3 ml-auto shrink-0">
+          <PortSelectorDropdown />
+          <StatusBadge status={status.status} />
+        </div>
       </header>
 
-      <main className="flex-1 min-h-0 grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] gap-4 p-4">
+      <main className="flex-1 min-h-0 grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.8fr)_minmax(0,0.9fr)] gap-4 p-4">
         <div className="flex flex-col gap-4 min-h-0">
           <TabBar active={activeTab} onChange={setActiveTab} />
 

@@ -1,9 +1,4 @@
-/**
- * YouTube avatar URLs are hotlink-protected — OBS Browser Source often blocks
- * them (empty/broken img) while Electron's preview iframe may still load them.
- * Proxy allowed hosts through the local HTTP server so preview and OBS behave
- * identically.
- */
+// YouTube avatar URLs are hotlink-protected — OBS Browser Source often blocks
 
 const ALLOWED_AVATAR_HOSTS = [
   'yt3.ggpht.com',

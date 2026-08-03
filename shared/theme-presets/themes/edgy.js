@@ -1,6 +1,4 @@
-/**
- * Theme preset: edgy
- */
+// Theme preset: edgy
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

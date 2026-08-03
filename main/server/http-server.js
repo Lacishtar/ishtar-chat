@@ -15,11 +15,6 @@ const NO_CACHE_STATIC = {
   },
 };
 
-/**
- * @param {() => object} getState
- * @param {number} preferredPort
- * @param {{ bubbleAssetsDir?: string }} [options]
- */
 function createApp(getState, options = {}) {
   const app = express();
 
@@ -68,10 +63,7 @@ function createApp(getState, options = {}) {
   return app;
 }
 
-/**
- * Starts listening, trying successive ports if the preferred one is busy —
- * there's no multi-tenant server here, so a free local port is all we need.
- */
+// Starts listening, trying successive ports if the preferred one is busy —
 function startServer(getState, preferredPort = 3000, maxAttempts = 10, options = {}) {
   return new Promise((resolve, reject) => {
     const app = createApp(getState, options);

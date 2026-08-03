@@ -1,6 +1,4 @@
-/**
- * Theme preset: minimal-dark
- */
+// Theme preset: minimal-dark
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

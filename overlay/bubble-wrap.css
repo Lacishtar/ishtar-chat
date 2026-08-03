@@ -396,6 +396,17 @@
 :root[data-ovs-bubble-wrap-row='true'] .ovs-text > .ovs-bunny-ear {
   display: none !important;
 }
+/* Fan Service (Super Chat/Hội viên) luôn ép về 1 bubble duy nhất, không
+   tách author/message riêng — kể cả khi đang ở chế độ "bọc từng phần".
+   Vì vậy tai thỏ của các row này cũng chỉ có ĐÚNG 1 cặp ở cấp row, không
+   bao giờ tách theo slot; JS gắn cờ data-bunny-ears-force-row="true" lên
+   .ovs-message để rule này thắng rule ẩn ở trên, bất kể bố cục chung đang
+   để "bọc chung" hay "bọc từng phần". (JS cũng không gắn data-bunny-ears
+   lên .ovs-author/.ovs-text của các row này nữa, nên không cần rule ẩn
+   slot-ear riêng ở đây.) */
+:root .ovs-message[data-bunny-ears-force-row='true'] > .ovs-bunny-ear {
+  display: block !important;
+}
 
 /* ============================================================
    HEADER SPLIT — one unified bubble (row-wrap), divided horizontally

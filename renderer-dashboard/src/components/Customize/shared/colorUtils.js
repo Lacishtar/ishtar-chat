@@ -13,9 +13,6 @@ export function hexAlphaToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-// Parses any single-color CSS value we might encounter: rgba()/rgb(), plain
-// hex (#rgb / #rrggbb), or 8-digit hex with alpha (#rrggbbaa) / 4-digit
-// shorthand (#rgba). Falls back to a sane default if nothing matches.
 export function parseAnyColor(value) {
   const str = (value || '').trim();
   if (/^#/.test(str)) {
@@ -35,6 +32,24 @@ export function parseAnyColor(value) {
     }
   }
   return rgbaToHexAlpha(str);
+}
+
+// Strict parser for user-typed/pasted color text (hex or rgba). Returns
+// { hex, alpha } only for recognized formats, or null otherwise — unlike
+// parseAnyColor, this never silently falls back to a default color, so
+// callers can tell "invalid input" apart from "valid but dark".
+export function parseColorInputStrict(value) {
+  let str = (value || '').trim();
+  if (!str) return null;
+  // Allow pasting a hex code without the leading '#'.
+  if (/^[0-9a-f]{3,8}$/i.test(str)) str = `#${str}`;
+  if (/^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(str)) {
+    return parseAnyColor(str);
+  }
+  if (/^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[\d.]+)?\)$/i.test(str)) {
+    return rgbaToHexAlpha(str);
+  }
+  return null;
 }
 
 export function isGradient(value) {
@@ -108,9 +123,7 @@ export function serializeGradient({ type, angle, stops }) {
   return `linear-gradient(${Math.round(angle)}deg, ${stopsCss})`;
 }
 
-// Builds a sensible starting 2-stop gradient from whatever solid color is
 // currently set, so switching a picker from "Màu đơn" to "Gradient" doesn't
-// dump the user into a jarring default.
 export function defaultGradientFrom(value) {
   const { hex, alpha } = parseAnyColor(value);
   return {

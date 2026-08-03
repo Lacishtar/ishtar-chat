@@ -2,13 +2,7 @@ const { LoadTheme } = require('../../shared/theme-manager');
 
 const FALLBACK_THEME_ID = 'default';
 
-/**
- * Resolves the full config-store shape for a theme id, sourced entirely
- * from shared/theme-presets/ (index.js + themes/*.js) via shared/theme-manager.js#LoadTheme — the
- * single source of truth for both the theme picker (theme:list/theme:apply)
- * and app boot / theme:reset-preset. Falls back to FALLBACK_THEME_ID for an
- * unknown/missing id.
- */
+// Resolves the full config-store shape for a theme id, sourced entirely
 function resolveThemeState(themeId) {
   const resolvedThemeId = LoadTheme(themeId) ? themeId : FALLBACK_THEME_ID;
   const theme = LoadTheme(resolvedThemeId);

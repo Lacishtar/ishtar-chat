@@ -4,7 +4,6 @@ export default function BunnySection({
   // Either pass `enabled` + `onToggle` (global, plain boolean)…
   enabled,
   onToggle,
-  // …or pass `triState` ('default' | 'true' | 'false') + `onTriStateChange` (per-slot, inherits from global)
   triState,
   onTriStateChange,
   inheritedLabel,

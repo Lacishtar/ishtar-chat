@@ -1,14 +1,3 @@
-// Serves project/shared/*.js (CommonJS, used by the main process & dashboard)
-// as real ES modules under /shared/*.mjs, so the overlay (plain browser
-// <script type="module">, no bundler) can `import` the exact same functions
-// instead of maintaining hand-copied "Keep in sync with shared/..." mirrors.
-//
-// Only files with NO Node-builtin dependencies (fs, crypto, path, ...) may be
-// exposed here — see ALLOWED_MODULES below. The transform is intentionally
-// simple (string surgery, not a real parser) because shared/*.js consistently
-// follows two patterns:
-//   const { A, B } = require('./x');   ->  import { A, B } from './x.mjs';
-//   module.exports = { A, B, ... };    ->  export { A, B, ... };
 
 const fs = require('fs');
 const path = require('path');
@@ -16,9 +5,6 @@ const express = require('express');
 
 const SHARED_DIR = path.join(__dirname, '..', '..', 'shared');
 
-// Allow-list: only browser-safe shared modules (no Node builtins) are
-// reachable via /shared. Add a file here only after confirming it doesn't
-// require() a Node builtin (fs, crypto, path, os, ...).
 const ALLOWED_MODULES = new Set([
   'image-url',
   'css-content-helpers',

@@ -32,6 +32,13 @@ contextBridge.exposeInMainWorld('api', {
   exportCustomPresets: () => ipcRenderer.invoke('custom-preset:export'),
   importCustomPresets: () => ipcRenderer.invoke('custom-preset:import'),
 
+  // Port management
+  portList: () => ipcRenderer.invoke('port:list'),
+  portCreate: (name) => ipcRenderer.invoke('port:create', { name }),
+  portRemove: (id) => ipcRenderer.invoke('port:remove', id),
+  portRename: (id, name) => ipcRenderer.invoke('port:rename', { id, name }),
+  portSelect: (id) => ipcRenderer.invoke('port:select', id),
+
   onStatusChanged: (callback) => subscribe('status:changed', callback),
   onConfigUpdated: (callback) => subscribe('config:updated', callback),
   onLayoutUpdated: (callback) => subscribe('layout:updated', callback),
@@ -42,3 +49,4 @@ contextBridge.exposeInMainWorld('api', {
   onFanServiceUpdated: (callback) => subscribe('fan-service:updated', callback),
   onThemeChanged: (callback) => subscribe('theme:changed', callback),
 });
+

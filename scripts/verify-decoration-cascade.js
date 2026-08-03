@@ -1,10 +1,3 @@
-// Loads the REAL overlay CSS files (decoration-layers.css + bubble-wrap.css,
-// in actual <link> order) into jsdom and checks getComputedStyle on a
-// .ovs-decoration-host built the same way overlay/modules/decoration.js
-// builds it, for every anchor/stack-layer combination. This proves the
-// cascade fix in overlay/bubble-wrap.css actually restores the intended
-// position/z-index for .ovs-decoration-host, using the browser's own
-// selector-matching + specificity engine rather than manual reasoning.
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');

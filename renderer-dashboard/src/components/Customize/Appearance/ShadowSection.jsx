@@ -3,13 +3,6 @@ import { SHADOW_PRESETS } from '../shared/constants.js';
 import { rgbaToHexAlpha, hexAlphaToRgba } from '../shared/colorUtils.js';
 import ColorPicker from '../shared/ColorPicker.jsx';
 
-// Shadow is stored as a single-layer CSS `box-shadow` string: "X Y blur
-// spread color". Unlike Glow (a centered filter: drop-shadow halo with no
-// offset/spread), Shadow exposes offset + spread as real controls — set blur
-// to 0, spread to a few px, and an opaque (alpha = 1) color, and the result
-// reads as a hard-edged, solid-color duplicate of the bubble peeking out from
-// behind it (box-shadow always inherits the element's own border-radius),
-// instead of a soft blurred glow. That's the key visual difference from Glow.
 const CUSTOM_SHADOW_RE =
   /(-?[\d.]+)(?:px)?\s+(-?[\d.]+)(?:px)?\s+([\d.]+)(?:px)?(?:\s+(-?[\d.]+)(?:px)?)?\s+(rgba?\([^)]*\))/i;
 const DEFAULT_SHADOW_HEX = '#000000';

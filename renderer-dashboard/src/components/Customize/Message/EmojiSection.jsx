@@ -2,18 +2,7 @@ import { Field, PresetButton, EnableToggle } from '../shared/fields.jsx';
 import GlowSection from '../Appearance/GlowSection.jsx';
 import ColorPicker from '../shared/ColorPicker.jsx';
 
-/**
- * Customizes the square "chip" that wraps every glyph of an emoji-only
- * message (see overlay/modules/emoji.js + overlay/layout-text.css
- * .ovs-emoji-glyph). Global setting — applies to every emoji chip in chat,
- * not per-slot, so it's driven by pushUpdate (CustomizeConfig) rather than
- * pushSlotUpdate.
- *
- * `enabled` is the master switch for the chip's decoration (bg/radius/
- * opacity/glow) — turning it off just makes the chip disappear visually
- * (transparent bg, square corners, no glow). It never removes or resizes
- * the emoji glyph itself; the emoji stays exactly where and how it was.
- */
+// Customizes the square "chip" that wraps every glyph of an emoji-only
 export default function EmojiSection({ enabled, bg, radius, opacity, glow, onChange }) {
   return (
     <>

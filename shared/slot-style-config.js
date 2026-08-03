@@ -1,7 +1,4 @@
-/**
- * SlotStyleConfig — per-slot visual properties (Avatar, Username, Message).
- * Compiled to --ovs-slot-* CSS variables. Slot overrides fall back to CustomizeConfig.
- */
+// SlotStyleConfig — per-slot visual properties (Avatar, Username, Message).
 
 const { DEFAULT_CUSTOMIZE_CONFIG, buildTextShadow } = require('./customize-config');
 const { compileSlotBubblesToCssVariables, createSlotBubbleDefaults } = require('./slot-bubble-config');
@@ -72,10 +69,7 @@ function isSet(value) {
 }
 
 // Priority: per-slot style override (Inspector) > LayoutPanel's Ẩn/hiện
-// checkbox (layoutConfig.slots.*.visible) > global customize-config toggle
-// (avatar only) > default visible. The layoutConfig tier used to be
 // missing entirely, so the Layout panel's Ẩn/hiện checkboxes wrote to a
-// field nothing ever read — toggling them had zero effect on the overlay.
 function resolveSlotVisibility(slotVisible, layoutVisible, globalVisible) {
   if (isSet(slotVisible)) return Boolean(slotVisible);
   if (isSet(layoutVisible)) return Boolean(layoutVisible);
@@ -83,9 +77,7 @@ function resolveSlotVisibility(slotVisible, layoutVisible, globalVisible) {
   return true;
 }
 
-/**
- * Resolves effective slot values with CustomizeConfig fallbacks.
- */
+// Resolves effective slot values with CustomizeConfig fallbacks.
 function resolveEffectiveSlotStyle(slotStyle, customizeConfig, layoutConfig) {
   const cfg = { ...DEFAULT_CUSTOMIZE_CONFIG, ...customizeConfig };
   const s = mergeSlotStyleConfig(DEFAULT_SLOT_STYLE_CONFIG, slotStyle);

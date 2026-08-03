@@ -1,7 +1,4 @@
-/**
- * DecorationConfig — user-placed image layers on chat message rows.
- * Each layer is anchored to a slot and positioned with translate/rotate/z-index.
- */
+// DecorationConfig — user-placed image layers on chat message rows.
 
 const { normalizeGoogleDriveImageUrl } = require('./image-url');
 
@@ -20,42 +17,28 @@ const PLACEMENTS = [
   'center',
 ];
 
-/**
- * Mask targets — the shape a decoration layer's clipping mask is derived
- * from. All values here are wired up to real shape sources (see
- * resolveMaskTargetElement in overlay/modules/decoration.js).
- */
+// Mask targets — the shape a decoration layer's clipping mask is derived
 const MASK_TARGETS = ['avatar', 'bubble', 'username', 'chatContainer'];
 
 const MASK_MODES = ['none', 'clipInside', 'clipOutside'];
 
-/**
- * Determines where the decoration renders relative to the bubble's text content.
- *   'foreground' — rendered above all slot content (z-index: 50). Default.
- *   'background' — rendered inside the bubble, UNDER text (z-index: -1,
- *                  clipped to the bubble's border-radius). Useful for bubble
- *                  background images, watermarks, and texture overlays.
- */
+// Determines where the decoration renders relative to the bubble's text content.
 const STACK_LAYERS = ['foreground', 'background'];
 
-/**
- * Valid role tokens for the per-layer visibility condition.
- *   'moderator' — chỉ hiện với mod
- *   'member'    — chỉ hiện với thành viên (+ có thể lọc thêm theo số tháng)
- *   'chat'      — chỉ hiện với người xem thường (không có role nào)
- * Mảng rỗng (mặc định) → hiện với tất cả, không lọc.
- */
+// Valid role tokens for the per-layer visibility condition.
+// 'moderator' — chỉ hiện với mod
+// 'member'    — chỉ hiện với thành viên (+ có thể lọc thêm theo số tháng)
+// 'chat'      — chỉ hiện với người xem thường (không có role nào)
+// Mảng rỗng (mặc định) → hiện với tất cả, không lọc.
 const VISIBILITY_ROLES = ['moderator', 'member', 'chat'];
 
-/**
- * Idle animation options for sticker/decoration layers.
- *   'none'   — không chạy idle (default)
- *   'float'  — trôi lên xuống nhẹ
- *   'bounce' — nảy lên xuống
- *   'wiggle' — lắc ngang nhanh
- *   'tilt'   — nghiêng qua lại chậm
- *   'slideX' — trượt trái/phải nhẹ
- */
+// Idle animation options for sticker/decoration layers.
+// 'none'   — không chạy idle (default)
+// 'float'  — trôi lên xuống nhẹ
+// 'bounce' — nảy lên xuống
+// 'wiggle' — lắc ngang nhanh
+// 'tilt'   — nghiêng qua lại chậm
+// 'slideX' — trượt trái/phải nhẹ
 const IDLE_ANIMATIONS = ['none', 'float', 'bounce', 'wiggle', 'tilt', 'slideX'];
 
 const CONTAINER_ANCHOR = {
@@ -107,13 +90,8 @@ const DEFAULT_LAYER = {
   height: 48,
   opacity: 1,
   ...DEFAULT_MASK,
-  // Determines z-axis render position relative to bubble text content.
-  // 'foreground' = above text (z-index: 50); 'background' = below text,
-  // clipped inside the bubble (z-index: -1, overflow: hidden).
   stackLayer: 'foreground',
-  // Visibility condition — which role types this layer renders for.
   // [] = hiện với tất cả (no filter). Non-empty = OR logic across tokens.
-  // 'member' token pairs with memberMonthsMin for month-threshold filtering.
   visibilityRoles: [],
   memberMonthsMin: 0,
   // Idle animation effect for the sticker layer
@@ -175,17 +153,6 @@ function normalizeVisibilityRoles(raw) {
 function normalizeLayer(raw, index = 0) {
   const layer = raw || {};
   const id = typeof layer.id === 'string' && layer.id.trim() ? layer.id.trim() : `deco-${index}`;
-  // Decoration layers are square: `size` mirrors into both `width` and
-  // `height` below, and this is what gets echoed back to the dashboard on
-  // every update. That echoed-back `size` was previously preferred over
-  // `width`/`height` in the fallback chain, which meant that as soon as a
-  // layer had been saved once, dragging the Width or Height slider had no
-  // effect — the stale `size` on the incoming object always won.
-  //
-  // Instead, treat `width`/`height` as the source of truth for a *new*
-  // value only when they actually differ from the incoming `size` (i.e.
-  // the user just changed exactly one of them); otherwise nothing changed
-  // and we fall back to the existing size as before.
   let rawSize;
   if (layer.width !== undefined && layer.width !== layer.size) {
     rawSize = layer.width;
@@ -217,7 +184,6 @@ function normalizeLayer(raw, index = 0) {
     // Visibility condition — backward-compatible: missing key → [] → show all.
     visibilityRoles: normalizeVisibilityRoles(layer.visibilityRoles),
     memberMonthsMin: clampNumber(layer.memberMonthsMin, 0, 0, 120),
-    // Stack layer — backward-compatible: missing key → 'foreground' (existing behavior).
     stackLayer: normalizeStackLayer(layer.stackLayer),
     // Idle animation — backward-compatible: missing key → 'none'.
     idleAnimation: normalizeIdleAnimation(layer.idleAnimation),
@@ -241,18 +207,7 @@ function createLayer(overrides = {}) {
   return normalizeLayer({ ...DEFAULT_LAYER, ...overrides }, 0);
 }
 
-/** Inline style object for overlay DOM (browser) or smoke tests.
- *
- * Dual-Anchor Positioning Formula:
- *   left = calc(fx * 100% + translateX)
- *   top  = calc(fy * 100% + translateY)
- *   transform = translate(-ax * 100%, -ay * 100%) rotate(rot)
- *   transformOrigin = (ax * 100)% (ay * 100)%
- *
- * The designated sticker corner/edge (ax, ay) lands exactly on the container
- * anchor point (fx, fy). When `size` changes, the sticker corner (ax, ay)
- * stays 100% stationary, expanding outward cleanly without top-left drift.
- */
+// Inline style object for overlay DOM (browser) or smoke tests.
 function compileLayerInlineStyle(layer) {
   const l = normalizeLayer(layer);
   const base = {

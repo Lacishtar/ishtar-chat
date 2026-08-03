@@ -5,9 +5,6 @@ const { app, BrowserView, ipcMain } = require('electron');
 const selectorsConfig = require('./selectors.config.json');
 const { normalizeMessage } = require('../shared/chat-message');
 
-// A real, visible YouTube user agent — reduces the odds of the embed being
-// served a degraded/no-JS chat frame. We don't spoof anything beyond the UA;
-// no request forging, no rate abuse, just "look like a normal browser tab".
 const CHROME_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
@@ -29,13 +26,6 @@ function parseVideoId(rawUrl) {
   }
 }
 
-// Recognizes a *channel* URL (not a specific video/live URL) — /channel/UC…,
-// /c/name, /user/name, or the modern /@handle form — and returns the
-// channel's canonical "/live" URL. YouTube resolves that URL server-side:
-// if the channel is currently streaming it redirects (301/302) to the
-// active watch page; if not, it just serves the channel page itself. We
-// exploit that redirect to turn "channel link" into "current live video id"
-// without needing the YouTube Data API or a signed-in session.
 function parseChannelLiveUrl(rawUrl) {
   try {
     const url = new URL(rawUrl.trim());
@@ -100,17 +90,6 @@ class CaptureManager extends EventEmitter {
       if (this.status === 'connected') this._setStatus('stale');
     });
 
-    // Membership debug snapshots (see logMembershipStructureOnce() in
-    // capture-preload.js). Written to disk as UTF-8 rather than surfaced
-    // only via console.warn/'console-message', because on Windows the
-    // default cmd.exe console codepage is usually NOT UTF-8 — Node still
-    // writes correct UTF-8 bytes to stdout, but the terminal decodes them
-    // with the wrong codepage and displays mojibake (e.g. Vietnamese "đã
-    // tặng" renders as "Ä‘Ă£ táº·ng"). The underlying captured DOM text
-    // itself is correct Unicode the whole way through (Chromium parses the
-    // page's real charset); it's purely a terminal-display artifact. A
-    // plain UTF-8 file opened in VS Code/Notepad++ sidesteps that codepage
-    // entirely and always renders correctly regardless of the OS console.
     ipcMain.on('capturer:membership-debug', (event, snapshot) => {
       if (!this.view || event.sender !== this.view.webContents) return;
       const logPath = path.join(app.getPath('userData'), 'membership-debug.log');
@@ -119,15 +98,7 @@ class CaptureManager extends EventEmitter {
         JSON.stringify(snapshot, null, 2) +
         '\n';
       fs.appendFile(logPath, block, 'utf8', (err) => {
-        // ASCII-only console line (path + signature never contain
-        // Vietnamese/Japanese text), so this one line is always safe to
-        // read on any terminal codepage even though the file content
-        // itself needs a UTF-8-aware editor to view correctly.
-        if (err) {
-          console.warn('[membership-debug] failed to write log file:', err.message);
-        } else {
-          console.log(`[membership-debug] new event shape "${snapshot.signature}" written to ${logPath}`);
-        }
+        if (err) console.warn('[membership-debug] failed to write log file:', err.message);
       });
     });
   }
@@ -137,23 +108,6 @@ class CaptureManager extends EventEmitter {
     this.emit('status', { status, error: error || null, videoId: this.videoId });
   }
 
-  // Probes a channel's "/live" URL with a throwaway hidden BrowserView (kept
-  // off `this.view` so it never collides with disconnect()/the real capture
-  // view) and reads the video id back out of wherever YouTube's redirect
-  // lands. Resolves to null if the channel isn't currently live, or if the
-  // probe fails/times out.
-  //
-  // YouTube doesn't consistently use a real HTTP 30x for this anymore — some
-  // channel redirects now happen client-side (history.pushState/replaceState
-  // after the page's JS reads its own ytInitialData), which never fires
-  // Electron's `did-navigate` (that event is for full/document navigations
-  // only). So we watch three independent signals and take whichever resolves
-  // a video id first:
-  //   1. did-navigate       — classic server-side redirect
-  //   2. did-navigate-in-page — client-side pushState/replaceState redirect
-  //   3. canonical link tag  — fallback read of the DOM once the page has
-  //      settled, in case YouTube updates the address bar via a mechanism
-  //      that doesn't fire either navigation event at all
   _resolveChannelVideoId(channelLiveUrl) {
     return new Promise((resolve) => {
       const probe = new BrowserView({
@@ -180,10 +134,6 @@ class CaptureManager extends EventEmitter {
         resolve(videoId);
       };
 
-      // Reads the canonical/og:url the page currently reports and tries to
-      // pull a video id out of it. Used as a fallback after load settles,
-      // and also re-checked shortly after each navigation event in case the
-      // event fired before YouTube's JS finished updating the URL.
       const checkCanonical = async () => {
         if (settled) return;
         try {
@@ -203,17 +153,11 @@ class CaptureManager extends EventEmitter {
       probe.webContents.setAudioMuted(true);
       probe.webContents.setUserAgent(CHROME_UA);
 
-      // did-navigate fires once the main frame has finished navigating,
-      // i.e. after any redirect chain has resolved — so getURL()/the event
-      // arg here is already the final destination.
       probe.webContents.on('did-navigate', (_e, navigatedUrl) => {
         const videoId = parseVideoId(navigatedUrl);
         if (videoId) {
           finish(videoId);
         } else {
-          // Landed on the plain channel/live page over HTTP — YouTube may
-          // still redirect us client-side a moment later, so keep waiting
-          // and double check the DOM once things settle.
           setTimeout(checkCanonical, 800);
         }
       });
@@ -223,9 +167,6 @@ class CaptureManager extends EventEmitter {
         finish(parseVideoId(navigatedUrl));
       });
       probe.webContents.on('did-finish-load', () => {
-        // Belt-and-suspenders: whatever mechanism YouTube used (or didn't
-        // use) to update the URL, the canonical tag reflects the real
-        // current video once the page has actually finished loading.
         setTimeout(checkCanonical, 500);
       });
       probe.webContents.on('did-fail-load', (_e, code) => {
@@ -275,9 +216,6 @@ class CaptureManager extends EventEmitter {
       },
     });
 
-    // Attached but sized to 0×0 and never added visibly — the "hidden" part
-    // of "hidden BrowserView". We still attach it to a window because
-    // BrowserViews need a host window to run their renderer process.
     this.mainWindow.addBrowserView(this.view);
     this.view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
     this.view.setAutoResize({ width: false, height: false });
@@ -288,14 +226,6 @@ class CaptureManager extends EventEmitter {
       this.view.webContents.send('capturer:init', selectorsConfig);
     });
 
-    // The capture BrowserView is 0x0 and never shown, so its devtools
-    // console is otherwise unreachable — any console.warn/error inside
-    // capture-preload.js (e.g. the "membership/sponsorship tag not covered
-    // by selectors.config.json" warning, or an extractMessage failure)
-    // would go completely unseen. Forward it to this process's own
-    // stdout/stderr so it shows up in the terminal `npm start` was run
-    // from, and — only when explicitly debugging via OVS_DEV=1 — also open
-    // a detached devtools window on the capture view itself.
     this.view.webContents.on('console-message', (_event, level, message) => {
       const prefix = '[capture-view]';
       if (level >= 2) {
@@ -313,14 +243,8 @@ class CaptureManager extends EventEmitter {
       this._setStatus('error', `Không tải được trang chat (${desc}).`);
     });
 
-    // Force Vietnamese UI locale on this BrowserView only (not the whole
     // Electron app) so YouTube's badge/member aria-labels ("Thành viên (6
     // tháng)"...) come back in a known, parseable language regardless of
-    // the host machine's OS/Chromium locale. `hl=vi` covers YouTube's own
-    // ?hl= param; the Accept-Language header covers cases where YouTube
-    // falls back to browser-negotiated language instead. `persist_hl=1`
-    // keeps it from being overridden by the signed-in account's language
-    // preference once a session cookie exists.
     const chatUrl = `https://www.youtube.com/live_chat?v=${encodeURIComponent(videoId)}&embed_domain=localhost&hl=vi&persist_hl=1`;
     try {
       await this.view.webContents.loadURL(chatUrl, {
@@ -346,10 +270,6 @@ class CaptureManager extends EventEmitter {
     } catch (_e) {
       /* no-op */
     }
-    // Electron has no public webContents.destroy(); removing it from the
-    // window and dropping our reference is what lets it get GC'd. See
-    // architecture doc §2.4 (Resource cleanup) for why this matters — a
-    // BrowserView on youtube.com can hold 150-300MB.
     this.view = null;
     this.videoId = null;
     this._setStatus('idle');

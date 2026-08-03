@@ -1,6 +1,4 @@
-/**
- * Ensures slice insets never overlap — required for valid 9-patch rendering.
- */
+// Ensures slice insets never overlap — required for valid 9-patch rendering.
 function clampSlicesToImage(slice, imageSize) {
   if (!imageSize?.width || !imageSize?.height) return { ...slice };
 

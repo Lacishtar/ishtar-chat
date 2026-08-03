@@ -99,9 +99,6 @@ assert(proxy.startsWith('/image/proxy?url='), 'proxy path');
 
 // --- Mask system ---
 
-// Backward compatibility: a layer saved before the mask feature existed
-// (no mask keys at all) must load with masking off and sensible defaults,
-// so existing overlays keep rendering exactly the same.
 const legacyLayer = normalizeLayer({
   id: 'legacy-1',
   imageUrl: 'https://i.ibb.co/x/legacy.png',

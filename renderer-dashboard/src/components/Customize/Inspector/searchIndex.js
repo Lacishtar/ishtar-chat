@@ -1,7 +1,3 @@
-// Each entry describes one accordion section that exists somewhere in the
-// Inspector. Keeping this list separate (rather than inspecting the DOM)
-// means search stays fast and works even for sections that are currently
-// collapsed or belong to an object that isn't selected yet.
 export const SEARCH_INDEX = [
   { objectId: 'global', sectionId: 'typography', label: 'Font & màu chữ mặc định', keywords: ['font', 'chữ', 'màu', 'color', 'text'] },
   { objectId: 'global', sectionId: 'bubbleAppearance', label: 'Hình dạng bubble', keywords: ['bubble', 'radius', 'bo góc', 'nền', 'background', 'opacity', 'mờ'] },

@@ -1,26 +1,4 @@
-/**
- * theme-manager.js — Pure data-layer facade for the Theme System.
- *
- * Responsibilities:
- *   GetThemeList()       — return the full list of available themes (metadata only).
- *   LoadTheme(id)        — return a fully-normalised theme object by id.
- *   ValidateTheme(obj)   — verify that an object looks like a complete theme.
- *   NormalizeTheme(obj)  — fill every missing/null field with canonical defaults.
- *   ApplyTheme(id, store) — apply a theme into the live config-store and return
- *                           the resulting seven config categories.
- *   ResetCurrentTheme(store) — re-apply the current theme's defaults (delegates to
- *                              the existing theme:reset-preset flow).
- *   ResetCategory(category, store) — reset only one config category to its
- *                                     theme baseline while leaving others intact.
- *
- * RULES (kept by design):
- *   - NO DOM manipulation.
- *   - NO rendering logic.
- *   - NO UI / IPC references.
- *   - Depends ONLY on shared/* config modules and shared/theme-presets.js.
- *   - The renderer must not know how themes are stored.
- *   - The UI must not know theme implementation details.
- */
+// theme-manager.js — Pure data-layer facade for the Theme System.
 
 'use strict';
 
@@ -35,21 +13,12 @@ const { DEFAULT_ROLE_STYLE_CONFIG, mergeRoleStyleConfig } = require('./role-styl
 const { DEFAULT_FAN_SERVICE_CONFIG, mergeFanServiceConfig } = require('./fan-service-config');
 
 // ---------------------------------------------------------------------------
-// Internal helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Build a lookup map from theme id → theme object (O(1) access).
- * Rebuilt once on module load — the built-in list is static.
- */
+// Build a lookup map from theme id → theme object (O(1) access).
 const _themeMap = new Map(BUILTIN_THEMES.map((p) => [p.id, p]));
 
-/** The seven recognised config category keys. fanServiceConfig joined the
- * other six as of the per-theme Fan Service preset system — every
- * built-in theme now ships its own tuned Super Chat/Membership look (see
- * shared/theme-presets/helpers.js#defaultThemeFanService and
- * docs/refactor-superchat-to-fanservice.md Open Question OQ-1) instead of
- * every theme sharing shared/fan-service-config.js#DEFAULT_FAN_SERVICE_CONFIG. */
+// The seven recognised config category keys. fanServiceConfig joined the
 const CONFIG_CATEGORIES = [
   'customizeConfig',
   'layoutConfig',
@@ -83,16 +52,9 @@ const CATEGORY_DEFAULTS = {
 };
 
 // ---------------------------------------------------------------------------
-// Public API
 // ---------------------------------------------------------------------------
 
-/**
- * Returns a lightweight list of available themes for display in picker UIs.
- * Only safe-to-expose metadata is included — no full config objects.
- *
- * @returns {{ id: string, name: string, description: string, author: string,
- *             version: string, category: string, tags: string[] }[]}
- */
+// Returns a lightweight list of available themes for display in picker UIs.
 function GetThemeList() {
   return BUILTIN_THEMES.map(({ id, name, description, author, version, category, tags }) => ({
     id, name, description,
@@ -103,26 +65,14 @@ function GetThemeList() {
   }));
 }
 
-/**
- * Loads a theme by id and returns it fully normalised.
- * Returns null if no theme with that id exists.
- *
- * @param {string} id
- * @returns {object|null}
- */
+// Loads a theme by id and returns it fully normalised.
 function LoadTheme(id) {
   const theme = _themeMap.get(id);
   if (!theme) return null;
   return NormalizeTheme(theme);
 }
 
-/**
- * Validates that `obj` contains every required config category and that each
- * category is a non-null plain object.
- *
- * @param {unknown} obj
- * @returns {{ valid: boolean, errors: string[] }}
- */
+// Validates that `obj` contains every required config category and that each
 function ValidateTheme(obj) {
   const errors = [];
 
@@ -141,14 +91,7 @@ function ValidateTheme(obj) {
   return { valid: errors.length === 0, errors };
 }
 
-/**
- * Fills every missing field of each config category with canonical defaults,
- * using the same merge functions the rest of the application relies on.
- * This guarantees that the returned object is complete and safe to apply.
- *
- * @param {object} raw — a (possibly partial) preset or user-supplied theme object.
- * @returns {object} — a fully-normalised theme object with all six categories.
- */
+// Fills every missing field of each config category with canonical defaults,
 function NormalizeTheme(raw) {
   const src = raw || {};
   const normalized = {};
@@ -163,19 +106,7 @@ function NormalizeTheme(raw) {
   return normalized;
 }
 
-/**
- * Applies a named theme into the given config-store instance and broadcasts
- * the change, without touching the overlay theme (the existing theme stays
- * selected; only appearance settings change).
- *
- * The `store` parameter is expected to expose `.get()` and `.set(partial)`,
- * matching the ConfigStore class in main/store/config-store.js.
- *
- * @param {string} themeId
- * @param {{ get: () => object, set: (partial: object) => object }} store
- * @returns {{ ok: boolean, error?: string, customizeConfig?, layoutConfig?,
- *             slotStyleConfig?, animationConfig?, decorationConfig?, roleStyleConfig? }}
- */
+// Applies a named theme into the given config-store instance and broadcasts
 function ApplyTheme(themeId, store) {
   const theme = LoadTheme(themeId);
   if (!theme) {
@@ -215,20 +146,7 @@ function ApplyTheme(themeId, store) {
   };
 }
 
-/**
- * Resets all appearance settings to the defaults of whichever theme is
- * currently selected in the store. This is identical to the existing
- * `theme:reset-preset` IPC handler's logic, expressed as a pure data call.
- *
- * The `resolveThemeState` function is injected by the caller (typically
- * main/store/theme-state.js#resolveThemeState) so that ThemeManager stays
- * decoupled from the file system.
- *
- * @param {{ get: () => object, set: (partial: object) => object }} store
- * @param {(themeId: string) => object} resolveThemeState
- * @returns {{ ok: boolean, customizeConfig?, layoutConfig?,
- *             slotStyleConfig?, animationConfig?, decorationConfig?, roleStyleConfig? }}
- */
+// Resets all appearance settings to the defaults of whichever theme is
 function ResetCurrentTheme(store, resolveThemeState) {
   const themeId = store.get().selectedTheme;
   const fresh = resolveThemeState(themeId);
@@ -265,20 +183,7 @@ function ResetCurrentTheme(store, resolveThemeState) {
   };
 }
 
-/**
- * Resets a single config category to its theme baseline while leaving all
- * other categories unchanged. The baseline comes from the currently active
- * theme (identified by `themeId`) or, when no matching theme exists, from
- * the category's hard-coded defaults.
- *
- * Valid category values: 'customizeConfig' | 'layoutConfig' | 'slotStyleConfig'
- *                        | 'animationConfig' | 'decorationConfig' | 'roleStyleConfig'
- *
- * @param {string} category — one of CONFIG_CATEGORIES
- * @param {string|null} themeId — the id of the currently active theme (may be null)
- * @param {{ get: () => object, set: (partial: object) => object }} store
- * @returns {{ ok: boolean, error?: string, category?: string, [category]?: object }}
- */
+// Resets a single config category to its theme baseline while leaving all
 function ResetCategory(category, themeId, store) {
   if (!CONFIG_CATEGORIES.includes(category)) {
     return {
@@ -302,7 +207,6 @@ function ResetCategory(category, themeId, store) {
 }
 
 // ---------------------------------------------------------------------------
-// Exports
 // ---------------------------------------------------------------------------
 
 module.exports = {

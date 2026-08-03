@@ -1,6 +1,4 @@
-/**
- * Theme preset: karaoke
- */
+// Theme preset: karaoke
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 
@@ -63,9 +61,6 @@ module.exports = {
     position: 'bottom-up',
     maxMessages: 40,
     poolWarmupSize: 20,
-    // Danmaku — bullet comments fly right-to-left like karaoke-room laser
-    // beams instead of stacking. Extra bottom clearance (20%) leaves room
-    // for a lyrics/subtitle bar so bullets never fly over the song text.
     displayMode: 'danmaku',
     danmakuSpeed: 1,
     danmakuLanes: 10,

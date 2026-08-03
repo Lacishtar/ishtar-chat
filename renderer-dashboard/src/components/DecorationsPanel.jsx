@@ -28,11 +28,6 @@ const PLACEMENT_OPTIONS = [
   { value: 'custom', label: 'Tùy chỉnh tự do (Custom X/Y)' },
 ];
 
-// Vietnamese labels for shared/decoration-config.js#MASK_TARGETS. 'avatar',
-// 'bubble', 'username', and 'chatContainer' are wired to real shape sources;
-// the rest are reserved so the UI already reads naturally once those targets
-// are implemented. The *set* of values always comes from MASK_TARGETS itself
-// (imported above), so this can only add a missing label, never drift on values.
 const MASK_TARGET_LABELS = {
   avatar: 'Avatar',
   bubble: 'Bubble (khung chat)',
@@ -58,9 +53,6 @@ const STACK_LAYER_OPTIONS = [
   { value: 'background', label: 'Hậu cảnh — trong bubble, dưới chữ' },
 ];
 
-// Vietnamese labels for shared/decoration-config.js#IDLE_ANIMATIONS. The
-// *set* of values always comes from IDLE_ANIMATIONS itself (imported above),
-// so this can only add a missing label, never drift on values.
 const IDLE_ANIMATION_LABELS = {
   none: 'Không — đứng yên',
   float: 'Trôi nổi nhẹ (Float)',
@@ -109,18 +101,12 @@ function createDefaultLayer() {
     // Visibility condition defaults.
     visibilityRoles: [],
     memberMonthsMin: 0,
-    // Stack layer default — kept in sync with shared/decoration-config.js#DEFAULT_LAYER.
     stackLayer: 'foreground',
-    // Idle animation default — kept in sync with shared/decoration-config.js#DEFAULT_LAYER.
     idleAnimation: 'none',
   };
 }
 
-/**
- * A range slider paired with a small editable number input, so precise
- * values can be typed directly instead of hunting for them on the slider.
- * Both controls stay in sync and share the same onChange.
- */
+// A range slider paired with a small editable number input, so precise
 function RangeField({ label, value, min, max, step = 1, unit = '', onChange }) {
   const commit = (raw) => {
     const n = Number(raw);
@@ -262,13 +248,10 @@ const VISIBILITY_ROLE_LABELS = {
   chat: 'Chat thường (không role)',
 };
 
-/**
- * Visibility condition controls for a single decoration layer.
- *
- * Checkboxes → OR logic: lớp hiện khi người gửi khớp BẤT KỲ token nào được chọn.
- * Không chọn gì → hiện với tất cả.
- * Khi 'member' được chọn → hiện thêm slider số tháng tối thiểu.
- */
+// Visibility condition controls for a single decoration layer.
+// Checkboxes → OR logic: lớp hiện khi người gửi khớp BẤT KỲ token nào được chọn.
+// Không chọn gì → hiện với tất cả.
+// Khi 'member' được chọn → hiện thêm slider số tháng tối thiểu.
 function VisibilitySection({ layer, set }) {
   const roles = Array.isArray(layer.visibilityRoles) ? layer.visibilityRoles : [];
   const memberMonthsMin = layer.memberMonthsMin ?? 0;
@@ -515,11 +498,7 @@ function LayerCard({ layer, index, count, open, onToggleOpen, onChange, onRemove
   );
 }
 
-/**
- * Mask controls for a single decoration layer. Collapsible on its own so a
- * disabled mask doesn't take up space by default — it starts open only when
- * the layer already has a mask enabled.
- */
+// Mask controls for a single decoration layer. Collapsible on its own so a
 function MaskSection({ layer, set }) {
   const maskEnabled = layer.maskEnabled === true;
   const [open, setOpen] = useState(maskEnabled);

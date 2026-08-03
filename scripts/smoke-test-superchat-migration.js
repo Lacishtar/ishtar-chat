@@ -1,10 +1,3 @@
-// Verifies main/store/config-store.js#migrateSuperchatRoleIntoFanService —
-// the one-time migration that carries a legacy config.json's
-// roleStyleConfig.roles.superchat customization into fanServiceConfig
-// during the Super Chat -> Fan Service refactor
-// (docs/refactor-superchat-to-fanservice.md section 4). This module doesn't
-// touch Electron's `app`, so it's required directly (unlike ConfigStore,
-// which needs a real Electron app instance).
 const { migrateSuperchatRoleIntoFanService } = require('../main/store/config-store');
 const { DEFAULT_FAN_SERVICE_CONFIG, mergeFanServiceConfig } = require('../shared/fan-service-config');
 
@@ -29,9 +22,6 @@ const legacyOff = migrateSuperchatRoleIntoFanService(
 );
 assert(legacyOff === baseFanService, 'legacy superchat.enabled === false -> fanServiceConfig returned untouched');
 
-// ── 3. Legacy roles.superchat enabled: true, tier color on — migrates into
-//      fanServiceConfig.superchat with enabled: true so the overlay keeps
-//      looking the same after updating ───────────────────────────────────
 const legacyOn = migrateSuperchatRoleIntoFanService(
   {
     roles: {

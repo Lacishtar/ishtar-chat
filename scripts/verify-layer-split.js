@@ -1,18 +1,3 @@
-// Verifies the movement/idle/render DOM layer split described in the
-// architecture doc: each message node is
-//   .ovs-slot   (movement: JS ticker translate3d / CSS danmaku fly / none)
-//     > .ovs-idle (idle: idle-animations.css float/slidex, always)
-//       > .ovs-message (render: bubble background/padding/radius + slots)
-//
-// Loads the REAL overlay CSS files + the real theme template.html into
-// jsdom (same approach as verify-decoration-cascade.js) and asserts, for
-// every display mode, that:
-//   - .ovs-idle always carries the idle float animation (no mode branching)
-//   - .ovs-slot only gets movement positioning/animation in ticker/danmaku
-//   - .ovs-message NEVER carries any animation itself — the render layer
-//     must stay free of both movement and idle, or a future effect added
-//     there would silently re-create the original bug (two writers on
-//     one element's `transform`).
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
@@ -37,9 +22,6 @@ const CSS_FILES = [
 ];
 
 const css = CSS_FILES.map((f) => fs.readFileSync(path.join(OVERLAY_DIR, f), 'utf8')).join('\n');
-// The message template is now inlined directly in overlay/index.html
-// (#ovs-message-template) rather than living in a separate per-theme
-// template.html — extract it from there.
 const overlayHtml = fs.readFileSync(path.join(OVERLAY_DIR, 'index.html'), 'utf8');
 const templateMatch = overlayHtml.match(/<template id="ovs-message-template">[\s\S]*?<\/template>/);
 if (!templateMatch) throw new Error('could not find #ovs-message-template in overlay/index.html');
@@ -70,9 +52,6 @@ function buildNode(mode) {
   return { dom, slot };
 }
 
-// jsdom's computed-style object doesn't expand the `animation` shorthand
-// into the longhand `animationName`, so check both forms and combine —
-// whichever the CSS source actually used will show up in one of them.
 function animationNameOf(win, el) {
   const cs = win.getComputedStyle(el);
   return (cs.getPropertyValue('animation-name') || '') + (cs.animation || '');

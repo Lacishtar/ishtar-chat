@@ -1,6 +1,4 @@
-/**
- * Theme preset: anime
- */
+// Theme preset: anime
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

@@ -3,10 +3,6 @@ import { mergeSlot } from '../components/Customize/shared/configHelpers.js';
 
 const EditorStateContext = createContext(null);
 
-// Debounce windows match what each panel used previously — they only gate
-// *when the IPC call fires*. The buffers below are never debounced: every
-// pushX() call updates its buffer synchronously, in the same tick as the
-// user's keystroke/drag/click.
 const CONFIG_DEBOUNCE_MS = 100;
 const SLOT_DEBOUNCE_MS = 100;
 const LAYOUT_DEBOUNCE_MS = 100;
@@ -27,23 +23,7 @@ function applyInitialState(state, setters) {
   setters.setStatus(state.status);
 }
 
-/**
- * EditorStateProvider — the ONE source of truth for every piece of overlay
- * data that the dashboard edits: customize config, slot styles, animation,
- * layout, decorations, and role styles.
- *
- * Previously each panel (Inspector, LayoutPanel, DecorationsPanel,
- * RoleStylesPanel) kept its own `local` state, debounced-pushed it to the
- * main process, and App.jsx kept a *second* copy that only updated once the
- * IPC round-trip completed and broadcast back. Saving a Custom Preset read
- * from App's copy, which meant a save immediately after an edit serialized
- * the previous value instead of what was on screen.
- *
- * Now there is exactly one buffer per category, owned here. Editing UI
- * writes to it immediately (no waiting on IPC); IPC pushes are debounced
- * purely to avoid flooding the backend, and the same buffer is what gets
- * serialized when saving a preset.
- */
+// EditorStateProvider — the ONE source of truth for every piece of overlay
 export function EditorStateProvider({ api, children }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -62,6 +42,10 @@ export function EditorStateProvider({ api, children }) {
   const [lastSessionUrl, setLastSessionUrl] = useState('');
   const [status, setStatus] = useState({ status: 'idle', error: null });
   const [previewKey, setPreviewKey] = useState(0);
+
+  // ── Multi-port state ──────────────────────────────────────────────────────
+  const [ports, setPorts] = useState([]);
+  const [selectedPortId, setSelectedPortId] = useState(null);
 
   const configDebounce = useRef(null);
   const slotDebounce = useRef(null);
@@ -89,6 +73,9 @@ export function EditorStateProvider({ api, children }) {
           setLastSessionUrl,
           setStatus,
         });
+        // Port list from initial state
+        if (state.ports) setPorts(state.ports);
+        if (state.selectedPortId) setSelectedPortId(state.selectedPortId);
         setLoading(false);
       })
       .catch((err) => {
@@ -108,9 +95,6 @@ export function EditorStateProvider({ api, children }) {
           setPreviewKey((k) => k + 1);
         }
       }),
-      // These broadcasts are the backend echoing back the authoritative
-      // merged value (our own debounced push resolving, another window's
-      // edit, or a theme/category reset) — they replace the buffer outright.
       api.onConfigUpdated((payload) => setLocal(payload)),
       api.onLayoutUpdated((payload) => setLayoutLocal(payload)),
       api.onSlotStyleUpdated((payload) => setSlotLocal(payload)),
@@ -119,19 +103,12 @@ export function EditorStateProvider({ api, children }) {
       api.onFanServiceUpdated?.((payload) => setFanServiceLocal(payload)),
       api.onAnimationUpdated?.((payload) => setAnimLocal(payload)),
       api.onThemeChanged((payload) => {
-        // Loading a theme (or a Custom Preset, which reuses this same
-        // broadcast) replaces every buffer with the freshly loaded values —
-        // this becomes the new live editing state, not just a sync target.
         setLocal(payload.config);
         setLayoutLocal(payload.layoutConfig);
         setSlotLocal(payload.slotStyleConfig);
         setDecorationLocal(payload.decorationConfig);
         setRoleLocal(payload.roleStyleConfig);
         setAnimLocal(payload.animationConfig);
-        // Fan Service is now themed too — every built-in theme carries its
-        // own fanServiceConfig (see shared/theme-presets/helpers.js#defaultThemeFanService),
-        // so switching themes (or loading a Custom Preset, which reuses
-        // this broadcast) must replace this buffer as well.
         if (payload.fanServiceConfig) setFanServiceLocal(payload.fanServiceConfig);
         setPreviewKey((k) => k + 1);
       }),
@@ -163,9 +140,6 @@ export function EditorStateProvider({ api, children }) {
     [api],
   );
 
-  // A discrete pick (e.g. choosing an animation style), applied immediately —
-  // the backend computes the expanded `targets`, so we adopt its response
-  // rather than debouncing.
   const pushAnimationUpdate = useCallback(
     async (partial) => {
       const result = await api.updateAnimation(partial);
@@ -175,9 +149,6 @@ export function EditorStateProvider({ api, children }) {
     [api],
   );
 
-  // Layout panel deals in a "simple" contracted shape but the buffer (and
-  // what main/backend/presets expect) is always the full expanded shape —
-  // callers pass the already-expanded full config.
   const pushLayoutUpdate = useCallback(
     (nextLayoutConfig) => {
       setLayoutLocal(nextLayoutConfig);
@@ -242,12 +213,7 @@ export function EditorStateProvider({ api, children }) {
     return result;
   }, [api]);
 
-  /**
-   * Serializes the CURRENT editing buffers — the exact same state the
-   * Inspector/LayoutPanel/DecorationsPanel/RoleStylesPanel are rendering
-   * right now, not a copy that depends on an IPC round-trip having landed.
-   * This is what CustomPresetsPanel calls when saving/overwriting a preset.
-   */
+  // Serializes the CURRENT editing buffers — the exact same state the
   const buildPresetSnapshot = useCallback(
     () => ({
       customizeConfig: local,
@@ -256,8 +222,79 @@ export function EditorStateProvider({ api, children }) {
       animationConfig: animLocal,
       decorationConfig: decorationLocal,
       roleStyleConfig: roleLocal,
+      fanServiceConfig: fanServiceLocal,
     }),
-    [local, layoutLocal, slotLocal, animLocal, decorationLocal, roleLocal],
+    [local, layoutLocal, slotLocal, animLocal, decorationLocal, roleLocal, fanServiceLocal],
+  );
+
+  // ── Port actions ───────────────────────────────────────────────────────────
+
+  /**
+   * Switch the dashboard to editing a different port.
+   * The main process returns the full state of that port; we apply it to all
+   * editing buffers so the panels immediately reflect the new port's settings.
+   */
+  const selectPort = useCallback(
+    async (id) => {
+      const result = await api.portSelect(id);
+      if (!result?.ok) return;
+
+      setLocal(result.customizeConfig);
+      setLayoutLocal(result.layoutConfig);
+      setSlotLocal(result.slotStyleConfig);
+      setDecorationLocal(result.decorationConfig);
+      setRoleLocal(result.roleStyleConfig);
+      setAnimLocal(result.animationConfig);
+      if (result.fanServiceConfig) setFanServiceLocal(result.fanServiceConfig);
+      setOverlayUrl(result.overlayUrl);
+      setSelectedPortId(result.selectedPortId);
+      if (result.ports) setPorts(result.ports);
+      setPreviewKey((k) => k + 1);
+    },
+    [api],
+  );
+
+  /** Create a new port (cloned from the currently selected one). */
+  const createPort = useCallback(
+    async (name) => {
+      const result = await api.portCreate(name);
+      if (!result?.ok) return result;
+
+      // Auto-switch to the new port
+      setOverlayUrl(result.overlayUrl);
+      setSelectedPortId(result.selectedPortId);
+      if (result.ports) setPorts(result.ports);
+      setPreviewKey((k) => k + 1);
+      return result;
+    },
+    [api],
+  );
+
+  /** Remove a port by id. */
+  const removePort = useCallback(
+    async (id) => {
+      const result = await api.portRemove(id);
+      if (!result?.ok) return result;
+
+      if (result.ports) setPorts(result.ports);
+
+      // If the deleted port was selected, switch to whatever the backend chose
+      if (result.newSelectedId && result.newSelectedId !== selectedPortId) {
+        await selectPort(result.newSelectedId);
+      }
+      return result;
+    },
+    [api, selectedPortId, selectPort],
+  );
+
+  /** Rename a port. */
+  const renamePort = useCallback(
+    async (id, name) => {
+      const result = await api.portRename(id, name);
+      if (result?.ports) setPorts(result.ports);
+      return result;
+    },
+    [api],
   );
 
   const value = {
@@ -290,6 +327,14 @@ export function EditorStateProvider({ api, children }) {
     pushFanServiceUpdate,
     resetPreset,
     buildPresetSnapshot,
+
+    // Multi-port
+    ports,
+    selectedPortId,
+    selectPort,
+    createPort,
+    removePort,
+    renamePort,
   };
 
   return <EditorStateContext.Provider value={value}>{children}</EditorStateContext.Provider>;

@@ -1,6 +1,4 @@
-/**
- * Theme preset: pastel-pink
- */
+// Theme preset: pastel-pink
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

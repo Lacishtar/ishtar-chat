@@ -1,6 +1,4 @@
-/**
- * Theme preset: maid
- */
+// Theme preset: maid
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

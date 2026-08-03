@@ -4,10 +4,8 @@ const { app, ipcMain, dialog } = require('electron');
 
 const { createMainWindow } = require('./window-manager');
 const { CaptureManager } = require('./capture-manager');
-const { ConfigStore } = require('./store/config-store');
 const { CustomPresetsStore, validateImportedPresets } = require('./store/custom-presets-store');
-const { startServer } = require('./server/http-server');
-const { attachWebSocketServer } = require('./server/ws-server');
+const { PortManager } = require('./port-manager');
 const { mergeLayoutConfig } = require('../shared/layout-config');
 const { mergeSlotStyleConfig } = require('../shared/slot-style-config');
 const { mergeAnimationConfig } = require('../shared/animation-config');
@@ -23,35 +21,12 @@ const MAX_HISTORY = 200;
 
 let mainWindow;
 let captureManager;
-let configStore;
 let customPresetsStore;
-let httpPort;
-let wsBroadcast;
+let portManager;
 let latestStatus = { status: 'idle', error: null, videoId: null };
 let messageHistory = [];
 
-function getOverlayState() {
-  const state = configStore.get();
-  return {
-    themeId: state.selectedTheme,
-    config: state.customizeConfig,
-    layoutConfig: state.layoutConfig,
-    slotStyleConfig: state.slotStyleConfig,
-    animationConfig: state.animationConfig,
-    decorationConfig: state.decorationConfig,
-    roleStyleConfig: state.roleStyleConfig,
-    fanServiceConfig: state.fanServiceConfig,
-    history: messageHistory,
-  };
-}
-
-// Fixed URL: no session id, no query string. As long as the app keeps
-// using the same preferred port (3000, see startServer below), this stays
-// identical across restarts — paste it into the OBS Browser Source once
-// and it keeps working.
-function getOverlayUrl() {
-  return `http://localhost:${httpPort}/overlay`;
-}
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function safeSend(win, channel, payload) {
   if (win && !win.isDestroyed()) {
@@ -59,18 +34,32 @@ function safeSend(win, channel, payload) {
   }
 }
 
+/** Selected port's configStore (shorthand). */
+function cs() {
+  return portManager.getSelected().configStore;
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+
 async function bootstrap() {
-  configStore = new ConfigStore();
+  portManager = new PortManager(() => messageHistory);
   customPresetsStore = new CustomPresetsStore();
+
+  await portManager.initialize();
+
+  // Read window bounds from the default (first) port's config
+  const defaultConfig = portManager.getSelected().configStore.get();
 
   mainWindow = createMainWindow({
     preloadPath: path.join(__dirname, '..', 'preload', 'dashboard-preload.js'),
-    bounds: configStore.get().windowBounds,
+    bounds: defaultConfig.windowBounds,
   });
 
   mainWindow.on('close', () => {
     const { width, height } = mainWindow.getBounds();
-    configStore.set({ windowBounds: { width, height } });
+    // Persist window size into the default port store only
+    const defaultEntry = Array.from(portManager.ports.values())[0];
+    defaultEntry?.configStore.set({ windowBounds: { width, height } });
   });
 
   captureManager = new CaptureManager(mainWindow);
@@ -87,23 +76,24 @@ async function bootstrap() {
     }
 
     safeSend(mainWindow, 'chat:new', message);
-    if (wsBroadcast) wsBroadcast('chat:new', message);
+    // Broadcast new chat messages to EVERY port so all OBS scenes stay in sync
+    portManager.broadcastAll('chat:new', message);
   });
-
-  const { server, port } = await startServer(getOverlayState, 3000, 10);
-  httpPort = port;
-  const { broadcast } = attachWebSocketServer(server, getOverlayState);
-  wsBroadcast = broadcast;
 
   registerIpcHandlers();
 
-  // Khởi tạo hệ thống tự động cập nhật
   initializeAutoUpdater();
 }
 
+// ── IPC Handlers ──────────────────────────────────────────────────────────────
+
 function registerIpcHandlers() {
+
+  // ── App / Connection ────────────────────────────────────────────────────────
+
   ipcMain.handle('app:get-initial-state', () => {
-    const state = configStore.get();
+    const state = cs().get();
+    const sel = portManager.getSelected();
     return {
       status: latestStatus,
       selectedTheme: state.selectedTheme,
@@ -115,15 +105,19 @@ function registerIpcHandlers() {
       roleStyleConfig: state.roleStyleConfig,
       fanServiceConfig: state.fanServiceConfig,
       lastSessionUrl: state.lastSessionUrl,
-      overlayUrl: getOverlayUrl(),
-      port: httpPort,
+      overlayUrl: `http://localhost:${sel.httpPort}/overlay`,
+      port: sel.httpPort,
+      // Multi-port additions
+      ports: portManager.list(),
+      selectedPortId: portManager.selectedPortId,
     };
   });
 
   ipcMain.handle('app:connect', async (_event, url) => {
-    configStore.set({ lastSessionUrl: url });
+    // lastSessionUrl is stored per-port so each port remembers the same stream
+    portManager.ports.forEach(({ configStore }) => configStore.set({ lastSessionUrl: url }));
     messageHistory = [];
-    if (wsBroadcast) wsBroadcast('chat:cleared', {});
+    portManager.broadcastAll('chat:cleared', {});
     const result = await captureManager.connect(url);
     return result;
   });
@@ -134,16 +128,70 @@ function registerIpcHandlers() {
     return { ok: true };
   });
 
+  // ── Port Management ─────────────────────────────────────────────────────────
+
+  ipcMain.handle('port:list', () => portManager.list());
+
+  ipcMain.handle('port:create', async (_event, { name }) => {
+    const result = await portManager.create(name);
+    // After creation, auto-select the new port
+    portManager.select(result.id);
+    return { ok: true, ...result, ports: portManager.list(), selectedPortId: portManager.selectedPortId };
+  });
+
+  ipcMain.handle('port:remove', async (_event, id) => {
+    const result = await portManager.remove(id);
+    if (!result.ok) return result;
+    return { ...result, ports: portManager.list(), selectedPortId: portManager.selectedPortId };
+  });
+
+  ipcMain.handle('port:rename', (_event, { id, name }) => {
+    const result = portManager.rename(id, name);
+    if (!result.ok) return result;
+    return { ...result, ports: portManager.list() };
+  });
+
+  /**
+   * port:select — switch which port the dashboard is editing.
+   * Returns the full state of the newly selected port so the dashboard can
+   * update its editing buffers without a separate round-trip.
+   */
+  ipcMain.handle('port:select', (_event, id) => {
+    const ok = portManager.select(id);
+    if (!ok) return { ok: false, error: 'port_not_found' };
+
+    const state = cs().get();
+    const sel = portManager.getSelected();
+    return {
+      ok: true,
+      id,
+      selectedTheme: state.selectedTheme,
+      customizeConfig: state.customizeConfig,
+      layoutConfig: state.layoutConfig,
+      slotStyleConfig: state.slotStyleConfig,
+      animationConfig: state.animationConfig,
+      decorationConfig: state.decorationConfig,
+      roleStyleConfig: state.roleStyleConfig,
+      fanServiceConfig: state.fanServiceConfig,
+      overlayUrl: `http://localhost:${sel.httpPort}/overlay`,
+      port: sel.httpPort,
+      ports: portManager.list(),
+      selectedPortId: id,
+    };
+  });
+
+  // ── Theme ───────────────────────────────────────────────────────────────────
+
   ipcMain.handle('theme:is-dirty', () => {
-    const state = configStore.get();
+    const state = cs().get();
     const dirtyFields = getDirtyFields(state, state.selectedTheme);
     return { dirty: dirtyFields.length > 0, dirtyFields };
   });
 
   ipcMain.handle('theme:reset-preset', () => {
-    const themeId = configStore.get().selectedTheme;
+    const themeId = cs().get().selectedTheme;
     const fresh = resolveThemeState(themeId);
-    configStore.set({
+    cs().set({
       customizeConfig: fresh.customizeConfig,
       layoutConfig: fresh.layoutConfig,
       slotStyleConfig: fresh.slotStyleConfig,
@@ -162,7 +210,8 @@ function registerIpcHandlers() {
       roleStyleConfig,
       fanServiceConfig,
     } = fresh;
-    wsBroadcast('theme:changed', {
+
+    portManager.broadcastSelected('theme:changed', {
       themeId,
       config,
       layoutConfig,
@@ -195,85 +244,16 @@ function registerIpcHandlers() {
     };
   });
 
-  ipcMain.handle('config:update', (_event, partialConfig) => {
-    const merged = { ...configStore.get().customizeConfig, ...partialConfig };
-    configStore.set({ customizeConfig: merged });
-
-    wsBroadcast('config:updated', merged);
-    return { ok: true, config: merged };
-  });
-
-  ipcMain.handle('layout:update', (_event, partialLayout) => {
-    const merged = mergeLayoutConfig(configStore.get().layoutConfig, partialLayout);
-    configStore.set({ layoutConfig: merged });
-
-    wsBroadcast('layout:updated', merged);
-    return { ok: true, layoutConfig: merged };
-  });
-
-  ipcMain.handle('slot-style:update', (_event, partialSlotStyle) => {
-    const merged = mergeSlotStyleConfig(configStore.get().slotStyleConfig, partialSlotStyle);
-    configStore.set({ slotStyleConfig: merged });
-
-    wsBroadcast('slot-style:updated', merged);
-    return { ok: true, slotStyleConfig: merged };
-  });
-
-  ipcMain.handle('animation:update', (_event, partialAnimation) => {
-    const merged = mergeAnimationConfig(configStore.get().animationConfig, partialAnimation);
-    configStore.set({ animationConfig: merged });
-
-    wsBroadcast('animation:updated', merged);
-    return { ok: true, animationConfig: merged };
-  });
-
-  ipcMain.handle('decoration:update', (_event, partialDecoration) => {
-    const merged = mergeDecorationConfig(configStore.get().decorationConfig, partialDecoration);
-    configStore.set({ decorationConfig: merged });
-
-    wsBroadcast('decoration:updated', merged);
-    safeSend(mainWindow, 'decoration:updated', merged);
-    return { ok: true, decorationConfig: merged };
-  });
-
-  ipcMain.handle('role-style:update', (_event, partialRoleStyle) => {
-    const before = configStore.get().roleStyleConfig;
-    const merged = mergeRoleStyleConfig(before, partialRoleStyle);
-    configStore.set({ roleStyleConfig: merged });
-
-    wsBroadcast('role-style:updated', merged);
-    safeSend(mainWindow, 'role-style:updated', merged);
-    return { ok: true, roleStyleConfig: merged };
-  });
-
-  // Direct live edits from the Fan Service tab — a partial patch merged
-  // onto whichever group the user is editing. Fan Service is now part of
-  // the theme-baseline system (see CATEGORY_BROADCAST/theme:reset-preset/
-  // theme:apply below, and shared/theme-presets/helpers.js#defaultThemeFanService),
-  // but it still isn't (yet) captured by Custom Presets — those stay a
-  // deliberately separate 6-category snapshot, see
-  // main/store/custom-presets-store.js.
-  ipcMain.handle('fan-service:update', (_event, partialFanService) => {
-    const merged = mergeFanServiceConfig(configStore.get().fanServiceConfig, partialFanService);
-    configStore.set({ fanServiceConfig: merged });
-
-    wsBroadcast('fan-service:updated', merged);
-    safeSend(mainWindow, 'fan-service:updated', merged);
-    return { ok: true, fanServiceConfig: merged };
-  });
-
-  ipcMain.handle('theme:list', () => {
-    return GetThemeList();
-  });
+  ipcMain.handle('theme:list', () => GetThemeList());
 
   ipcMain.handle('theme:apply', (_event, themePresetId) => {
-    const result = ApplyTheme(themePresetId, configStore);
+    const result = ApplyTheme(themePresetId, cs());
     if (!result.ok) return result;
 
     const { customizeConfig: config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig, fanServiceConfig } = result;
-    const themeId = configStore.get().selectedTheme;
+    const themeId = cs().get().selectedTheme;
 
-    wsBroadcast('theme:changed', { themeId, config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig, fanServiceConfig, history: messageHistory });
+    portManager.broadcastSelected('theme:changed', { themeId, config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig, fanServiceConfig, history: messageHistory });
     safeSend(mainWindow, 'theme:changed', { themeId, config, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig, fanServiceConfig });
 
     return result;
@@ -281,56 +261,112 @@ function registerIpcHandlers() {
 
   // Category → WebSocket broadcast channel mapping
   const CATEGORY_BROADCAST = {
-    customizeConfig:  { channel: 'config:updated',     key: 'customizeConfig',  payloadKey: 'config' },
-    layoutConfig:     { channel: 'layout:updated',     key: 'layoutConfig',     payloadKey: 'layoutConfig' },
-    slotStyleConfig:  { channel: 'slot-style:updated', key: 'slotStyleConfig',  payloadKey: 'slotStyleConfig' },
-    animationConfig:  { channel: 'animation:updated',  key: 'animationConfig',  payloadKey: 'animationConfig' },
-    decorationConfig: { channel: 'decoration:updated', key: 'decorationConfig', payloadKey: 'decorationConfig' },
-    roleStyleConfig:  { channel: 'role-style:updated', key: 'roleStyleConfig',  payloadKey: 'roleStyleConfig' },
+    customizeConfig:  { channel: 'config:updated',      key: 'customizeConfig',  payloadKey: 'config' },
+    layoutConfig:     { channel: 'layout:updated',      key: 'layoutConfig',     payloadKey: 'layoutConfig' },
+    slotStyleConfig:  { channel: 'slot-style:updated',  key: 'slotStyleConfig',  payloadKey: 'slotStyleConfig' },
+    animationConfig:  { channel: 'animation:updated',   key: 'animationConfig',  payloadKey: 'animationConfig' },
+    decorationConfig: { channel: 'decoration:updated',  key: 'decorationConfig', payloadKey: 'decorationConfig' },
+    roleStyleConfig:  { channel: 'role-style:updated',  key: 'roleStyleConfig',  payloadKey: 'roleStyleConfig' },
     fanServiceConfig: { channel: 'fan-service:updated', key: 'fanServiceConfig', payloadKey: 'fanServiceConfig' },
   };
 
   ipcMain.handle('theme:reset-category', (_event, category) => {
-    const result = ResetCategory(category, null, configStore);
+    const result = ResetCategory(category, null, cs());
     if (!result.ok) return result;
 
     const broadcastInfo = CATEGORY_BROADCAST[category];
     if (broadcastInfo) {
-      const value = configStore.get()[broadcastInfo.key];
-      wsBroadcast(broadcastInfo.channel, value);
+      const value = cs().get()[broadcastInfo.key];
+      portManager.broadcastSelected(broadcastInfo.channel, value);
       safeSend(mainWindow, broadcastInfo.channel, value);
     }
 
     return result;
   });
 
+  // ── Config updates (all apply to the selected port) ─────────────────────────
+
+  ipcMain.handle('config:update', (_event, partialConfig) => {
+    const merged = { ...cs().get().customizeConfig, ...partialConfig };
+    cs().set({ customizeConfig: merged });
+    portManager.broadcastSelected('config:updated', merged);
+    return { ok: true, config: merged };
+  });
+
+  ipcMain.handle('layout:update', (_event, partialLayout) => {
+    const merged = mergeLayoutConfig(cs().get().layoutConfig, partialLayout);
+    cs().set({ layoutConfig: merged });
+    portManager.broadcastSelected('layout:updated', merged);
+    return { ok: true, layoutConfig: merged };
+  });
+
+  ipcMain.handle('slot-style:update', (_event, partialSlotStyle) => {
+    const merged = mergeSlotStyleConfig(cs().get().slotStyleConfig, partialSlotStyle);
+    cs().set({ slotStyleConfig: merged });
+    portManager.broadcastSelected('slot-style:updated', merged);
+    return { ok: true, slotStyleConfig: merged };
+  });
+
+  ipcMain.handle('animation:update', (_event, partialAnimation) => {
+    const merged = mergeAnimationConfig(cs().get().animationConfig, partialAnimation);
+    cs().set({ animationConfig: merged });
+    portManager.broadcastSelected('animation:updated', merged);
+    return { ok: true, animationConfig: merged };
+  });
+
+  ipcMain.handle('decoration:update', (_event, partialDecoration) => {
+    const merged = mergeDecorationConfig(cs().get().decorationConfig, partialDecoration);
+    cs().set({ decorationConfig: merged });
+    portManager.broadcastSelected('decoration:updated', merged);
+    safeSend(mainWindow, 'decoration:updated', merged);
+    return { ok: true, decorationConfig: merged };
+  });
+
+  ipcMain.handle('role-style:update', (_event, partialRoleStyle) => {
+    const merged = mergeRoleStyleConfig(cs().get().roleStyleConfig, partialRoleStyle);
+    cs().set({ roleStyleConfig: merged });
+    portManager.broadcastSelected('role-style:updated', merged);
+    safeSend(mainWindow, 'role-style:updated', merged);
+    return { ok: true, roleStyleConfig: merged };
+  });
+
+  ipcMain.handle('fan-service:update', (_event, partialFanService) => {
+    const merged = mergeFanServiceConfig(cs().get().fanServiceConfig, partialFanService);
+    cs().set({ fanServiceConfig: merged });
+    portManager.broadcastSelected('fan-service:updated', merged);
+    safeSend(mainWindow, 'fan-service:updated', merged);
+    return { ok: true, fanServiceConfig: merged };
+  });
+
   // ── Custom Presets ──────────────────────────────────────────────────────────
 
-  ipcMain.handle('custom-preset:list', () => {
-    return customPresetsStore.list();
-  });
+  ipcMain.handle('custom-preset:list', () => customPresetsStore.list());
 
   ipcMain.handle('custom-preset:save', (_event, { name, snapshot }) => {
     const list = customPresetsStore.save(name, snapshot);
     return { ok: true, list };
   });
 
-  ipcMain.handle('custom-preset:delete', (_event, id) => {
-    return customPresetsStore.delete(id);
-  });
+  ipcMain.handle('custom-preset:delete', (_event, id) => customPresetsStore.delete(id));
 
-  ipcMain.handle('custom-preset:rename', (_event, { id, newName }) => {
-    return customPresetsStore.rename(id, newName);
-  });
+  ipcMain.handle('custom-preset:rename', (_event, { id, newName }) => customPresetsStore.rename(id, newName));
 
   ipcMain.handle('custom-preset:apply', (_event, id) => {
     const preset = customPresetsStore.get(id);
     if (!preset) return { ok: false, error: 'preset_not_found' };
 
-    const { customizeConfig, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig } = preset;
-    configStore.set({ customizeConfig, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig });
+    const { customizeConfig, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig, fanServiceConfig } = preset;
+    cs().set({
+      customizeConfig,
+      layoutConfig,
+      slotStyleConfig,
+      animationConfig,
+      decorationConfig,
+      roleStyleConfig,
+      ...(fanServiceConfig !== undefined ? { fanServiceConfig } : {}),
+    });
 
-    const themeId = configStore.get().selectedTheme;
+    const themeId = cs().get().selectedTheme;
     const themePayload = {
       themeId,
       config: customizeConfig,
@@ -339,9 +375,10 @@ function registerIpcHandlers() {
       animationConfig,
       decorationConfig,
       roleStyleConfig,
+      fanServiceConfig,
       history: messageHistory,
     };
-    wsBroadcast('theme:changed', themePayload);
+    portManager.broadcastSelected('theme:changed', themePayload);
     safeSend(mainWindow, 'theme:changed', {
       themeId,
       config: customizeConfig,
@@ -350,9 +387,10 @@ function registerIpcHandlers() {
       animationConfig,
       decorationConfig,
       roleStyleConfig,
+      fanServiceConfig,
     });
 
-    return { ok: true, customizeConfig, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig };
+    return { ok: true, customizeConfig, layoutConfig, slotStyleConfig, animationConfig, decorationConfig, roleStyleConfig, fanServiceConfig };
   });
 
   ipcMain.handle('custom-preset:export', async () => {

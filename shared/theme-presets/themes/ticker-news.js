@@ -1,6 +1,4 @@
-/**
- * Theme preset: ticker-news
- */
+// Theme preset: ticker-news
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

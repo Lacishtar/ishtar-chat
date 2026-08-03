@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 
-const CONFIG_CATEGORIES = [
+// Required on every preset — these existed since the very first preset format.
+const REQUIRED_CATEGORIES = [
   'customizeConfig',
   'layoutConfig',
   'slotStyleConfig',
@@ -11,18 +12,19 @@ const CONFIG_CATEGORIES = [
   'roleStyleConfig',
 ];
 
+// Added later (Fan Service / Super Chat + Membership overrides). Treated as
+// optional so presets exported before this field existed still import fine —
+// but read/written whenever present so it round-trips correctly going forward.
+const OPTIONAL_CATEGORIES = ['fanServiceConfig'];
+
+const CONFIG_CATEGORIES = [...REQUIRED_CATEGORIES, ...OPTIONAL_CATEGORIES];
+
 function createPresetId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return `cp-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 }
 
-/**
- * Validates a parsed import payload and returns the set of valid preset
- * objects together with any per-entry error strings.
- *
- * @param {unknown} parsed
- * @returns {{ valid: boolean, errors: string[], presets: object[] }}
- */
+// Validates a parsed import payload and returns the set of valid preset
 function validateImportedPresets(parsed) {
   if (!parsed || typeof parsed !== 'object') {
     return { valid: false, errors: ['Định dạng JSON không hợp lệ.'], presets: [] };
@@ -49,7 +51,7 @@ function validateImportedPresets(parsed) {
       continue;
     }
 
-    const missingCats = CONFIG_CATEGORIES.filter((c) => !p[c] || typeof p[c] !== 'object');
+    const missingCats = REQUIRED_CATEGORIES.filter((c) => !p[c] || typeof p[c] !== 'object');
     if (missingCats.length > 0) {
       errors.push(`Preset "${p.name}": thiếu danh mục: ${missingCats.join(', ')}.`);
       continue;
@@ -61,13 +63,7 @@ function validateImportedPresets(parsed) {
   return { valid: validPresets.length > 0, errors, presets: validPresets };
 }
 
-/**
- * CustomPresetsStore — stores user-defined appearance presets in
- * `userData/custom-presets.json`, independent of the theme system.
- *
- * Public surface mirrors ConfigStore's minimal contract so callers are
- * consistent: no external state is mutated; the store owns its own file.
- */
+// CustomPresetsStore — stores user-defined appearance presets in
 class CustomPresetsStore {
   constructor() {
     this.filePath = path.join(app.getPath('userData'), 'custom-presets.json');
@@ -123,21 +119,14 @@ class CustomPresetsStore {
     return this._presets.find((p) => p.id === id) || null;
   }
 
-  /**
-   * Creates a new preset with `name` or overwrites an existing one if the
-   * name already exists (case-sensitive). Returns the updated metadata list.
-   *
-   * @param {string} name
-   * @param {object} snapshot — must contain all six CONFIG_CATEGORIES keys
-   * @returns {object[]} updated metadata list
-   */
+  // Creates a new preset with `name` or overwrites an existing one if the
   save(name, snapshot) {
     const existing = this._presets.find((p) => p.name === name);
     const now = new Date().toISOString();
 
     if (existing) {
       CONFIG_CATEGORIES.forEach((cat) => {
-        existing[cat] = snapshot[cat];
+        if (snapshot[cat] !== undefined) existing[cat] = snapshot[cat];
       });
       existing.updatedAt = now;
     } else {
@@ -154,13 +143,7 @@ class CustomPresetsStore {
     return this.list();
   }
 
-  /**
-   * Renames an existing preset by id.
-   *
-   * @param {string} id
-   * @param {string} newName
-   * @returns {{ ok: boolean, error?: string }}
-   */
+  // Renames an existing preset by id.
   rename(id, newName) {
     const preset = this._presets.find((p) => p.id === id);
     if (!preset) return { ok: false, error: 'preset_not_found' };
@@ -170,12 +153,7 @@ class CustomPresetsStore {
     return { ok: true };
   }
 
-  /**
-   * Deletes a preset by id.
-   *
-   * @param {string} id
-   * @returns {{ ok: boolean, error?: string }}
-   */
+  // Deletes a preset by id.
   delete(id) {
     const idx = this._presets.findIndex((p) => p.id === id);
     if (idx === -1) return { ok: false, error: 'preset_not_found' };
@@ -184,13 +162,7 @@ class CustomPresetsStore {
     return { ok: true };
   }
 
-  /**
-   * Merges an array of validated preset objects into the store.
-   * Presets whose `name` already exists are overwritten; the rest are added.
-   *
-   * @param {object[]} incoming — already validated by validateImportedPresets
-   * @returns {{ added: number, overwritten: number }}
-   */
+  // Merges an array of validated preset objects into the store.
   importPresets(incoming) {
     const now = new Date().toISOString();
     let added = 0;
@@ -200,7 +172,7 @@ class CustomPresetsStore {
       const existing = this._presets.find((e) => e.name === p.name);
       if (existing) {
         CONFIG_CATEGORIES.forEach((cat) => {
-          existing[cat] = p[cat];
+          if (p[cat] !== undefined) existing[cat] = p[cat];
         });
         existing.updatedAt = now;
         overwritten++;

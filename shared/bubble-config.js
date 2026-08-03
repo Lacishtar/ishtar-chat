@@ -1,12 +1,4 @@
-/**
- * BubbleConfig — declarative bubble style for ThemeDocument.style.bubble.
- *
- * Render modes (BubbleFactory):
- *   color    — CSS background on .ovs-message (Style Engine tokens)
- *   gradient — CSS linear-gradient on bubble shell
- *
- * padding = content inset inside the border box
- */
+// BubbleConfig — declarative bubble style for ThemeDocument.style.bubble.
 
 const BUBBLE_TYPES = ['color', 'gradient'];
 
@@ -84,9 +76,7 @@ function px(n) {
   return `${Math.round(n)}px`;
 }
 
-/**
- * Compiles bubble config → CSS custom properties for overlay/bubble-engine.css.
- */
+// Compiles bubble config → CSS custom properties for overlay/bubble-engine.css.
 function compileBubbleToCssVariables(bubble) {
   const b = mergeBubbleConfig(DEFAULT_BUBBLE_CONFIG, bubble);
   const p = b.padding;

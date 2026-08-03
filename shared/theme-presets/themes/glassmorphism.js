@@ -1,6 +1,4 @@
-/**
- * Theme preset: glassmorphism
- */
+// Theme preset: glassmorphism
 
 const { defaultLayout, defaultSlotStyle, emptyDecorations, defaultThemeFanService } = require('../helpers');
 

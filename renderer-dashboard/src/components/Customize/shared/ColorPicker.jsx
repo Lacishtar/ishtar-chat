@@ -6,6 +6,7 @@ import {
   parseGradient,
   serializeGradient,
   defaultGradientFrom,
+  parseColorInputStrict,
 } from './colorUtils.js';
 
 const tabBtn = (active) =>
@@ -13,28 +14,70 @@ const tabBtn = (active) =>
     active ? 'bg-focusAccent text-white' : 'text-inkMuted hover:text-ink'
   }`;
 
-/**
- * Unified color picker used everywhere in the Customize panel.
- *
- * - "Màu đơn" (solid): hex + alpha slider → always outputs `rgba(r, g, b, a)`.
- * - "Gradient": 2+ colour stops (each with its own hex + alpha + position),
- *   linear or radial, angle control → outputs a CSS
- *   `linear-gradient(...)` / `radial-gradient(...)` string.
- *
- * IMPORTANT: gradient stops are kept in local component state (with stable
- * ids) instead of being re-parsed from the serialized CSS string on every
- * render. Re-parsing on every render would hand out fresh ids each time,
- * which forces React to unmount/remount every stop row's inputs on every
- * drag tick — that's what caused the jank + "can't pick a color" bug
- * (dragging a slider or opening the native color popup got interrupted by
- * a remount mid-gesture). We only re-derive from `value` when it changes
- * for a reason other than our own `onChange` echoing back.
- *
- * `value` is a plain CSS color/gradient string; `onChange` is called with a
- * new string of the same shape. `allowGradient={false}` hides the Gradient
- * tab for spots where a gradient wouldn't render correctly (e.g. plain text
- * color, which shares its element with an existing bubble background).
- */
+// Text field for typing/pasting a hex (or rgba) color code. The native
+// `<input type="color">` swatch can't be typed or pasted into, so this is
+// the only way to paste a color code straight in. Keeps its own draft text
+// while focused so partial input (e.g. "#1a") isn't clobbered by re-renders,
+// and only calls onCommit once the text parses to a valid color.
+function HexInput({ hex, alpha, onCommit, className = '' }) {
+  const [draft, setDraft] = useState(hex);
+  const [invalid, setInvalid] = useState(false);
+  const focused = useRef(false);
+
+  useEffect(() => {
+    if (!focused.current) setDraft(hex);
+  }, [hex]);
+
+  function tryCommit(text) {
+    const parsed = parseColorInputStrict(text);
+    if (!parsed) {
+      setInvalid(true);
+      return false;
+    }
+    setInvalid(false);
+    onCommit(parsed);
+    return true;
+  }
+
+  return (
+    <input
+      type="text"
+      value={draft}
+      spellCheck={false}
+      onFocus={() => {
+        focused.current = true;
+      }}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        setInvalid(false);
+      }}
+      onPaste={(e) => {
+        const text = e.clipboardData.getData('text');
+        // Let the paste land in the field, then try to commit it.
+        setTimeout(() => tryCommit(text), 0);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur();
+      }}
+      onBlur={(e) => {
+        focused.current = false;
+        if (!tryCommit(e.target.value)) {
+          // Revert to the last valid color instead of leaving bad text sitting.
+          setDraft(hex);
+          setInvalid(false);
+        }
+      }}
+      placeholder="#RRGGBB"
+      title="Dán hoặc gõ mã màu (hex hoặc rgba)"
+      className={`min-w-0 rounded-md border bg-panelAlt px-1.5 py-1 text-[11px] font-mono uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-focusAccent ${
+        invalid ? 'border-red-400 text-red-400' : 'border-line text-ink'
+      } ${className}`}
+    />
+  );
+}
+
+// Unified color picker used everywhere in the Customize panel.
+// - "Màu đơn" (solid): hex + alpha slider → always outputs `rgba(r, g, b, a)`.
 export default function ColorPicker({ value, onChange, allowGradient = true }) {
   const lastEmitted = useRef(value);
   const [mode, setMode] = useState(allowGradient && isGradient(value) ? 'gradient' : 'solid');
@@ -142,11 +185,6 @@ export default function ColorPicker({ value, onChange, allowGradient = true }) {
 
         <div className="flex flex-col gap-2">
           {stops.map((s, i) => (
-            // Each stop is laid out on its own two rows (color+alpha+delete,
-            // then position) instead of one 5-control line. A single row
-            // needed ~180px of fixed-width controls plus two sliders, which
-            // overflowed/overlapped the moment this sat in a half-width grid
-            // column (or even the full 300px panel on smaller screens).
             <div key={s.id} className="flex flex-col gap-1 rounded-md border border-line/60 bg-panel/40 p-1.5 min-w-0">
               <div className="flex items-center gap-1.5">
                 <input
@@ -155,6 +193,12 @@ export default function ColorPicker({ value, onChange, allowGradient = true }) {
                   onChange={(e) => updateStop(s.id, { hex: e.target.value })}
                   className="h-7 w-8 shrink-0 rounded border border-line bg-panelAlt cursor-pointer"
                   title="Màu"
+                />
+                <HexInput
+                  hex={s.hex}
+                  alpha={s.alpha}
+                  onCommit={(parsed) => updateStop(s.id, { hex: parsed.hex, alpha: parsed.alpha })}
+                  className="w-20 h-7 shrink-0"
                 />
                 <div className="flex-1 flex flex-col gap-1 min-w-0">
                   <span className="text-[10px] text-inkMuted">Độ trong suốt — {Math.round(s.alpha * 100)}%</span>
@@ -226,6 +270,12 @@ export default function ColorPicker({ value, onChange, allowGradient = true }) {
           value={hex}
           onChange={(e) => emit(hexAlphaToRgba(e.target.value, alpha))}
           className="h-8 w-14 shrink-0 rounded-lg border border-line bg-panelAlt cursor-pointer"
+        />
+        <HexInput
+          hex={hex}
+          alpha={alpha}
+          onCommit={(parsed) => emit(hexAlphaToRgba(parsed.hex, parsed.alpha))}
+          className="w-24 h-8"
         />
         <div className="flex flex-1 flex-col gap-1 min-w-0">
           <span className="text-[10px] text-inkMuted">Độ trong suốt — {Math.round(alpha * 100)}%</span>

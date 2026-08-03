@@ -1,6 +1,3 @@
-// These helpers operate on the *overlay data* (customizeConfig / slotStyleConfig),
-// which is intentionally kept separate from Inspector-only UI state
-// (selected object, expanded sections, search, favorites — see useCustomizeState.js).
 
 export function mergeSlot(local, slot, patch) {
   return {

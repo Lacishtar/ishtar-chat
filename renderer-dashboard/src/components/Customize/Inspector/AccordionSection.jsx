@@ -1,16 +1,4 @@
-/**
- * A single collapsible group inside an object's Inspector.
- *
- * - `open` / `onToggle` are controlled by the parent so state can live in
- *   one place (useCustomizeState) instead of being scattered per-section.
- * - `favoriteKey`, when provided, renders a star that pins/unpins this
- *   section in the Favorites bar.
- * - `matched` is used by the search feature to visually highlight sections
- *   whose title or contents match the current search keyword.
- * - `headerExtra`, when provided, renders a control (e.g. an EnableToggle)
- *   in the header row, before the favorite star — for sections that need a
- *   toggle alongside their expand/collapse chevron (e.g. MaskSection).
- */
+// A single collapsible group inside an object's Inspector.
 import { ChevronDownIcon } from '../shared/icons.jsx';
 
 export default function AccordionSection({

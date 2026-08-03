@@ -1,13 +1,5 @@
-// In production this always talks to the real window.api exposed by
-// preload/dashboard-preload.js. The mock below only activates when the app
-// is opened in a plain browser tab (e.g. `npm run dev:dashboard` without
-// Electron), so the UI can be iterated on quickly without spinning up the
-// whole capturer/server stack.
 const hasElectronApi = typeof window !== 'undefined' && !!window.api;
 
-// Mirrors shared/animation-config.js#ANIMATION_STYLE_PRESETS + expandAnimationStyle —
-// kept small/duplicated here since the mock runs in a plain browser tab and
-// doesn't bundle the CJS shared/ modules used by the real Electron backend.
 const MOCK_BASE_TARGET_DIRECTIONS = {
   avatar: { delayMs: 0, translateX: 0, translateY: 8 },
   author: { delayMs: 40, translateX: -6, translateY: 0 },
@@ -79,10 +71,6 @@ function createMock() {
       member: { enabled: true, authorColor: '#93c5fd', badge: '★', fontSize: null },
     },
   };
-  // Mirrors shared/fan-service-config.js#createGroupConfig's shape exactly —
-  // kept in sync by hand since the mock runs in a plain browser tab and
-  // doesn't bundle the CJS shared/ modules used by the real Electron
-  // backend (same constraint as MOCK_ANIMATION_STYLE_PRESETS above).
   const mockGroupDefaults = {
     enabled: false,
     showAvatar: true, showAuthor: true, showMessage: true,
@@ -93,10 +81,6 @@ function createMock() {
     authorFontScale: 1, authorColor: '#6e56f0',
     messageFontScale: 1, messageColor: '#eaecef',
     showMemberMonths: true, monthsAlign: 'left', monthsFontScale: 1.25, monthsColor: '#ffd166',
-    // superchat-only — moved from role-style-config.js during the Super
-    // Chat -> Fan Service refactor (docs/refactor-superchat-to-fanservice.md).
-    // Present on both groups for shape consistency (real schema does the
-    // same); only the superchat group's editor UI reads them.
     badgeBefore: null, badgeAfter: null,
     useTierColor: true,
     showAmount: true, amountPosition: 'inline', amountAlign: 'center', amountFontScale: 1, amountFontWeight: 'bold',
@@ -119,6 +103,12 @@ function createMock() {
 
   // In-memory custom presets store for the mock
   let mockCustomPresets = [];
+
+  // ── Mock port state ────────────────────────────────────────────────────────
+  let mockPorts = [
+    { id: 'default', name: 'Port 1', httpPort: 3000, overlayUrl: 'http://localhost:3000/overlay', isSelected: true },
+  ];
+  let mockSelectedPortId = 'default';
 
   const statusListeners = new Set();
   const configListeners = new Set();
@@ -146,8 +136,10 @@ function createMock() {
       fanServiceConfig,
       animationConfig,
       lastSessionUrl: '',
-      overlayUrl: 'http://localhost:3000/overlay',
-      port: 3000,
+      overlayUrl: mockPorts.find((p) => p.id === mockSelectedPortId)?.overlayUrl || 'http://localhost:3000/overlay',
+      port: mockPorts.find((p) => p.id === mockSelectedPortId)?.httpPort || 3000,
+      ports: mockPorts.map((p) => ({ ...p, isSelected: p.id === mockSelectedPortId })),
+      selectedPortId: mockSelectedPortId,
     }),
     connect: async (url) => {
       status = { status: 'connecting', error: null, videoId: null };
@@ -348,6 +340,67 @@ function createMock() {
     importCustomPresets: async () => {
       console.warn('[ipc mock] importCustomPresets: no-op outside Electron');
       return { ok: false, canceled: true };
+    },
+
+    // ── Port management (mock — in-memory) ────────────────────────────────
+
+    portList: async () => mockPorts.map((p) => ({ ...p, isSelected: p.id === mockSelectedPortId })),
+
+    portCreate: async (name) => {
+      const maxPort = Math.max(...mockPorts.map((p) => p.httpPort), 2999);
+      const httpPort = maxPort + 1;
+      const id = `port-${Date.now()}`;
+      const newPort = { id, name, httpPort, overlayUrl: `http://localhost:${httpPort}/overlay` };
+      mockPorts = [...mockPorts, newPort];
+      mockSelectedPortId = id;
+      return {
+        ok: true,
+        ...newPort,
+        ports: mockPorts.map((p) => ({ ...p, isSelected: p.id === mockSelectedPortId })),
+        selectedPortId: mockSelectedPortId,
+      };
+    },
+
+    portRemove: async (id) => {
+      if (mockPorts.length <= 1) return { ok: false, error: 'cannot_remove_last_port' };
+      if (mockPorts[0].id === id) return { ok: false, error: 'cannot_remove_first_port' };
+      mockPorts = mockPorts.filter((p) => p.id !== id);
+      if (mockSelectedPortId === id) mockSelectedPortId = mockPorts[0].id;
+      return {
+        ok: true,
+        newSelectedId: mockSelectedPortId,
+        ports: mockPorts.map((p) => ({ ...p, isSelected: p.id === mockSelectedPortId })),
+        selectedPortId: mockSelectedPortId,
+      };
+    },
+
+    portRename: async (id, name) => {
+      const p = mockPorts.find((mp) => mp.id === id);
+      if (!p) return { ok: false, error: 'port_not_found' };
+      p.name = name;
+      return { ok: true, ports: mockPorts.map((mp) => ({ ...mp, isSelected: mp.id === mockSelectedPortId })) };
+    },
+
+    portSelect: async (id) => {
+      const p = mockPorts.find((mp) => mp.id === id);
+      if (!p) return { ok: false, error: 'port_not_found' };
+      mockSelectedPortId = id;
+      return {
+        ok: true,
+        id,
+        selectedTheme: 'default',
+        customizeConfig: config,
+        layoutConfig,
+        slotStyleConfig,
+        animationConfig,
+        decorationConfig,
+        roleStyleConfig,
+        fanServiceConfig,
+        overlayUrl: p.overlayUrl,
+        port: p.httpPort,
+        ports: mockPorts.map((mp) => ({ ...mp, isSelected: mp.id === id })),
+        selectedPortId: id,
+      };
     },
 
     onStatusChanged: (cb) => {
