@@ -10,7 +10,7 @@ const DECORATION_DEBOUNCE_MS = 100;
 const ROLE_DEBOUNCE_MS = 120;
 const FAN_SERVICE_DEBOUNCE_MS = 120;
 
-function applyInitialState(state, setters) {
+function applyInitialState(state, setters, preLockRef) {
   setters.setLocal(state.customizeConfig);
   setters.setLayoutLocal(state.layoutConfig);
   setters.setSlotLocal(state.slotStyleConfig);
@@ -21,6 +21,14 @@ function applyInitialState(state, setters) {
   setters.setOverlayUrl(state.overlayUrl);
   setters.setLastSessionUrl(state.lastSessionUrl || '');
   setters.setStatus(state.status);
+
+  if (preLockRef) {
+    preLockRef.current = {
+      customizeConfig: state.customizeConfig,
+      roleStyleConfig: state.roleStyleConfig,
+      fanServiceConfig: state.fanServiceConfig,
+    };
+  }
 }
 
 // EditorStateProvider — the ONE source of truth for every piece of overlay
@@ -47,12 +55,17 @@ export function EditorStateProvider({ api, children }) {
   const [ports, setPorts] = useState([]);
   const [selectedPortId, setSelectedPortId] = useState(null);
 
+  // ── Palette Lock persistent state ─────────────────────────────────────────
+  const [paletteLockColors, setPaletteLockColors] = useState(['#0F172A', '#38BDF8', '#F87171', '#FACC15']);
+
   const configDebounce = useRef(null);
   const slotDebounce = useRef(null);
   const layoutDebounce = useRef(null);
   const decorationDebounce = useRef(null);
   const roleDebounce = useRef(null);
   const fanServiceDebounce = useRef(null);
+
+  const preLockSnapshotRef = useRef(null);
 
   const loadInitialState = useCallback(() => {
     setLoading(true);
@@ -61,18 +74,22 @@ export function EditorStateProvider({ api, children }) {
     return api
       .getInitialState()
       .then((state) => {
-        applyInitialState(state, {
-          setLocal,
-          setLayoutLocal,
-          setSlotLocal,
-          setDecorationLocal,
-          setRoleLocal,
-          setFanServiceLocal,
-          setAnimLocal,
-          setOverlayUrl,
-          setLastSessionUrl,
-          setStatus,
-        });
+        applyInitialState(
+          state,
+          {
+            setLocal,
+            setLayoutLocal,
+            setSlotLocal,
+            setDecorationLocal,
+            setRoleLocal,
+            setFanServiceLocal,
+            setAnimLocal,
+            setOverlayUrl,
+            setLastSessionUrl,
+            setStatus,
+          },
+          preLockSnapshotRef,
+        );
         // Port list from initial state
         if (state.ports) setPorts(state.ports);
         if (state.selectedPortId) setSelectedPortId(state.selectedPortId);
@@ -110,6 +127,11 @@ export function EditorStateProvider({ api, children }) {
         setRoleLocal(payload.roleStyleConfig);
         setAnimLocal(payload.animationConfig);
         if (payload.fanServiceConfig) setFanServiceLocal(payload.fanServiceConfig);
+        preLockSnapshotRef.current = {
+          customizeConfig: payload.config,
+          roleStyleConfig: payload.roleStyleConfig,
+          fanServiceConfig: payload.fanServiceConfig,
+        };
         setPreviewKey((k) => k + 1);
       }),
     ];
@@ -234,6 +256,17 @@ export function EditorStateProvider({ api, children }) {
    * The main process returns the full state of that port; we apply it to all
    * editing buffers so the panels immediately reflect the new port's settings.
    */
+  const getPreLockBaseline = useCallback(() => {
+    if (!preLockSnapshotRef.current) {
+      preLockSnapshotRef.current = {
+        customizeConfig: local,
+        roleStyleConfig: roleLocal,
+        fanServiceConfig: fanServiceLocal,
+      };
+    }
+    return preLockSnapshotRef.current;
+  }, [local, roleLocal, fanServiceLocal]);
+
   const selectPort = useCallback(
     async (id) => {
       const result = await api.portSelect(id);
@@ -246,6 +279,11 @@ export function EditorStateProvider({ api, children }) {
       setRoleLocal(result.roleStyleConfig);
       setAnimLocal(result.animationConfig);
       if (result.fanServiceConfig) setFanServiceLocal(result.fanServiceConfig);
+      preLockSnapshotRef.current = {
+        customizeConfig: result.customizeConfig,
+        roleStyleConfig: result.roleStyleConfig,
+        fanServiceConfig: result.fanServiceConfig,
+      };
       setOverlayUrl(result.overlayUrl);
       setSelectedPortId(result.selectedPortId);
       if (result.ports) setPorts(result.ports);
@@ -335,6 +373,11 @@ export function EditorStateProvider({ api, children }) {
     createPort,
     removePort,
     renamePort,
+
+    // Baseline for Palette Lock
+    getPreLockBaseline,
+    paletteLockColors,
+    setPaletteLockColors,
   };
 
   return <EditorStateContext.Provider value={value}>{children}</EditorStateContext.Provider>;

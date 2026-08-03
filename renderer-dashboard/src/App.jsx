@@ -9,6 +9,7 @@ import RoleStylesPanel from './components/RoleStylesPanel.jsx';
 import FanServicePanel from './components/FanServicePanel.jsx';
 import ThemeLibraryPanel from './components/ThemeLibraryPanel.jsx';
 import CustomPresetsPanel from './components/CustomPresetsPanel.jsx';
+import PaletteLockPanel from './components/PaletteLockPanel.jsx';
 import ChatPreview from './components/ChatPreview.jsx';
 import StatusBadge from './components/StatusBadge.jsx';
 import PortSelectorDropdown from './components/PortSelectorDropdown.jsx';
@@ -19,6 +20,7 @@ const TABS = [
   { id: 'decorations', label: 'Trang trí' },
   { id: 'roles', label: 'Vai trò' },
   { id: 'fanService', label: 'Fan Service' },
+  { id: 'paletteLock', label: 'Bảng màu' },
 ];
 
 function TabBar({ active, onChange }) {
@@ -114,6 +116,7 @@ function AppShell() {
             {activeTab === 'decorations' && <DecorationsPanel />}
             {activeTab === 'roles' && <RoleStylesPanel />}
             {activeTab === 'fanService' && <FanServicePanel />}
+            {activeTab === 'paletteLock' && <PaletteLockPanel />}
           </div>
         </div>
 

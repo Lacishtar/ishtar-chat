@@ -45,14 +45,14 @@
 :root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator) .ovs-author::before {
   content: var(--ovs-member-tier-badge-before-content, none);
   margin-right: 0.35em;
-  font-size: 0.82em;
+  font-size: 1em;
   opacity: 0.92;
 }
 
 :root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator) .ovs-author::after {
   content: var(--ovs-member-tier-badge-after-content, none);
   margin-left: 0.35em;
-  font-size: 0.82em;
+  font-size: 1em;
   opacity: 0.92;
 }
 
@@ -72,10 +72,10 @@
    to an image URL, so nothing to hide when a tier has no image badge. */
 :root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator) .ovs-author .ovs-member-badge {
   display: inline-block;
-  height: 0.82em;
+  height: 1em;
   width: auto;
-  max-width: 1.3em;
-  max-height: 1.3em;
+  max-width: 1.5em;
+  max-height: 1.5em;
   vertical-align: -0.12em;
   object-fit: contain;
   object-position: center;
@@ -104,10 +104,10 @@
    reads first, closest to name. */
 :root[data-ovs-role-member-enabled='true'] .ovs-message.ovs-member:not(.ovs-moderator) .ovs-author .ovs-real-badge {
   display: inline-block;
-  height: 0.82em;
+  height: 1em;
   width: auto;
-  max-width: 1.3em;
-  max-height: 1.3em;
+  max-width: 1.5em;
+  max-height: 1.5em;
   vertical-align: -0.12em;
   object-fit: contain;
   object-position: center;
@@ -125,14 +125,14 @@
 :root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator .ovs-author::before {
   content: var(--ovs-role-mod-badge-before-content, none);
   margin-right: 0.35em;
-  font-size: 0.82em;
+  font-size: 1em;
   opacity: 0.92;
 }
 
 :root[data-ovs-role-mod-enabled='true'] .ovs-message.ovs-moderator .ovs-author::after {
   content: var(--ovs-role-mod-badge-after-content, none);
   margin-left: 0.35em;
-  font-size: 0.82em;
+  font-size: 1em;
   opacity: 0.92;
 }
 

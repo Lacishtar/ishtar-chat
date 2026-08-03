@@ -339,10 +339,10 @@ function groupOverrideCssBlock(rowSelectors, group, isSuperchatGroup = false) {
       // 2. Badge before/after the name (badgeBefore/badgeAfter — moved from
       // role-style-config.js's role-level badge, superchat-only now).
       rules.push(
-        `${sel} .ovs-author::before {\n  content: ${quoteCssContent(g.badgeBefore)} !important;\n  margin-right: 0.35em;\n  font-size: 0.82em;\n  opacity: 0.92;\n}`,
+        `${sel} .ovs-author::before {\n  content: ${quoteCssContent(g.badgeBefore)} !important;\n  margin-right: 0.35em;\n  font-size: 1em;\n  opacity: 0.92;\n}`,
       );
       rules.push(
-        `${sel} .ovs-author::after {\n  content: ${quoteCssContent(g.badgeAfter)} !important;\n  margin-left: 0.35em;\n  font-size: 0.82em;\n  opacity: 0.92;\n}`,
+        `${sel} .ovs-author::after {\n  content: ${quoteCssContent(g.badgeAfter)} !important;\n  margin-left: 0.35em;\n  font-size: 1em;\n  opacity: 0.92;\n}`,
       );
 
       // Amount badge visuals (position/alignment handled by buildAuthorAreaLayout).
