@@ -72,8 +72,11 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
+  // Barely-perceptible drift on the name, like it's floating off-axis.
   layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  slotStyleConfig: defaultSlotStyle({
+    slots: { author: { rotate: -2, translateY: -3 } },
+  }),
   animationConfig: {
     enabled: true,
     style: 'blurZoom',

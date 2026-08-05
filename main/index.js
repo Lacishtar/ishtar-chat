@@ -128,6 +128,36 @@ function registerIpcHandlers() {
     return { ok: true };
   });
 
+  // ── Palette Lock Colors (global, persisted across restarts) ─────────────────
+
+  const paletteColorsPath = path.join(app.getPath('userData'), 'palette-colors.json');
+  const DEFAULT_PALETTE_COLORS = ['#0F172A', '#38BDF8', '#F87171', '#FACC15'];
+
+  function loadPaletteColors() {
+    try {
+      const raw = fs.readFileSync(paletteColorsPath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length >= 2) return parsed;
+    } catch { /* first run */ }
+    return DEFAULT_PALETTE_COLORS;
+  }
+
+  function savePaletteColors(colors) {
+    try {
+      fs.writeFileSync(paletteColorsPath, JSON.stringify(colors, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('[palette-colors] failed to save:', err);
+    }
+  }
+
+  ipcMain.handle('palette-colors:get', () => loadPaletteColors());
+
+  ipcMain.handle('palette-colors:set', (_event, colors) => {
+    if (!Array.isArray(colors) || colors.length < 2) return { ok: false };
+    savePaletteColors(colors);
+    return { ok: true };
+  });
+
   // ── Port Management ─────────────────────────────────────────────────────────
 
   ipcMain.handle('port:list', () => portManager.list());

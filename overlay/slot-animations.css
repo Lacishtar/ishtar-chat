@@ -5,14 +5,34 @@
     var(--ovs-anim-avatar-delay, 0ms) both;
 }
 
-.ovs-author.ovs-slot-enter {
+/* Normal Messages: Username & Text animations */
+.ovs-message:not(.ovs-superchat):not(.ovs-event-membership_new):not(.ovs-event-membership_gift_sent):not(.ovs-event-membership_milestone) .ovs-author.ovs-slot-enter {
   animation: ovs-slot-author-in var(--ovs-anim-author-duration, 220ms) var(--ovs-anim-author-easing, ease-out)
     var(--ovs-anim-author-delay, 40ms) both;
 }
 
-.ovs-text.ovs-slot-enter {
+.ovs-message:not(.ovs-superchat):not(.ovs-event-membership_new):not(.ovs-event-membership_gift_sent):not(.ovs-event-membership_milestone) .ovs-text.ovs-slot-enter {
   animation: ovs-slot-message-in var(--ovs-anim-message-duration, 220ms) var(--ovs-anim-message-easing, ease-out)
     var(--ovs-anim-message-delay, 80ms) both;
+}
+
+/* Fan Service Messages (Super Chat & Membership): Dedicated Entrance Transformations */
+.ovs-message.ovs-superchat .ovs-author.ovs-slot-enter,
+.ovs-message.ovs-event-membership_new .ovs-author.ovs-slot-enter,
+.ovs-message.ovs-event-membership_gift_sent .ovs-author.ovs-slot-enter,
+.ovs-message.ovs-event-membership_milestone .ovs-author.ovs-slot-enter {
+  animation: ovs-slot-fanservice-author-in var(--ovs-anim-fanserviceAuthor-duration, 280ms)
+    var(--ovs-anim-fanserviceAuthor-easing, cubic-bezier(0.34, 1.56, 0.64, 1))
+    var(--ovs-anim-fanserviceAuthor-delay, 20ms) both;
+}
+
+.ovs-message.ovs-superchat .ovs-text.ovs-slot-enter,
+.ovs-message.ovs-event-membership_new .ovs-text.ovs-slot-enter,
+.ovs-message.ovs-event-membership_gift_sent .ovs-text.ovs-slot-enter,
+.ovs-message.ovs-event-membership_milestone .ovs-text.ovs-slot-enter {
+  animation: ovs-slot-fanservice-message-in var(--ovs-anim-fanserviceMessage-duration, 280ms)
+    var(--ovs-anim-fanserviceMessage-easing, cubic-bezier(0.34, 1.56, 0.64, 1))
+    var(--ovs-anim-fanserviceMessage-delay, 60ms) both;
 }
 
 @keyframes ovs-slot-avatar-in {
@@ -71,6 +91,57 @@
     filter: blur(0px);
     transform: translate(var(--ovs-slot-message-translate-x, 0), var(--ovs-slot-message-translate-y, 0))
       rotate(var(--ovs-slot-message-rotate, 0deg))
+      scale(1);
+  }
+}
+
+/* Dedicated Keyframes for Fan Service Author Entrance (elastic pop-in with rotation & blur) */
+@keyframes ovs-slot-fanservice-author-in {
+  0% {
+    opacity: 0;
+    filter: blur(var(--ovs-anim-fanserviceAuthor-blur, 4px));
+    transform: translate(
+        calc(var(--ovs-anim-fanserviceAuthor-translate-x, -12px) + var(--ovs-slot-author-translate-x, 0px)),
+        calc(var(--ovs-anim-fanserviceAuthor-translate-y, -6px) + var(--ovs-slot-author-translate-y, 0px))
+      )
+      rotate(-3deg)
+      scale(var(--ovs-anim-fanserviceAuthor-scale, 1.15));
+  }
+  70% {
+    opacity: 1;
+    transform: translate(var(--ovs-slot-author-translate-x, 0), var(--ovs-slot-author-translate-y, 0))
+      rotate(1deg)
+      scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translate(var(--ovs-slot-author-translate-x, 0), var(--ovs-slot-author-translate-y, 0))
+      rotate(0deg)
+      scale(1);
+  }
+}
+
+/* Dedicated Keyframes for Fan Service Message Entrance (shimmer pop-up with scale & blur) */
+@keyframes ovs-slot-fanservice-message-in {
+  0% {
+    opacity: 0;
+    filter: blur(var(--ovs-anim-fanserviceMessage-blur, 6px));
+    transform: translate(
+        calc(var(--ovs-anim-fanserviceMessage-translate-x, 0px) + var(--ovs-slot-message-translate-x, 0px)),
+        calc(var(--ovs-anim-fanserviceMessage-translate-y, 14px) + var(--ovs-slot-message-translate-y, 0px))
+      )
+      scale(var(--ovs-anim-fanserviceMessage-scale, 0.9));
+  }
+  70% {
+    opacity: 1;
+    transform: translate(var(--ovs-slot-message-translate-x, 0), var(--ovs-slot-message-translate-y, 0))
+      scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translate(var(--ovs-slot-message-translate-x, 0), var(--ovs-slot-message-translate-y, 0))
       scale(1);
   }
 }

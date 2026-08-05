@@ -6,12 +6,12 @@ module.exports = {
   id: 'maid',
   name: 'Maid',
   author: 'built-in',
-  version: '1.1.0',
+  version: '1.2.0',
   description: 'Maid café style — crisp glass-white bubble, black lace trim, cherry-red bow accent, and a full-bow spotlight for Super Chat.',
   category: 'cute',
   tags: ["maid","cute","white","black","red","lolita"],
   createdAt: '2026-07-13',
-  modifiedAt: '2026-07-30',
+  modifiedAt: '2026-08-04',
   customizeConfig: {
     fontFamily: '"Poppins", "Quicksand", system-ui, sans-serif',
     fontSize: 15,
@@ -72,8 +72,24 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
-  layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  // Separate name-ribbon + message bubble instead of one boxed row, with the
+  // ribbon given a light tilt so it reads like a pinned bow tag.
+  layoutConfig: defaultLayout({
+    slots: { avatar: { visible: false } },
+    screen: { bubbleWrapRow: false, bubbleWrapAuthor: true, bubbleWrapMessage: true },
+  }),
+  slotStyleConfig: defaultSlotStyle({
+    slots: {
+      author: {
+        bubbleBg: 'rgba(200, 30, 58, 0.92)', bubbleRadius: 999, color: '#FFFAFA',
+        rotate: -3, translateY: -1, zIndex: 2,
+        // Split-bubble mode (bọc từng phần): bunny ears stay on the message
+        // bubble only, never on the name ribbon.
+        bubbleBunnyEars: false,
+      },
+      message: { bubbleBg: 'rgba(255, 250, 250, 0.92)' },
+    },
+  }),
   animationConfig: {
     enabled: true,
     style: 'bounce',

@@ -72,8 +72,11 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
+  // Playful bounce tilt on the name — echoes the round, colourful "bubble" bounce.
   layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  slotStyleConfig: defaultSlotStyle({
+    slots: { author: { rotate: 3, translateX: -2, translateY: -1 } },
+  }),
   animationConfig: {
     enabled: true,
     style: 'bounce',

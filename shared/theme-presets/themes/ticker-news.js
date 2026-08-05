@@ -6,12 +6,12 @@ module.exports = {
   id: 'ticker-news',
   name: 'Ticker News',
   author: 'built-in',
-  version: '2.0.0',
+  version: '2.1.0',
   description: 'Chạy tin nhắn như bảng tin nóng dưới đáy màn hình — chế độ Chat Ticker, nền trắng chữ đỏ/đen sắc nét, đúng tông trắng-đỏ của các bản tin thời sự "breaking news".',
   category: 'news',
   tags: ["ticker","news","breaking","white","red","bold"],
   createdAt: '2026-07-31',
-  modifiedAt: '2026-07-31',
+  modifiedAt: '2026-08-04',
   customizeConfig: {
     fontFamily: '"Exo 2", "Space Grotesk", system-ui, sans-serif',
     fontSize: 19,
@@ -85,7 +85,16 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
-  layoutConfig: defaultLayout(),
+  // No avatar (a news chyron never shows a headshot). Author + message wrap
+  // together as one chip ("bọc chung") instead of the message getting its
+  // own separate chip — reads as a single continuous headline segment.
+  layoutConfig: defaultLayout({
+    slots: { avatar: { visible: false } },
+    screen: { bubbleWrapRow: true, bubbleWrapAuthor: false, bubbleWrapMessage: false },
+  }),
+  // With bubbleWrapRow now true, the whole row shares one chip (author +
+  // message together), so there's no separate per-slot message bubble to
+  // style here anymore — that comes from customizeConfig.bubbleBg above.
   slotStyleConfig: defaultSlotStyle(),
   animationConfig: {
     enabled: true,

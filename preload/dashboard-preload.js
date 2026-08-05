@@ -39,6 +39,10 @@ contextBridge.exposeInMainWorld('api', {
   portRename: (id, name) => ipcRenderer.invoke('port:rename', { id, name }),
   portSelect: (id) => ipcRenderer.invoke('port:select', id),
 
+  // Palette Lock colors persistence
+  getPaletteColors: () => ipcRenderer.invoke('palette-colors:get'),
+  setPaletteColors: (colors) => ipcRenderer.invoke('palette-colors:set', colors),
+
   onStatusChanged: (callback) => subscribe('status:changed', callback),
   onConfigUpdated: (callback) => subscribe('config:updated', callback),
   onLayoutUpdated: (callback) => subscribe('layout:updated', callback),

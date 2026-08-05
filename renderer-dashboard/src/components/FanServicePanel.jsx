@@ -16,6 +16,7 @@ import BubbleTextureSection from './Customize/Bubble/BubbleTextureSection.jsx';
 import ShadowSection from './Customize/Appearance/ShadowSection.jsx';
 import GlowSection from './Customize/Appearance/GlowSection.jsx';
 import AccordionSection from './Customize/Inspector/AccordionSection.jsx';
+import SectionSearchBar from './Customize/shared/SectionSearchBar.jsx';
 import { AccordionBody, SectionDivider } from './Customize/shared/accordionParts.jsx';
 
 // section here never touches the Vai trò tab's own saved state.
@@ -56,7 +57,19 @@ function useFanServiceAccordion() {
     });
   }
 
-  return { isOpen, toggle };
+  // Force a section open (used by the search bar's "jump to" — unlike
+  // toggle(), never closes an already-open section).
+  function open(groupKey, sectionId) {
+    setExpanded((prev) => {
+      const key = `${groupKey}:${sectionId}`;
+      if (prev[key] === true) return prev;
+      const next = { ...prev, [key]: true };
+      saveFanServiceExpanded(next);
+      return next;
+    });
+  }
+
+  return { isOpen, toggle, open };
 }
 
 const inputClass =
@@ -109,6 +122,45 @@ const GROUP_META = {
     desc: 'Dùng chung cho cả 3 sự kiện: Hội viên mới, Gia hạn hội viên, Tặng hội viên.',
   },
 };
+
+// Search index for the "Tìm cài đặt Fan Service…" bar — one entry per
+// accordion section, per group. Selecting a result switches to the right
+// group tab, force-opens that section, and scrolls to it (see handleJumpTo
+// in the main FanServicePanel component below).
+const FAN_SERVICE_SECTIONS_BY_GROUP = {
+  superchat: [
+    { sectionId: 'visibility', label: 'Hiển thị', keywords: ['hiển thị', 'avatar', 'tên', 'nội dung', 'show'] },
+    { sectionId: 'layout', label: 'Bố cục', keywords: ['bố cục', 'layout', 'vị trí', 'padding', 'số tiền'] },
+    { sectionId: 'typography', label: 'Cỡ chữ & màu sắc', keywords: ['font', 'cỡ chữ', 'màu', 'color', 'size', 'số tiền'] },
+    { sectionId: 'transform', label: 'Biến đổi — Tên & Nội dung', keywords: ['xoay', 'rotate', 'offset', 'z-index'] },
+    { sectionId: 'color', label: 'Màu theo tier', keywords: ['tier', 'màu', 'color', 'bubble'] },
+    { sectionId: 'badge', label: 'Badge & chữ', keywords: ['badge'] },
+    { sectionId: 'texture', label: 'Hoạ tiết riêng', keywords: ['texture', 'hoạ tiết', 'pattern', 'ảnh nền'] },
+    { sectionId: 'bubble', label: 'Bubble riêng', keywords: ['bubble', 'viền', 'border', 'radius', 'bo góc', 'shadow', 'glow', 'độ mờ'] },
+    { sectionId: 'bunny', label: 'Tai thỏ (Bunny Ears)', keywords: ['tai thỏ', 'bunny', 'ears'] },
+  ],
+  membership: [
+    { sectionId: 'visibility', label: 'Hiển thị', keywords: ['hiển thị', 'avatar', 'tên', 'nội dung', 'số tháng', 'show'] },
+    { sectionId: 'layout', label: 'Bố cục', keywords: ['bố cục', 'layout', 'vị trí', 'padding'] },
+    { sectionId: 'typography', label: 'Cỡ chữ & màu sắc', keywords: ['font', 'cỡ chữ', 'màu', 'color', 'số tháng'] },
+    { sectionId: 'transform', label: 'Biến đổi — Tên & Nội dung', keywords: ['xoay', 'rotate', 'offset', 'z-index'] },
+    { sectionId: 'color', label: 'Màu bubble', keywords: ['màu', 'color', 'bubble', 'viền'] },
+    { sectionId: 'texture', label: 'Hoạ tiết riêng', keywords: ['texture', 'hoạ tiết', 'pattern'] },
+    { sectionId: 'bubble', label: 'Bubble riêng', keywords: ['bubble', 'viền', 'border', 'radius', 'shadow', 'glow', 'độ mờ'] },
+    { sectionId: 'bunny', label: 'Tai thỏ (Bunny Ears)', keywords: ['tai thỏ', 'bunny', 'ears'] },
+  ],
+};
+
+const FAN_SERVICE_SEARCH_INDEX = Object.entries(FAN_SERVICE_SECTIONS_BY_GROUP).flatMap(([groupKey, sections]) =>
+  sections.map((s) => ({
+    key: `${groupKey}-${s.sectionId}`,
+    groupKey,
+    sectionId: s.sectionId,
+    label: `${GROUP_META[groupKey].title} — ${s.label}`,
+    meta: GROUP_META[groupKey].title,
+    keywords: s.keywords,
+  })),
+);
 
 // "Tự động dùng màu theo tier tiền YouTube" (below) does when it's on.
 const TIER_TABLE = [
@@ -198,6 +250,93 @@ function ScaleField({ label, value, onChange, min = 0.5, max = 2, step = 0.05 })
   );
 }
 
+// Rotate/translateX/translateY/z-index cho 1 phần tử (tên hoặc nội dung)
+// trong Fan Service — giá trị null nghĩa là "kế thừa Biến đổi chung", số
+// nghĩa là ghi đè riêng (xem authorRotate/messageRotate... trong
+// shared/fan-service-config.js). Cùng range với TransformSection.jsx dùng
+// cho tab Customize để 2 nơi cho cảm giác nhất quán.
+function TransformFields({ prefix, label, g, patch }) {
+  const rotateKey = `${prefix}Rotate`;
+  const txKey = `${prefix}TranslateX`;
+  const tyKey = `${prefix}TranslateY`;
+  const zKey = `${prefix}ZIndex`;
+  const rotate = g[rotateKey] ?? 0;
+  const tx = g[txKey] ?? 0;
+  const ty = g[tyKey] ?? 0;
+  const z = g[zKey];
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Field label={`Góc xoay ${label.toLowerCase()} — ${rotate}°`}>
+        <input
+          type="range"
+          min={-45}
+          max={45}
+          step={1}
+          value={rotate}
+          onChange={(e) => patch({ [rotateKey]: Number(e.target.value) })}
+        />
+      </Field>
+      <div className="grid grid-cols-2 gap-3 items-end">
+        <Field label={`Offset X — ${tx}px`}>
+          <input
+            type="range"
+            min={-40}
+            max={40}
+            step={1}
+            value={tx}
+            onChange={(e) => patch({ [txKey]: Number(e.target.value) })}
+          />
+        </Field>
+        <Field label={`Offset Y — ${ty}px`}>
+          <input
+            type="range"
+            min={-40}
+            max={40}
+            step={1}
+            value={ty}
+            onChange={(e) => patch({ [tyKey]: Number(e.target.value) })}
+          />
+        </Field>
+      </div>
+      <Field
+        label={
+          <span className="flex items-center justify-between">
+            <span>Z-index — {z ?? 'Mặc định (auto)'}</span>
+            {z != null && (
+              <button
+                type="button"
+                onClick={() => patch({ [zKey]: null })}
+                className="text-[10px] text-inkMuted hover:text-ink underline ml-1"
+              >
+                Mặc định
+              </button>
+            )}
+          </span>
+        }
+      >
+        <input
+          type="range"
+          min={-10}
+          max={20}
+          step={1}
+          value={z ?? 0}
+          onChange={(e) => patch({ [zKey]: Number(e.target.value) })}
+        />
+      </Field>
+      {(rotate !== 0 || tx !== 0 || ty !== 0) && (
+        <button
+          type="button"
+          onClick={() => patch({ [rotateKey]: null, [txKey]: null, [tyKey]: null })}
+          className="text-[10px] text-inkMuted hover:text-ink text-left underline underline-offset-2 w-fit"
+        >
+          Đặt lại về 0 (không xoay/lệch)
+        </button>
+      )}
+    </div>
+  );
+}
+
 const PADDING_BASE_PX = { top: 8, right: 12, bottom: 8, left: 12 };
 
 // Same scale idea as ScaleField, but shows the resulting px (computed from
@@ -217,12 +356,13 @@ function PaddingSideField({ label, side, value, onChange, min = 0, max = 4, step
 // "🖌️ Bubble riêng" (border/radius/opacity/shadow/glow) is NOT in that
 // so opening e.g. "Bố cục" on Super Chat doesn't also open it on Hội
 // viên — each group remembers its own sections independently. */
-function GroupEditor({ groupKey, group, onChange, memberRoleStyle, accordion }) {
+function GroupEditor({ groupKey, group, onChange, memberRoleStyle, accordion, highlightSection }) {
   const g = group || {};
   const patch = (p) => onChange(p);
   const sec = (id, defaultOpen = true) => ({
     open: accordion.isOpen(groupKey, id, defaultOpen),
     onToggle: () => accordion.toggle(groupKey, id, defaultOpen),
+    matched: highlightSection === id,
   });
 
   return (
@@ -452,6 +592,24 @@ function GroupEditor({ groupKey, group, onChange, memberRoleStyle, accordion }) 
                   />
                 </>
               )}
+            </AccordionBody>
+          </AccordionSection>
+
+          <AccordionSection
+            id={`section-fs-${groupKey}-transform`}
+            title="Biến đổi — Tên & Nội dung"
+            {...sec('transform', false)}
+          >
+            <AccordionBody>
+              <p className="text-[11px] text-inkMuted leading-relaxed">
+                Xoay / lệch vị trí / z-index riêng cho tên & nội dung trong {GROUP_META[groupKey].title} — độc lập
+                hoàn toàn với mục "Biến đổi" ở tab Customize (Tên / Nội dung), ngay khi đã bật "Tuỳ chỉnh riêng" ở
+                đầu trang này. Chỉnh "Biến đổi" ở tab Customize từ giờ sẽ KHÔNG còn ảnh hưởng tới{' '}
+                {GROUP_META[groupKey].title} nữa — muốn xoay/lệch tên/nội dung ở đây thì chỉnh ngay tại đây.
+              </p>
+              <TransformFields prefix="author" label="Tên" g={g} patch={patch} />
+              <SectionDivider label="Nội dung" />
+              <TransformFields prefix="message" label="Nội dung" g={g} patch={patch} />
             </AccordionBody>
           </AccordionSection>
 
@@ -706,9 +864,23 @@ function GroupEditor({ groupKey, group, onChange, memberRoleStyle, accordion }) 
 export default function FanServicePanel() {
   const { fanServiceLocal, pushFanServiceUpdate, roleLocal } = useEditorState();
   const [activeGroup, setActiveGroup] = useState('superchat');
+  const [highlightSection, setHighlightSection] = useState(null);
   const accordion = useFanServiceAccordion();
 
   if (!fanServiceLocal) return null;
+
+  function handleJumpTo({ groupKey, sectionId }) {
+    setActiveGroup(groupKey);
+    accordion.open(groupKey, sectionId);
+    setHighlightSection(sectionId);
+    requestAnimationFrame(() => {
+      document.getElementById(`section-fs-${groupKey}-${sectionId}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    });
+    setTimeout(() => setHighlightSection(null), 1600);
+  }
 
   return (
     <section className="rounded-xl border border-line bg-panel p-4 flex flex-col gap-4">
@@ -719,6 +891,12 @@ export default function FanServicePanel() {
           trò chung.
         </p>
       </div>
+
+      <SectionSearchBar
+        items={FAN_SERVICE_SEARCH_INDEX}
+        onJumpTo={handleJumpTo}
+        placeholder="Tìm cài đặt Fan Service… (bubble, tier, badge)"
+      />
 
       <div className="grid grid-cols-2 gap-1.5 rounded-lg bg-panelAlt border border-line p-1">
         {Object.keys(GROUP_META).map((key) => (
@@ -742,6 +920,7 @@ export default function FanServicePanel() {
         onChange={(patch) => pushFanServiceUpdate(activeGroup, patch)}
         memberRoleStyle={roleLocal?.roles?.member}
         accordion={accordion}
+        highlightSection={highlightSection}
       />
     </section>
   );

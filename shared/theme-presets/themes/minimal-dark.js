@@ -72,8 +72,16 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
-  layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  // Split-wrap instead of a full row bubble: the author name sits bare/plain
+  // (no pill) and only the message gets a soft bubble — a quieter, more
+  // "minimal" reading rhythm than the boxed-row look every other dark theme uses.
+  layoutConfig: defaultLayout({
+    slots: { avatar: { visible: false } },
+    screen: { bubbleWrapRow: false, bubbleWrapAuthor: false, bubbleWrapMessage: true },
+  }),
+  slotStyleConfig: defaultSlotStyle({
+    slots: { message: { bubbleBg: 'rgba(255, 255, 255, 0.06)', bubbleRadius: 10 } },
+  }),
   animationConfig: {
     enabled: true,
     style: 'slide',

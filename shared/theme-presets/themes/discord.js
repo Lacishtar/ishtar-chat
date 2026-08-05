@@ -72,8 +72,15 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
-  layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  // Real Discord doesn't box the whole row — the name floats bare above a
+  // plain message, only the message line gets a faint hover-card backing.
+  layoutConfig: defaultLayout({
+    slots: { avatar: { visible: false } },
+    screen: { bubbleWrapRow: false, bubbleWrapAuthor: false, bubbleWrapMessage: true },
+  }),
+  slotStyleConfig: defaultSlotStyle({
+    slots: { message: { bubbleBg: 'rgba(0, 0, 0, 0.16)', bubbleRadius: 8 } },
+  }),
   animationConfig: {
     enabled: true,
     style: 'slide',

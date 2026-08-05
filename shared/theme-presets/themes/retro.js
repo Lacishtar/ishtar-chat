@@ -72,8 +72,15 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
-  layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  // Telegram-slip header/body split — a darker ink band for the "FROM"
+  // line, a lighter parchment band underneath for the wired-in message.
+  layoutConfig: defaultLayout({ screen: { headerSplit: true } }),
+  slotStyleConfig: defaultSlotStyle({
+    slots: {
+      author: { bubbleBg: 'rgba(184, 65, 12, 0.16)' },
+      message: { bubbleBg: 'rgba(245, 224, 178, 0.92)' },
+    },
+  }),
   animationConfig: {
     enabled: true,
     style: 'slide',

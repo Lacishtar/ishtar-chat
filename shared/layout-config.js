@@ -48,10 +48,18 @@ const DEFAULT_LAYOUT_CONFIG = {
     bubbleWrapAuthor: null, // null | boolean — bọc tên (khi bubbleWrapRow === false)
     bubbleWrapMessage: null, // null | boolean — bọc nội dung chat
     headerSplit: false,
-    headerDividerColor: 'rgba(255, 255, 255, 0.14)',
-    headerDividerWidth: 1, // px (thickness)
-    headerDividerStyle: 'solid', // any CSS border-style keyword
-    headerDividerLength: 100, // 0-100 (% of the bubble's inner width, centered)
+    /**
+     * @deprecated Colors for the header/body split used to live here
+     * (headerBgColor/bodyBgColor). They now come from
+     * slotStyleConfig.slots.author.bubbleBg / slots.message.bubbleBg — the
+     * SAME "🖌️ Bubble riêng" fields used by split-wrap mode — so users only
+     * ever set one pair of colors regardless of which bubble-wrap mode is
+     * active. These two keys are kept only so main/store/config-store.js can
+     * migrate old saved values into slotStyleConfig on first load after the
+     * upgrade; compileLayoutToCssVariables() no longer reads them.
+     */
+    headerBgColor: null,
+    bodyBgColor: null,
   },
 };
 
@@ -223,13 +231,17 @@ function compileLayoutToCssVariables(layout) {
     '--ovs-bubble-wrap-message': !isRowBubbleWrap(screen) && screen.bubbleWrapMessage ? '1' : '0',
 
     '--ovs-header-split': screen.headerSplit ? '1' : '0',
-    '--ovs-header-divider-color': screen.headerDividerColor || 'rgba(255, 255, 255, 0.14)',
-    '--ovs-header-divider-width': px(screen.headerDividerWidth ?? 1),
-    '--ovs-header-divider-style': screen.headerDividerStyle || 'solid',
-    '--ovs-header-divider-length': `${Math.min(Math.max(Number(screen.headerDividerLength ?? 100) || 0, 0), 100)}%`,
     '--ovs-header-grid-columns': mirrorHorizontal ? '1fr auto' : 'auto 1fr',
     '--ovs-header-avatar-col': mirrorHorizontal ? '2' : '1',
     '--ovs-header-meta-col': mirrorHorizontal ? '1' : '2',
+    // Header/body band colors are NOT stored here — they read the exact same
+    // per-slot bubble background CSS vars that split-wrap mode paints
+    // .ovs-author/.ovs-text with (see shared/slot-bubble-config.js). Those
+    // vars are always set on :root regardless of wrap mode, and already
+    // fall back to --ovs-bubble-bg on their own, so a single color choice in
+    // the "🖌️ Bubble riêng" panel now works for both bubble-wrap modes.
+    '--ovs-header-split-header-bg': 'var(--ovs-slot-author-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)))',
+    '--ovs-header-split-body-bg': 'var(--ovs-slot-message-bubble-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)))',
   };
 }
 
@@ -267,10 +279,6 @@ function contractSimpleLayout(layout) {
     bubbleWrapAuthor: Boolean(screen.bubbleWrapAuthor),
     bubbleWrapMessage: Boolean(screen.bubbleWrapMessage),
     headerSplit: Boolean(screen.headerSplit),
-    headerDividerColor: screen.headerDividerColor ?? 'rgba(255, 255, 255, 0.14)',
-    headerDividerWidth: screen.headerDividerWidth ?? 1,
-    headerDividerStyle: screen.headerDividerStyle ?? 'solid',
-    headerDividerLength: screen.headerDividerLength ?? 100,
     avatarPadding: l.slots.avatar?.padding ?? 0,
     avatarMargin: l.slots.avatar?.margin ?? 0,
     authorPadding: l.slots.author?.padding ?? 0,
@@ -349,11 +357,9 @@ function expandSimpleLayout(simple) {
     bubbleScope: null,
     // Only meaningful (and only ever exposed by the UI) while wrapRow is
     // true — expandSimpleLayout still round-trips it faithfully either way.
+    // Its colors live in slotStyleConfig now (see the @deprecated note on
+    // headerBgColor/bodyBgColor above) — not in this simplified shape.
     headerSplit: Boolean(s.headerSplit),
-    headerDividerColor: s.headerDividerColor || 'rgba(255, 255, 255, 0.14)',
-    headerDividerWidth: s.headerDividerWidth ?? 1,
-    headerDividerStyle: s.headerDividerStyle || 'solid',
-    headerDividerLength: s.headerDividerLength ?? 100,
   } };
 }
 

@@ -72,7 +72,9 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
-  layoutConfig: defaultLayout(),
+  // No-avatar reading mode — the whole point of "Minimal" is text-first,
+  // so drop the avatar circle entirely rather than just recoloring it.
+  layoutConfig: defaultLayout({ slots: { avatar: { visible: false } } }),
   slotStyleConfig: defaultSlotStyle(),
   animationConfig: {
     enabled: true,

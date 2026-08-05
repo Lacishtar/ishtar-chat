@@ -6,12 +6,12 @@ module.exports = {
   id: 'vtuber-cute',
   name: 'VTuber Cute',
   author: 'built-in',
-  version: '1.1.0',
+  version: '1.2.0',
   description: 'Colourful idol-style bubbles with bunny-ear accents and a soft sparkle sweep — Super Chat becomes a full idol spotlight moment.',
   category: 'cute',
   tags: ["vtuber","idol","bunny","cute","colorful"],
   createdAt: '2024-01-01',
-  modifiedAt: '2026-07-30',
+  modifiedAt: '2026-08-04',
   customizeConfig: {
     fontFamily: '"Nunito", "M PLUS Rounded 1c", system-ui, sans-serif',
     fontSize: 15,
@@ -72,8 +72,24 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
-  layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  // Idol nameplate + chat bubble as two separate shapes, name tag tilted
+  // slightly for that hand-placed sticker/idol-badge feel.
+  layoutConfig: defaultLayout({
+    slots: { avatar: { visible: false } },
+    screen: { bubbleWrapRow: false, bubbleWrapAuthor: true, bubbleWrapMessage: true },
+  }),
+  slotStyleConfig: defaultSlotStyle({
+    slots: {
+      author: {
+        bubbleBg: 'rgba(255, 148, 204, 0.95)', bubbleRadius: 999, color: '#5A1240',
+        rotate: 3, translateY: -2, zIndex: 2,
+        // Split-bubble mode (bọc từng phần): bunny ears stay on the message
+        // bubble only, never on the name ribbon.
+        bubbleBunnyEars: false,
+      },
+      message: { bubbleBg: 'rgba(80, 30, 120, 0.85)' },
+    },
+  }),
   animationConfig: {
     enabled: true,
     style: 'bounce',

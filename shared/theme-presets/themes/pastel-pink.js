@@ -72,8 +72,11 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
+  // Barely-there dreamy tilt on the name — soft, not bouncy.
   layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  slotStyleConfig: defaultSlotStyle({
+    slots: { author: { rotate: -2, translateY: 1 } },
+  }),
   animationConfig: {
     enabled: true,
     style: 'bounce',

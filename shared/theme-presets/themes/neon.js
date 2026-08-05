@@ -72,8 +72,15 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
-  layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  // Terminal prompt split: `user@host:` header band in a deeper teal-black,
+  // command output body below it — leans into the monospace/terminal tag.
+  layoutConfig: defaultLayout({ screen: { headerSplit: true } }),
+  slotStyleConfig: defaultSlotStyle({
+    slots: {
+      author: { bubbleBg: 'rgba(53, 230, 176, 0.14)' },
+      message: { bubbleBg: 'rgba(14, 16, 19, 0.92)' },
+    },
+  }),
   animationConfig: {
     enabled: true,
     style: 'slideStrong',

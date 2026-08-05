@@ -72,8 +72,11 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
+  // Sticker-style name tag — a light kawaii tilt on the author bubble only.
   layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  slotStyleConfig: defaultSlotStyle({
+    slots: { author: { rotate: -4, translateY: -2, zIndex: 2 } },
+  }),
   animationConfig: {
     enabled: true,
     style: 'slide',

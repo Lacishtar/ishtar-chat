@@ -18,7 +18,6 @@ const THEMES = [
   require('./themes/ca-phe'),
   require('./themes/karaoke'),
   require('./themes/ticker-news'),
-  require('./themes/edgy'),
 ];
 
 // ---------------------------------------------------------------------------

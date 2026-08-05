@@ -72,8 +72,15 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
-  layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  // Manga two-tone speech bubble: solid sakura nameplate band on top,
+  // paler glass body underneath — the classic name-tag + dialogue split.
+  layoutConfig: defaultLayout({ screen: { headerSplit: true } }),
+  slotStyleConfig: defaultSlotStyle({
+    slots: {
+      author: { bubbleBg: 'rgba(255, 150, 205, 0.95)', color: '#4A2E4E' },
+      message: { bubbleBg: 'rgba(255, 235, 246, 0.9)' },
+    },
+  }),
   animationConfig: {
     enabled: true,
     style: 'bounce',

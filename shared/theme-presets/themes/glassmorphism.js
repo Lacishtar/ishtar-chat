@@ -72,8 +72,16 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
-  layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  // Header/body split: a slightly brighter frosted band for the name, a
+  // more transparent band underneath for the message — two glass panes
+  // instead of one flat sheet.
+  layoutConfig: defaultLayout({ screen: { headerSplit: true } }),
+  slotStyleConfig: defaultSlotStyle({
+    slots: {
+      author: { bubbleBg: 'rgba(255, 255, 255, 0.22)' },
+      message: { bubbleBg: 'rgba(255, 255, 255, 0.08)' },
+    },
+  }),
   animationConfig: {
     enabled: true,
     style: 'blurZoom',

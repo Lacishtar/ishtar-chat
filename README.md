@@ -82,7 +82,6 @@ Khi ứng dụng mở ra, dán link livestream dạng `youtube.com/watch?v=...`,
 | `anime` | Sakura Anime — Tông hồng đào ngọt ngào thích hợp cho các VTuber |
 | `karaoke` | Karaoke Night — Chat bay theo kiểu Danmaku, viền neon hồng/tím, chừa chỗ cho phụ đề lời bài hát (không có idle animation) |
 | `ticker-news` | Ticker News — Chat chạy theo kiểu Chat Ticker "breaking news", nền trắng chữ đỏ/đen sắc nét |
-| `edgy` | Edgy — Hào quang vàng của thánh thần va chạm ánh đỏ quỷ dữ trên nền đen tuyền, góc bo cực gắt |
 
 ---
 

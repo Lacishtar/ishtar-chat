@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ColorPicker from './Customize/shared/ColorPicker.jsx';
 import AccordionSection from './Customize/Inspector/AccordionSection.jsx';
+import SectionSearchBar from './Customize/shared/SectionSearchBar.jsx';
 import { inputClass } from './Customize/shared/fields.jsx';
 import { AccordionBody, SectionDivider } from './Customize/shared/accordionParts.jsx';
 import { useEditorState } from '../state/EditorStateContext.jsx';
@@ -10,6 +11,37 @@ import { useEditorState } from '../state/EditorStateContext.jsx';
 const ROLE_TABS = [
   { id: 'moderator', label: 'Mod', hint: 'Tin nhắn từ người điều hành kênh' },
   { id: 'member', label: 'Hội viên', hint: 'Thành viên có badge kênh' },
+];
+
+// Search index for the "Tìm cài đặt vai trò…" bar — one entry per accordion
+// section across both role tabs. Selecting a result switches to the right
+// role tab, force-opens that section, and scrolls to it (see handleJumpTo
+// in the main RoleStylesPanel component below).
+const ROLE_SEARCH_INDEX = [
+  {
+    key: 'moderator-appearance',
+    roleKey: 'moderator',
+    sectionId: 'appearance',
+    label: 'Mod — Hình thức & màu sắc',
+    meta: 'Mod',
+    keywords: ['mod', 'màu', 'color', 'tên', 'nền', 'badge', 'tai thỏ', 'font'],
+  },
+  {
+    key: 'member-appearance',
+    roleKey: 'member',
+    sectionId: 'appearance',
+    label: 'Hội viên — Hình thức & màu sắc',
+    meta: 'Hội viên',
+    keywords: ['hội viên', 'member', 'màu', 'color', 'tên', 'nền', 'tai thỏ', 'font'],
+  },
+  {
+    key: 'member-tiers',
+    roleKey: 'member',
+    sectionId: 'tiers',
+    label: 'Hội viên — Mốc tháng',
+    meta: 'Hội viên',
+    keywords: ['mốc tháng', 'tier', 'badge', 'member', 'gắn bó'],
+  },
 ];
 
 const ROLE_EXTRA_DEFAULTS = {
@@ -99,7 +131,19 @@ function useRoleAccordion() {
     });
   }
 
-  return { isOpen, toggle };
+  // Force a section open (used by the search bar's "jump to" — unlike
+  // toggle(), never closes an already-open section).
+  function open(roleKey, sectionId) {
+    setExpanded((prev) => {
+      const key = `${roleKey}:${sectionId}`;
+      if (prev[key] === true) return prev;
+      const next = { ...prev, [key]: true };
+      saveRolesExpanded(next);
+      return next;
+    });
+  }
+
+  return { isOpen, toggle, open };
 }
 
 // ─── Reusable UI helpers ─────────────────────────────────────────────────────
@@ -283,13 +327,14 @@ function mergeLocalRole(roleStyleConfig, roleKey) {
 
 // ─── MODERATOR EDITOR ────────────────────────────────────────────────────────
 
-function ModeratorEditor({ role, onChange, accordion }) {
+function ModeratorEditor({ role, onChange, accordion, highlightSection }) {
   const set = (patch) => onChange('moderator', { ...role, ...patch });
   const enabled = role.enabled !== false;
   const roleKey = 'moderator';
   const sec = (id) => ({
     open: accordion.isOpen(roleKey, id, true),
     onToggle: () => accordion.toggle(roleKey, id, true),
+    matched: highlightSection === id,
   });
 
   return (
@@ -496,13 +541,14 @@ function MemberTierEditor({ tiers, onChange, disabled }) {
 
 // ─── MEMBER EDITOR ───────────────────────────────────────────────────────────
 
-function MemberEditor({ role, onChange, accordion }) {
+function MemberEditor({ role, onChange, accordion, highlightSection }) {
   const set = (patch) => onChange('member', { ...role, ...patch });
   const enabled = role.enabled !== false;
   const roleKey = 'member';
   const sec = (id) => ({
     open: accordion.isOpen(roleKey, id, true),
     onToggle: () => accordion.toggle(roleKey, id, true),
+    matched: highlightSection === id,
   });
 
   return (
@@ -611,12 +657,26 @@ function MemberEditor({ role, onChange, accordion }) {
 
 export default function RoleStylesPanel() {
   const [tab, setTab] = useState('moderator');
+  const [highlightSection, setHighlightSection] = useState(null);
   const { roleLocal, pushRoleUpdate } = useEditorState();
   const local = roleLocal || { roles: {} };
 
   const activeTab = ROLE_TABS.find((t) => t.id === tab) || ROLE_TABS[0];
   const activeRole = mergeLocalRole(local, tab);
   const accordion = useRoleAccordion();
+
+  function handleJumpTo({ roleKey, sectionId }) {
+    setTab(roleKey);
+    accordion.open(roleKey, sectionId);
+    setHighlightSection(sectionId);
+    requestAnimationFrame(() => {
+      document.getElementById(`section-${roleKey}-${sectionId}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    });
+    setTimeout(() => setHighlightSection(null), 1600);
+  }
 
   return (
     <section className="rounded-xl border border-line bg-panel p-4 flex flex-col gap-3">
@@ -627,6 +687,12 @@ export default function RoleStylesPanel() {
           Fan Service.
         </p>
       </div>
+
+      <SectionSearchBar
+        items={ROLE_SEARCH_INDEX}
+        onJumpTo={handleJumpTo}
+        placeholder="Tìm cài đặt vai trò… (màu, badge, mốc tháng)"
+      />
 
       {/* ── Role List ──
           Chọn Vai trò trước — mỗi nút có chấm màu phản ánh màu tên hiện tại
@@ -664,10 +730,20 @@ export default function RoleStylesPanel() {
       {/* ── Appearance + Emphasis ── each editor renders exactly these two
           accordion groups so switching roles never reshuffles the layout. */}
       {tab === 'moderator' && (
-        <ModeratorEditor role={activeRole} onChange={pushRoleUpdate} accordion={accordion} />
+        <ModeratorEditor
+          role={activeRole}
+          onChange={pushRoleUpdate}
+          accordion={accordion}
+          highlightSection={highlightSection}
+        />
       )}
       {tab === 'member' && (
-        <MemberEditor role={activeRole} onChange={pushRoleUpdate} accordion={accordion} />
+        <MemberEditor
+          role={activeRole}
+          onChange={pushRoleUpdate}
+          accordion={accordion}
+          highlightSection={highlightSection}
+        />
       )}
 
       {/* ── Live Preview ──

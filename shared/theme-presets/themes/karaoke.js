@@ -81,8 +81,17 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: 'drop-shadow(0 0 4px rgba(255, 61, 174, 0.4))',
   },
-  layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  // Neon laser-sign wobble on the name tag, to match the danmaku party energy.
+  layoutConfig: defaultLayout({
+    slots: {
+      avatar: { visible: false },
+      author: { visible: false },
+      message: { visible: true },
+    },
+  }),
+  slotStyleConfig: defaultSlotStyle({
+    slots: { author: { rotate: 6, translateY: -3, zIndex: 2 } },
+  }),
   animationConfig: {
     enabled: true,
     style: 'bounce',

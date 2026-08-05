@@ -183,7 +183,6 @@ function createMock() {
       { id: 'ca-phe',        name: 'Cà Phê',         description: 'Warm coffee-shop tones — cream bubble, espresso-brown border, cinnamon accents.', preview: { bubbleBg: 'rgba(245, 232, 216, 0.88)', authorColor: '#8B4513', textColor: '#4B3324' } },
       { id: 'karaoke',       name: 'Karaoke Night',  description: 'Danmaku bullet comments with neon pink/purple karaoke-room lighting (idle animation off).', preview: { bubbleBg: 'rgba(58, 12, 82, 0.9)', authorColor: '#FF3DAE', textColor: '#FFF3FB' } },
       { id: 'ticker-news',   name: 'Ticker News',    description: 'Scrolling breaking-news ticker with crisp white-and-red styling.', preview: { bubbleBg: 'rgba(255, 255, 255, 0.97)', authorColor: '#E4001B', textColor: '#1A1414' } },
-      { id: 'edgy',          name: 'Edgy',           description: 'Saint gold halo meets demon crimson glow on jet black — sharp, dramatic, edgy.', preview: { bubbleBg: 'rgba(10, 8, 10, 0.94)', authorColor: '#D4AF37', textColor: '#EDE6DA' } },
     ],
     applyTheme: async (themeId) => {
       // In the mock we just echo the current config back — real apply
@@ -401,6 +400,26 @@ function createMock() {
         ports: mockPorts.map((mp) => ({ ...mp, isSelected: mp.id === id })),
         selectedPortId: id,
       };
+    },
+
+    // ── Palette Lock colors (mock — in-memory localStorage fallback) ──────────
+
+    getPaletteColors: async () => {
+      try {
+        const stored = localStorage.getItem('ovs-palette-colors');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length >= 2) return parsed;
+        }
+      } catch { /* ignore */ }
+      return ['#0F172A', '#38BDF8', '#F87171', '#FACC15'];
+    },
+
+    setPaletteColors: async (colors) => {
+      try {
+        localStorage.setItem('ovs-palette-colors', JSON.stringify(colors));
+      } catch { /* ignore */ }
+      return { ok: true };
     },
 
     onStatusChanged: (cb) => {

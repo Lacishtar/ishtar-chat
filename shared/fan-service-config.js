@@ -49,6 +49,31 @@ function createGroupConfig(overrides = {}) {
     messageFontScale: 1,
     messageColor: '#eaecef',
 
+    // Biến đổi (xoay/lệch/z-index) RIÊNG cho tên & nội dung của nhóm này —
+    // độc lập HOÀN TOÀN với "Biến đổi" chung ở tab Customize › Tên / Nội
+    // dung (renderer-dashboard/.../Transform/TransformSection.jsx). Trước
+    // đây 2 nơi này dùng chung 1 bộ biến CSS (--ovs-slot-author-*,
+    // --ovs-slot-message-*) nên chỉnh "Biến đổi" chung cũng vô tình xoay/
+    // lệch luôn cả tên/nội dung trong Super Chat & Hội viên.
+    // QUAN TRỌNG: giống mọi field khác trong group này (authorFontScale,
+    // authorColor...), các field dưới đây được compileGroupVars() ghi đè
+    // KHÔNG ĐIỀU KIỆN (luôn emit, không chờ khác null) ngay khi cả nhóm
+    // đang enabled — chứ không phải kiểu "null = kế thừa chung, có giá trị
+    // mới ghi đè". Nếu chỉ ghi đè khi khác null thì bao lâu người dùng
+    // chưa tự tay chỉnh trong panel Fan Service, Super Chat/Hội viên vẫn
+    // sẽ "nghe theo" mọi thay đổi ở tab Customize — đúng lỗi tách biệt mà
+    // field này sinh ra để giải quyết. Nên: bật "Tuỳ chỉnh riêng" là cắt
+    // đứt hẳn khỏi Biến đổi chung ngay lập tức, mặc định 0°/0px/auto, chỉnh
+    // tiếp thì chỉnh trong chính panel Fan Service.
+    authorRotate: null,
+    authorTranslateX: null,
+    authorTranslateY: null,
+    authorZIndex: null,
+    messageRotate: null,
+    messageTranslateX: null,
+    messageTranslateY: null,
+    messageZIndex: null,
+
     // Texture riêng cho Fan Service, độc lập với texture chung (Bubble tab)
     // và texture per-slot. null = kế thừa; '' = tắt hẳn; URL = riêng.
     bubbleTextureUrl: null,
@@ -194,6 +219,20 @@ function compileGroupVars(group) {
   if (g.authorColor) vars['--ovs-slot-author-color'] = g.authorColor;
   vars['--ovs-slot-message-font-size'] = px(BASE_SIZES.messageFontSize * scale(g.messageFontScale));
   if (g.messageColor) vars['--ovs-slot-message-color'] = g.messageColor;
+
+  // Biến đổi riêng — ghi đè KHÔNG ĐIỀU KIỆN --ovs-slot-author-*/
+  // --ovs-slot-message-* trong phạm vi dòng Fan Service (xem comment ở
+  // createGroupConfig() vì sao KHÔNG được chỉ ghi đè khi != null: làm vậy
+  // group vẫn "nghe theo" Biến đổi chung cho tới khi người dùng tự tay
+  // chỉnh trong panel này — chưa tách biệt thật sự).
+  vars['--ovs-slot-author-rotate'] = `${g.authorRotate ?? 0}deg`;
+  vars['--ovs-slot-author-translate-x'] = px(g.authorTranslateX ?? 0);
+  vars['--ovs-slot-author-translate-y'] = px(g.authorTranslateY ?? 0);
+  vars['--ovs-slot-author-z-index'] = g.authorZIndex != null ? String(g.authorZIndex) : 'auto';
+  vars['--ovs-slot-message-rotate'] = `${g.messageRotate ?? 0}deg`;
+  vars['--ovs-slot-message-translate-x'] = px(g.messageTranslateX ?? 0);
+  vars['--ovs-slot-message-translate-y'] = px(g.messageTranslateY ?? 0);
+  vars['--ovs-slot-message-z-index'] = g.messageZIndex != null ? String(g.messageZIndex) : 'auto';
 
   if (g.bubbleTextureUrl != null) {
     const url = typeof g.bubbleTextureUrl === 'string' ? g.bubbleTextureUrl.trim() : '';
@@ -421,8 +460,8 @@ ${amountCommon.join('\n')}
       // identical there while also surviving split-wrap.
       rules.push(
         `${sel} {\n` +
-          `  background: ${g.manualBgColor || 'var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72))'} !important;\n` +
-          `  border-color: ${g.manualBorderColor || 'var(--ovs-bubble-border-color, transparent)'} !important;\n` +
+          `  background: ${g.manualBgColor || 'var(--ovs-role-member-message-bg, var(--ovs-bubble-bg, rgba(22, 25, 31, 0.72)))'} !important;\n` +
+          `  border-color: ${g.manualBorderColor || 'var(--ovs-member-tier-color, var(--ovs-role-member-message-border-color, var(--ovs-bubble-border-color, transparent)))'} !important;\n` +
           '}',
       );
     }
@@ -473,14 +512,19 @@ ${amountCommon.join('\n')}
     rules.push(`${sel} .ovs-body {\n  align-items: var(--ovs-layout-body-align, stretch) !important;\n}`);
 
     // "Chia đôi bubble" (headerSplit — overlay/bubble-wrap.css ~L421) rebuilds
-    // .ovs-message as a CSS Grid (avatar | name row, divider row, message
-    // row) and turns .ovs-body into `display: contents`, gated only on
-    // global :root attributes — never scoped per-row. That grid completely
-    // overrides Fan Service's own flex-based author/amount layout
-    // (buildAuthorAreaLayout() above), so it kept breaking Fan Service rows
-    // even after the split-wrap fix above. Force these rows back to the
-    // normal flex row/column structure regardless of the global headerSplit
-    // setting, and hide the divider pseudo-element it injects.
+    // .ovs-message as a CSS Grid (avatar | name row, message row) with two
+    // independently colored bands — .ovs-message::before paints the header
+    // band, .ovs-text paints its own body band, .ovs-text::before draws the
+    // optional divider seam — and turns .ovs-body into `display: contents`,
+    // gated only on global :root attributes — never scoped per-row. That
+    // grid (and its two paint layers) completely overrides Fan Service's
+    // own flex-based author/amount layout and its own row-level bubble
+    // background (buildAuthorAreaLayout() / bg rules above), so it kept
+    // breaking Fan Service rows even after the split-wrap fix above. Force
+    // these rows back to the normal flex row/column structure regardless of
+    // the global headerSplit setting, and strip both pseudo-element paint
+    // layers it injects so Fan Service's own single bubble background (set
+    // above) is the only one that shows.
     rules.push(
       `${sel} {\n` +
         '  display: flex !important;\n' +
@@ -492,7 +536,16 @@ ${amountCommon.join('\n')}
         '  max-width: 92% !important;\n' +
         '}',
     );
-    rules.push(`${sel}::after {\n  content: none !important;\n  display: none !important;\n}`);
+    rules.push(
+      `${sel}::before,\n${sel}::after,\n${sel} .ovs-text::before,\n${sel} .ovs-text::after {\n` +
+        '  content: none !important;\n  display: none !important;\n}',
+    );
+    rules.push(
+      `${sel} .ovs-text {\n` +
+        '  margin: 0 !important;\n' +
+        '  border-radius: 0 !important;\n' +
+        '}',
+    );
     rules.push(
       `${sel} .ovs-body {\n` +
         '  display: flex !important;\n' +

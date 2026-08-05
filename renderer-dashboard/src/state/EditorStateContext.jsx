@@ -27,6 +27,8 @@ function applyInitialState(state, setters, preLockRef) {
       customizeConfig: state.customizeConfig,
       roleStyleConfig: state.roleStyleConfig,
       fanServiceConfig: state.fanServiceConfig,
+      slotStyleConfig: state.slotStyleConfig,
+      layoutConfig: state.layoutConfig,
     };
   }
 }
@@ -56,14 +58,22 @@ export function EditorStateProvider({ api, children }) {
   const [selectedPortId, setSelectedPortId] = useState(null);
 
   // ── Palette Lock persistent state ─────────────────────────────────────────
-  const [paletteLockColors, setPaletteLockColors] = useState(['#0F172A', '#38BDF8', '#F87171', '#FACC15']);
+  const [paletteLockColors, setPaletteLockColorsState] = useState(['#0F172A', '#38BDF8', '#F87171', '#FACC15']);
+
+  // Wrapper that also persists to disk via IPC
+  const setPaletteLockColors = useCallback((colors) => {
+    setPaletteLockColorsState(colors);
+    api.setPaletteColors?.(colors).catch((err) => {
+      console.warn('[EditorState] setPaletteColors failed:', err);
+    });
+  }, [api]);
 
   const configDebounce = useRef(null);
   const slotDebounce = useRef(null);
   const layoutDebounce = useRef(null);
   const decorationDebounce = useRef(null);
-  const roleDebounce = useRef(null);
-  const fanServiceDebounce = useRef(null);
+  const roleDebounce = useRef({});
+  const fanServiceDebounce = useRef({});
 
   const preLockSnapshotRef = useRef(null);
 
@@ -71,9 +81,12 @@ export function EditorStateProvider({ api, children }) {
     setLoading(true);
     setLoadError(null);
 
-    return api
-      .getInitialState()
-      .then((state) => {
+    // Load overlay config AND persisted palette colors concurrently
+    return Promise.all([
+      api.getInitialState(),
+      api.getPaletteColors?.() ?? Promise.resolve(null),
+    ])
+      .then(([state, savedColors]) => {
         applyInitialState(
           state,
           {
@@ -93,6 +106,10 @@ export function EditorStateProvider({ api, children }) {
         // Port list from initial state
         if (state.ports) setPorts(state.ports);
         if (state.selectedPortId) setSelectedPortId(state.selectedPortId);
+        // Restore persisted palette colors (only if valid)
+        if (Array.isArray(savedColors) && savedColors.length >= 2) {
+          setPaletteLockColors(savedColors);
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -131,6 +148,8 @@ export function EditorStateProvider({ api, children }) {
           customizeConfig: payload.config,
           roleStyleConfig: payload.roleStyleConfig,
           fanServiceConfig: payload.fanServiceConfig,
+          slotStyleConfig: payload.slotStyleConfig,
+          layoutConfig: payload.layoutConfig,
         };
         setPreviewKey((k) => k + 1);
       }),
@@ -157,6 +176,18 @@ export function EditorStateProvider({ api, children }) {
       clearTimeout(slotDebounce.current);
       slotDebounce.current = setTimeout(() => {
         api.updateSlotStyle({ slots: { [slot]: patch } });
+      }, SLOT_DEBOUNCE_MS);
+    },
+    [api],
+  );
+
+  // Push a fully-replaced slotStyleConfig (used by Palette Lock to snap all slot colors at once)
+  const pushSlotStyleFull = useCallback(
+    (nextSlotStyleConfig) => {
+      setSlotLocal(nextSlotStyleConfig);
+      clearTimeout(slotDebounce.current);
+      slotDebounce.current = setTimeout(() => {
+        api.updateSlotStyle(nextSlotStyleConfig);
       }, SLOT_DEBOUNCE_MS);
     },
     [api],
@@ -196,8 +227,8 @@ export function EditorStateProvider({ api, children }) {
   const pushRoleUpdate = useCallback(
     (roleKey, nextRole) => {
       setRoleLocal((prev) => ({ roles: { ...(prev?.roles || {}), [roleKey]: nextRole } }));
-      clearTimeout(roleDebounce.current);
-      roleDebounce.current = setTimeout(() => {
+      clearTimeout(roleDebounce.current[roleKey]);
+      roleDebounce.current[roleKey] = setTimeout(() => {
         api.updateRoleStyleConfig({ roles: { [roleKey]: nextRole } });
       }, ROLE_DEBOUNCE_MS);
     },
@@ -212,8 +243,8 @@ export function EditorStateProvider({ api, children }) {
         ...prev,
         [group]: { ...(prev?.[group] || {}), ...patch },
       }));
-      clearTimeout(fanServiceDebounce.current);
-      fanServiceDebounce.current = setTimeout(() => {
+      clearTimeout(fanServiceDebounce.current[group]);
+      fanServiceDebounce.current[group] = setTimeout(() => {
         api.updateFanServiceConfig({ [group]: patch });
       }, FAN_SERVICE_DEBOUNCE_MS);
     },
@@ -262,10 +293,12 @@ export function EditorStateProvider({ api, children }) {
         customizeConfig: local,
         roleStyleConfig: roleLocal,
         fanServiceConfig: fanServiceLocal,
+        slotStyleConfig: slotLocal,
+        layoutConfig: layoutLocal,
       };
     }
     return preLockSnapshotRef.current;
-  }, [local, roleLocal, fanServiceLocal]);
+  }, [local, roleLocal, fanServiceLocal, slotLocal, layoutLocal]);
 
   const selectPort = useCallback(
     async (id) => {
@@ -283,6 +316,8 @@ export function EditorStateProvider({ api, children }) {
         customizeConfig: result.customizeConfig,
         roleStyleConfig: result.roleStyleConfig,
         fanServiceConfig: result.fanServiceConfig,
+        slotStyleConfig: result.slotStyleConfig,
+        layoutConfig: result.layoutConfig,
       };
       setOverlayUrl(result.overlayUrl);
       setSelectedPortId(result.selectedPortId);
@@ -358,6 +393,7 @@ export function EditorStateProvider({ api, children }) {
 
     pushConfigUpdate,
     pushSlotUpdate,
+    pushSlotStyleFull,
     pushAnimationUpdate,
     pushLayoutUpdate,
     pushDecorationUpdate,

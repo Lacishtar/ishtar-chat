@@ -20,7 +20,6 @@ const TABS = [
   { id: 'decorations', label: 'Trang trí' },
   { id: 'roles', label: 'Vai trò' },
   { id: 'fanService', label: 'Fan Service' },
-  { id: 'paletteLock', label: 'Bảng màu' },
 ];
 
 function TabBar({ active, onChange }) {
@@ -116,16 +115,16 @@ function AppShell() {
             {activeTab === 'decorations' && <DecorationsPanel />}
             {activeTab === 'roles' && <RoleStylesPanel />}
             {activeTab === 'fanService' && <FanServicePanel />}
-            {activeTab === 'paletteLock' && <PaletteLockPanel />}
           </div>
         </div>
 
         <ChatPreview overlayUrl={overlayUrl} previewKey={previewKey} onRefresh={bumpPreviewKey} />
 
-        {/* Right column: Theme Library above, Custom Presets below */}
+        {/* Right column: Theme Library, Custom Presets, then the compact Palette Lock section */}
         <div className="min-h-0 overflow-y-auto pr-1 flex flex-col gap-4">
           <ThemeLibraryPanel api={api} resetPreset={resetPreset} />
           <CustomPresetsPanel />
+          <PaletteLockPanel />
         </div>
       </main>
     </div>

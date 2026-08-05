@@ -1,6 +1,8 @@
 // helpers.js — shared builder functions for BUILTIN_THEMES.
 
 const { createGroupConfig } = require('../fan-service-config');
+const { DEFAULT_LAYOUT_CONFIG, mergeLayoutConfig } = require('../layout-config');
+const { DEFAULT_SLOT_STYLE_CONFIG, mergeSlotStyleConfig } = require('../slot-style-config');
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -39,73 +41,29 @@ function defaultRoles() {
   };
 }
 
-/** Default layout (horizontal, avatar-left, message-below). */
-function defaultLayout() {
-  return {
-    messageRow: { direction: 'horizontal', gap: 10, align: 'start', padding: 8, margin: 0 },
-    metaRow: { direction: 'horizontal', gap: 6, align: 'center', padding: 0, margin: 2 },
-    bodyColumn: { direction: 'vertical', gap: 2, align: 'stretch', padding: 0, margin: 0 },
-    slots: {
-      avatar: { order: 0, padding: 0, margin: 0, visible: null, position: 'static', top: null, left: null, right: null, bottom: null, zIndex: null },
-      author: { order: 0, padding: 0, margin: 0, visible: null, position: 'static', top: null, left: null, right: null, bottom: null, zIndex: null },
-      message: { order: 1, padding: 0, margin: 0, visible: null, position: 'static', top: null, left: null, right: null, bottom: null, zIndex: null },
-    },
-    screen: {
-      chatAlign: 'left',
-      contentDirection: 'ltr',
-      chatGap: 10,
-      bubbleScope: null,
-      bubbleWrapRow: true,
-      bubbleWrapAuthor: false,
-      bubbleWrapMessage: false,
-    },
-  };
+/**
+ * Default layout (horizontal, avatar-left, message-below).
+ *
+ * `overrides` is deep-merged on top via the same mergeLayoutConfig() used at
+ * runtime, so a theme can flip just e.g. `screen.bubbleWrapRow` /
+ * `slots.avatar.visible` without having to restate the whole shape. This is
+ * what lets individual presets opt into "Chia đôi bubble" (split
+ * author/message wrap), hiding the avatar slot, etc. — see shared/layout-config.js.
+ */
+function defaultLayout(overrides = {}) {
+  return mergeLayoutConfig(DEFAULT_LAYOUT_CONFIG, overrides);
 }
 
-/** Default slot-style (all nulls → inherits from customizeConfig). */
-function defaultSlotStyle() {
-  return {
-    slots: {
-      avatar: {
-        visible: null, size: null, borderRadius: null, borderWidth: null,
-        borderStyle: null, borderColor: null, borderOffset: null,
-        opacity: null, margin: 0,
-        rotate: 0, translateX: 0, translateY: 0, transformOrigin: null, zIndex: null,
-      },
-      author: {
-        visible: null, fontFamily: null, fontSize: null, color: null,
-        fontWeight: null, opacity: null, margin: 0, textAlign: null,
-        rotate: 0, translateX: 0, translateY: 0, transformOrigin: null, zIndex: null,
-        bubbleBg: null, bubbleRadius: null, bubbleOpacity: null, bubbleBorderWidth: null,
-        bubbleBorderStyle: null, bubbleBorderColor: null, bubbleBorderOffset: null,
-        bubbleBoxShadow: null, bubbleGlow: null, bubblePadding: null,
-        bubblePaddingX: null, bubblePaddingY: null, bubblePaddingTop: null,
-        bubblePaddingRight: null, bubblePaddingBottom: null, bubblePaddingLeft: null,
-        bubbleTextureUrl: null, bubbleTextureSize: 'auto', bubbleTextureRepeat: 'repeat',
-        bubbleTextureOpacity: 1, bubbleBunnyEars: null, bubbleBunnyEarsWidth: null,
-        bubbleBunnyEarsHeight: null, bubbleBunnyEarsRoundness: null, bubbleBunnyEarsOffsetX: null,
-        bubbleBunnyEarsOffsetY: null, bubbleBunnyEarsZIndex: null, bubbleMinWidth: null,
-        bubbleMaxWidth: null, bubbleFixedWidth: null,
-        bubbleMinHeight: null, bubbleMaxHeight: null, bubbleFixedHeight: null,
-      },
-      message: {
-        visible: null, fontFamily: null, fontSize: null, color: null,
-        fontWeight: null, opacity: null, margin: 0, textAlign: null,
-        rotate: 0, translateX: 0, translateY: 0, transformOrigin: null, zIndex: null,
-        bubbleBg: null, bubbleRadius: null, bubbleOpacity: null, bubbleBorderWidth: null,
-        bubbleBorderStyle: null, bubbleBorderColor: null, bubbleBorderOffset: null,
-        bubbleBoxShadow: null, bubbleGlow: null, bubblePadding: null,
-        bubblePaddingX: null, bubblePaddingY: null, bubblePaddingTop: null,
-        bubblePaddingRight: null, bubblePaddingBottom: null, bubblePaddingLeft: null,
-        bubbleTextureUrl: null, bubbleTextureSize: 'auto', bubbleTextureRepeat: 'repeat',
-        bubbleTextureOpacity: 1, bubbleBunnyEars: null, bubbleBunnyEarsWidth: null,
-        bubbleBunnyEarsHeight: null, bubbleBunnyEarsRoundness: null, bubbleBunnyEarsOffsetX: null,
-        bubbleBunnyEarsOffsetY: null, bubbleBunnyEarsZIndex: null, bubbleMinWidth: null,
-        bubbleMaxWidth: null, bubbleFixedWidth: null,
-        bubbleMinHeight: null, bubbleMaxHeight: null, bubbleFixedHeight: null,
-      },
-    },
-  };
+/**
+ * Default slot-style (all nulls → inherits from customizeConfig).
+ *
+ * `overrides` is deep-merged via mergeSlotStyleConfig() — used by themes that
+ * want a per-slot rotate/translate ("xoay trục X/Y") or a dedicated
+ * author/message bubble color (the color half of "Bubble riêng" / header-body
+ * split), without redeclaring every null field. See shared/slot-style-config.js.
+ */
+function defaultSlotStyle(overrides = {}) {
+  return mergeSlotStyleConfig(DEFAULT_SLOT_STYLE_CONFIG, overrides);
 }
 
 /** Default animation (slide, bottom-up stagger). */

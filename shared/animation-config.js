@@ -22,6 +22,8 @@ const DEFAULT_ANIMATION_CONFIG = {
     avatar: createSlotAnimDefaults({ delayMs: 0, translateY: 8 }),
     author: createSlotAnimDefaults({ delayMs: 40, translateX: -6 }),
     message: createSlotAnimDefaults({ delayMs: 80, translateY: 6 }),
+    fanserviceAuthor: createSlotAnimDefaults({ delayMs: 20, translateX: -12, translateY: -6, scale: 1.15, blur: 4, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }),
+    fanserviceMessage: createSlotAnimDefaults({ delayMs: 60, translateY: 14, scale: 0.9, blur: 6, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }),
   },
 };
 
@@ -29,6 +31,8 @@ const BASE_TARGET_DIRECTIONS = {
   avatar: { delayMs: 0, translateX: 0, translateY: 8 },
   author: { delayMs: 40, translateX: -6, translateY: 0 },
   message: { delayMs: 80, translateX: 0, translateY: 6 },
+  fanserviceAuthor: { delayMs: 20, translateX: -12, translateY: -6, scale: 1.15, blur: 4, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
+  fanserviceMessage: { delayMs: 60, translateX: 0, translateY: 14, scale: 0.9, blur: 6, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
 };
 
 // Named animation "styles" pickable from the Customize Panel. Each one is a
@@ -79,6 +83,8 @@ function mergeAnimationConfig(base, overrides) {
       avatar: mergeTarget('avatar'),
       author: mergeTarget('author'),
       message: mergeTarget('message'),
+      fanserviceAuthor: mergeTarget('fanserviceAuthor'),
+      fanserviceMessage: mergeTarget('fanserviceMessage'),
     },
   };
 }
@@ -102,9 +108,11 @@ function resolveEffectiveAnimation(animationConfig, customizeConfig) {
     enabled: anim.enabled !== false,
     style: anim.style || 'slide',
     targets: {
-      avatar: resolve(anim.targets.avatar),
-      author: resolve(anim.targets.author),
-      message: resolve(anim.targets.message),
+      avatar: resolve(anim.targets.avatar || DEFAULT_ANIMATION_CONFIG.targets.avatar),
+      author: resolve(anim.targets.author || DEFAULT_ANIMATION_CONFIG.targets.author),
+      message: resolve(anim.targets.message || DEFAULT_ANIMATION_CONFIG.targets.message),
+      fanserviceAuthor: resolve(anim.targets.fanserviceAuthor || DEFAULT_ANIMATION_CONFIG.targets.fanserviceAuthor),
+      fanserviceMessage: resolve(anim.targets.fanserviceMessage || DEFAULT_ANIMATION_CONFIG.targets.fanserviceMessage),
     },
   };
 }
@@ -115,8 +123,9 @@ function compileAnimationToCssVariables(animationConfig, customizeConfig) {
     '--ovs-anim-enabled': e.enabled ? '1' : '0',
   };
 
-  ['avatar', 'author', 'message'].forEach((slot) => {
+  ['avatar', 'author', 'message', 'fanserviceAuthor', 'fanserviceMessage'].forEach((slot) => {
     const t = e.targets[slot];
+    if (!t) return;
     vars[`--ovs-anim-${slot}-duration`] = `${t.durationMs}ms`;
     vars[`--ovs-anim-${slot}-delay`] = `${t.delayMs}ms`;
     vars[`--ovs-anim-${slot}-easing`] = t.easing;

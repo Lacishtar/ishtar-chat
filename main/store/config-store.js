@@ -24,6 +24,38 @@ function stripStaleRoleRowDefaults(roleStyleConfig) {
   return { roles };
 }
 
+// "Chia đôi bubble" header/body split colors used to live at
+// layoutConfig.screen.headerBgColor/bodyBgColor. They now read
+// slotStyleConfig.slots.author.bubbleBg / slots.message.bubbleBg instead —
+// the same fields split-wrap mode's "🖌️ Bubble riêng" panel already writes
+// to (see shared/layout-config.js's compileLayoutToCssVariables). This
+// one-time migration carries an existing user's chosen header/body colors
+// over to their new home so upgrading doesn't visually reset their overlay.
+// Only fills in bubbleBg when the slot doesn't already have one set, so it
+// never clobbers a color the user picked independently in "🖌️ Bubble riêng".
+function migrateHeaderSplitColorsIntoSlotBubbleBg(layoutConfig, slotStyleConfig) {
+  const legacyHeader = layoutConfig?.screen?.headerBgColor;
+  const legacyBody = layoutConfig?.screen?.bodyBgColor;
+  if (legacyHeader == null && legacyBody == null) return slotStyleConfig;
+
+  const slots = slotStyleConfig?.slots || {};
+  const author = slots.author || {};
+  const message = slots.message || {};
+
+  return {
+    ...slotStyleConfig,
+    slots: {
+      ...slots,
+      author: legacyHeader != null && author.bubbleBg == null
+        ? { ...author, bubbleBg: legacyHeader }
+        : author,
+      message: legacyBody != null && message.bubbleBg == null
+        ? { ...message, bubbleBg: legacyBody }
+        : message,
+    },
+  };
+}
+
 function migrateSuperchatRoleIntoFanService(rawRoleStyleConfig, fanServiceConfig) {
   const legacy = rawRoleStyleConfig?.roles?.superchat;
   // roles.superchat), or legacy.enabled === false (user never actually
@@ -116,12 +148,16 @@ class ConfigStore {
         profile.roleStyleConfig,
         mergeFanServiceConfig(baseline.fanServiceConfig, profile.fanServiceConfig),
       );
+      const migratedSlotStyleConfig = migrateHeaderSplitColorsIntoSlotBubbleBg(
+        profile.layoutConfig,
+        profile.slotStyleConfig ?? baseline.slotStyleConfig,
+      );
       return {
         ...baseline,
         selectedTheme: themeId,
         customizeConfig: profile.customizeConfig,
         layoutConfig: profile.layoutConfig ?? baseline.layoutConfig,
-        slotStyleConfig: profile.slotStyleConfig ?? baseline.slotStyleConfig,
+        slotStyleConfig: migratedSlotStyleConfig,
         animationConfig: profile.animationConfig ?? baseline.animationConfig,
         decorationConfig: profile.decorationConfig ?? baseline.decorationConfig,
         roleStyleConfig: stripStaleRoleRowDefaults(profile.roleStyleConfig) ?? baseline.roleStyleConfig,
@@ -171,4 +207,10 @@ class ConfigStore {
   }
 }
 
-module.exports = { ConfigStore, DEFAULT_STATE, buildUserOverlayProfile, migrateSuperchatRoleIntoFanService };
+module.exports = {
+  ConfigStore,
+  DEFAULT_STATE,
+  buildUserOverlayProfile,
+  migrateSuperchatRoleIntoFanService,
+  migrateHeaderSplitColorsIntoSlotBubbleBg,
+};

@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useEditorState } from '../state/EditorStateContext.jsx';
 import ColorPicker from './Customize/shared/ColorPicker.jsx';
-import { BORDER_STYLE_OPTIONS } from './Customize/shared/constants.js';
 
 const inputClass =
   'w-full rounded-lg bg-panelAlt border border-line px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-focusAccent';
@@ -122,10 +121,6 @@ function contractSimpleLayout(layout) {
       bubbleWrapAuthor: false,
       bubbleWrapMessage: false,
       headerSplit: false,
-      headerDividerColor: 'rgba(255, 255, 255, 0.14)',
-      headerDividerWidth: 1,
-      headerDividerStyle: 'solid',
-      headerDividerLength: 100,
     };
   }
 
@@ -163,10 +158,6 @@ function contractSimpleLayout(layout) {
     bubbleWrapAuthor: Boolean(screen.bubbleWrapAuthor),
     bubbleWrapMessage: Boolean(screen.bubbleWrapMessage),
     headerSplit: Boolean(screen.headerSplit),
-    headerDividerColor: screen.headerDividerColor ?? 'rgba(255, 255, 255, 0.14)',
-    headerDividerWidth: screen.headerDividerWidth ?? 1,
-    headerDividerStyle: screen.headerDividerStyle ?? 'solid',
-    headerDividerLength: screen.headerDividerLength ?? 100,
     avatarPadding: slots.avatar?.padding ?? 0,
     avatarMargin: slots.avatar?.margin ?? 0,
     authorPadding: slots.author?.padding ?? 0,
@@ -241,16 +232,12 @@ function expandSimpleLayout(simple) {
       bubbleWrapMessage: wrapMessage,
       bubbleScope: null,
       headerSplit: Boolean(s.headerSplit),
-      headerDividerColor: s.headerDividerColor || 'rgba(255, 255, 255, 0.14)',
-      headerDividerWidth: s.headerDividerWidth ?? 1,
-      headerDividerStyle: s.headerDividerStyle || 'solid',
-      headerDividerLength: s.headerDividerLength ?? 100,
     },
   };
 }
 
 export default function LayoutPanel() {
-  const { layoutLocal, pushLayoutUpdate, roleLocal, pushRoleUpdate } = useEditorState();
+  const { layoutLocal, pushLayoutUpdate, roleLocal, pushRoleUpdate, slotLocal, pushSlotUpdate } = useEditorState();
   const local = useMemo(() => contractSimpleLayout(layoutLocal), [layoutLocal]);
 
   function pushUpdate(partial) {
@@ -413,46 +400,38 @@ export default function LayoutPanel() {
 
           {local.headerSplit && (
             <div className="flex flex-col gap-3 text-sm pl-1">
-              <Field label="Màu vạch chia (kéo alpha để chỉnh độ trong suốt)">
-                <ColorPicker
-                  value={local.headerDividerColor || 'rgba(255, 255, 255, 0.14)'}
-                  onChange={(v) => pushUpdate({ headerDividerColor: v })}
-                  allowGradient={false}
-                />
-              </Field>
               <div className="flex flex-wrap gap-4 items-end">
-                <Field label={`Độ dày vạch — ${local.headerDividerWidth ?? 1}px`}>
-                  <input
-                    type="range"
-                    min={1}
-                    max={10}
-                    value={local.headerDividerWidth ?? 1}
-                    onChange={(e) => pushUpdate({ headerDividerWidth: Number(e.target.value) })}
+                <Field label="Màu nền header (avatar + tên)">
+                  <ColorPicker
+                    value={slotLocal?.slots?.author?.bubbleBg || 'rgba(22, 25, 31, 0.72)'}
+                    onChange={(v) => pushSlotUpdate('author', { bubbleBg: v })}
+                    allowGradient={false}
                   />
                 </Field>
-                <Field label={`Độ dài vạch — ${local.headerDividerLength ?? 100}%`}>
-                  <input
-                    type="range"
-                    min={5}
-                    max={100}
-                    value={local.headerDividerLength ?? 100}
-                    onChange={(e) => pushUpdate({ headerDividerLength: Number(e.target.value) })}
+                <Field label="Màu nền nội dung chat">
+                  <ColorPicker
+                    value={slotLocal?.slots?.message?.bubbleBg || 'rgba(22, 25, 31, 0.72)'}
+                    onChange={(v) => pushSlotUpdate('message', { bubbleBg: v })}
+                    allowGradient={false}
                   />
                 </Field>
-                <Field label="Kiểu vạch">
-                  <select
-                    className={inputClass}
-                    value={local.headerDividerStyle || 'solid'}
-                    onChange={(e) => pushUpdate({ headerDividerStyle: e.target.value })}
-                  >
-                    {BORDER_STYLE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+                <button
+                  type="button"
+                  className="text-xs text-inkMuted underline hover:text-ink"
+                  onClick={() => {
+                    pushSlotUpdate('author', { bubbleBg: null });
+                    pushSlotUpdate('message', { bubbleBg: null });
+                  }}
+                >
+                  Đặt lại 2 màu về mặc định
+                </button>
               </div>
+              <p className="text-xs text-inkMuted">
+                Đặt 2 màu khác nhau để bubble chia thành 2 khối màu kiểu YouTube (header đậm, nội
+                dung nhạt hơn). Đây là cùng màu với mục "🖌️ Bubble riêng" ở tên/nội dung chat bên
+                Customize — chỉnh ở đâu cũng ra cùng một kết quả, kể cả khi bạn đổi sang "Bọc từng
+                phần".
+              </p>
             </div>
           )}
         </>

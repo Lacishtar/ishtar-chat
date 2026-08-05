@@ -72,8 +72,11 @@ module.exports = {
     emojiGlyphOpacity: 1,
     emojiGlyphGlow: null,
   },
+  // Slight stamp-on-a-receipt tilt for the name, cozy rather than bouncy.
   layoutConfig: defaultLayout(),
-  slotStyleConfig: defaultSlotStyle(),
+  slotStyleConfig: defaultSlotStyle({
+    slots: { author: { rotate: -2, translateX: 2 } },
+  }),
   animationConfig: {
     enabled: true,
     style: 'slide',
