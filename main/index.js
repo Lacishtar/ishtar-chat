@@ -16,7 +16,6 @@ const { mergeFanServiceConfig } = require('../shared/fan-service-config');
 const { resolveThemeState } = require('./store/theme-state');
 const { getDirtyFields } = require('./store/theme-baseline');
 const { GetThemeList, ApplyTheme, ResetCategory } = require('../shared/theme-manager');
-const { initializeAutoUpdater } = require('./auto-updater');
 
 const MAX_HISTORY = 200;
 
@@ -193,8 +192,6 @@ async function bootstrap() {
   });
 
   registerIpcHandlers();
-
-  initializeAutoUpdater();
 }
 
 // ── IPC Handlers ──────────────────────────────────────────────────────────────

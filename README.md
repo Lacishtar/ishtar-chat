@@ -1,4 +1,4 @@
-# Lacishtar Chat
+# Lacishtar Chat (v1.0.1)
 
 > "Dán link YouTube Live, chọn giao diện, dán vào OBS. Xong."
 
@@ -11,14 +11,16 @@
 ## Tính năng nổi bật
 
 - ⚡ **Realtime Preview**: Trình xem trước trong Dashboard là trang overlay thật được nhúng qua iframe, đảm bảo những gì bạn thấy trên Dashboard và hiển thị trên OBS luôn trùng khớp 100%.
-- 🎨 **9 Theme mặc định & Hỗ trợ Custom**: Tích hợp sẵn 9 phong cách thiết kế từ tối giản, dễ thương cho tới phong cách game thủ, cyberpunk.
+- 🎨 **17 Theme mặc định & 4 Chế độ hiển thị**:
+  - **Chế độ hiển thị**: Xếp chồng (Stack), Màn hình bay (Danmaku / Niconico-style), Thanh tin tức cuộn ngang (Ticker), và Thanh cuộn ngang (Horizontal Bar).
+  - **17 Theme thiết kế sẵn**: Từ tối giản, kính mờ, kawaii/VTuber, Cyberpunk Neon, Cà phê chill cho đến Retro 8-bit.
 - ⚙️ **Tùy chỉnh sâu & Mạnh mẽ**:
-  - **Custom Size Bubble**: Tự do điều chỉnh kích thước bóng chat theo ý muốn.
+  - **Vị trí thanh Ticker / Horizontal Bar**: Tùy chọn neo vào Cạnh dưới (Bottom) hoặc Cạnh trên (Top) màn hình linh hoạt.
+  - **Custom Size & Padding**: Tự do điều chỉnh kích thước bóng chat, bo góc, bóng mờ và khoảng cách.
   - **Text Alignment & Khung chat**: Căn chỉnh vị trí chữ (trái/phải/giữa) và căn lề khung chat linh hoạt.
   - **Font chữ đa dạng**: Hỗ trợ tích hợp thêm font chữ tùy chọn để đồng bộ với nhận diện thương hiệu của kênh stream.
   - **Phân loại vai trò (Role styling)**: Tùy biến kiểu hiển thị riêng cho Moderator, Member (Hội viên), và Superchat (bao gồm hiển thị loại tiền tệ).
   - **Trang trí nâng cao (Decorations)**: Hỗ trợ layer stack cho phép hiển thị các họa tiết trang trí đè lên hoặc nằm phía dưới văn bản chat một cách linh hoạt.
-- 🔄 **Hệ thống tự động cập nhật (Auto-updater)**: Tích hợp sẵn `electron-updater` giúp ứng dụng tự động kiểm tra, tải về bản cập nhật mới trong nền từ GitHub Releases và thông báo khởi động lại để áp dụng khi hoàn tất.
 
 ---
 
@@ -27,7 +29,6 @@
 ```text
 main/                  Main process (Node) — Nguồn sự thật duy nhất
   index.js             Entry point của Electron app, điều hướng và kết nối IPC
-  auto-updater.js      Quản lý logic tự động kiểm tra và tải cập nhật từ GitHub Releases
   window-manager.js    Khởi tạo BrowserWindow hiển thị Dashboard
   capture-manager.js   Quản lý hidden BrowserView + IPC nhận dữ liệu chat đã capture
   capture-preload.js   Script được tiêm vào BrowserView để theo dõi DOM (MutationObserver)
@@ -41,6 +42,7 @@ renderer-dashboard/    Mã nguồn giao diện Dashboard (React + Tailwind CSS, 
 overlay/               Trang hiển thị overlay thuần HTML/CSS/JS (OBS Browser Source sẽ load trang này)
 themes/                Thư mục chứa các theme (mỗi theme gồm template.html, style.css và default-config.json)
 shared/                Chứa các schema dùng chung và logic xử lý cấu hình (Layout, Animation, Role, Theme presets)
+docs/                  Trang giới thiệu / Landing page dự án
 scripts/               Các script kiểm thử nhanh hệ thống độc lập
 ```
 
@@ -68,7 +70,7 @@ Khi ứng dụng mở ra, dán link livestream dạng `youtube.com/watch?v=...`,
 
 ---
 
-## 18 Theme tích hợp sẵn
+## 17 Theme tích hợp sẵn
 
 | Theme | Phong cách thiết kế |
 |---|---|
@@ -79,30 +81,16 @@ Khi ứng dụng mở ra, dán link livestream dạng `youtube.com/watch?v=...`,
 | `pastel-pink` | Pastel Pink — Tông màu hồng phấn nhẹ nhàng, bo góc tròn rộng |
 | `glassmorphism` | Kính mờ — Hiệu ứng Blur kính xuyên thấu thời thượng, viền sáng mảnh |
 | `cute-bubble` | Bong bóng tròn — Kiểu bong bóng chat tinh nghịch kèm hiệu ứng xuất hiện nảy (bounce) |
+| `cute` | Cute Pastel — Tông màu pastel ngọt ngào, dịu mắt |
 | `anime` | Sakura Anime — Tông hồng đào ngọt ngào thích hợp cho các VTuber |
-| `karaoke` | Karaoke Night — Chat bay theo kiểu Danmaku, viền neon hồng/tím, chừa chỗ cho phụ đề lời bài hát (không có idle animation) |
+| `karaoke` | Karaoke Night — Chat bay theo kiểu Danmaku, viền neon hồng/tím |
 | `ticker-news` | Ticker News — Chat chạy theo kiểu Chat Ticker "breaking news", nền trắng chữ đỏ/đen sắc nét |
-
----
-
-## Cơ chế tự động cập nhật (Auto-updater)
-
-Tính năng tự động cập nhật liên kết trực tiếp với các bản phát hành (Releases) trên kho lưu trữ GitHub của bạn.
-
-- **Khi hoạt động**: 
-  - Chỉ kích hoạt khi ứng dụng chạy ở phiên bản đóng gói hoàn chỉnh (Production / Packaged). Khi chạy ở chế độ dev (`npm run dev`), hệ thống sẽ bỏ qua để tránh lỗi.
-  - Khi có phiên bản mới tải lên GitHub Releases công khai, ứng dụng sẽ tự động tải phiên bản đó về trong nền.
-  - Sau khi tải xong, một hộp thoại sẽ hiển thị hỏi người dùng có muốn khởi động lại ngay lập tức để cập nhật hay không. Nếu người dùng chọn "Để sau", bản cập nhật sẽ được áp dụng vào lần tiếp theo khi tắt mở ứng dụng.
-
-- **Cách phát hành bản cập nhật**:
-  1. Tăng số `version` trong `package.json` (Ví dụ từ `1.0.0` lên `1.0.1`).
-  2. Đặt mã thông báo GitHub cá nhân (Personal Access Token) vào biến môi trường `GH_TOKEN` trên thiết bị build của bạn.
-  3. Chạy lệnh đóng gói và tự động đẩy lên nháp:
-     ```bash
-     # electron-builder sẽ tự động build và upload lên GitHub Releases nháp dựa trên cấu hình publish trong package.json
-     npm run build
-     ```
-  4. Truy cập GitHub Releases của dự án, kiểm tra bản nháp và nhấn **Publish Release**.
+| `ca-phe` | Cà phê chill — Tông nâu ấm cúng phong cách tiệm cà phê |
+| `maid` | Maid Cafe — Phong cách hầu gái dễ thương |
+| `neon` | Cyberpunk Neon — Đèn neon rực rỡ phong cách tương lai |
+| `night-sky` | Đêm sao — Tông xanh đêm huyền bí kèm điểm sao |
+| `retro` | Retro Arcade — Phong cách pixel game 8-bit hoài cổ |
+| `vtuber-cute` | VTuber Kawaii — Thiết kế đáng yêu dành riêng cho các VTuber |
 
 ---
 
