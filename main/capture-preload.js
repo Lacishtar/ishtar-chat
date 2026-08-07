@@ -9,6 +9,14 @@ let warnedUnknownTags = new Set();
 let batch = [];
 let batchTimer = null;
 let lastEmitAt = Date.now();
+// Message-renderer nodes currently tracked, keyed by their DOM id — lets a
+// later mutation (deletion) be traced back to the same id we already sent
+// upstream, without re-querying the whole container.
+let nodeById = new Map();
+// ids already reported as deleted this session, so a node that fires
+// several mutations while YouTube settles its deleted-state markup (or
+// gets removed from the DOM afterwards too) doesn't send duplicates.
+let deletedReported = new Set();
 // Membership event "shapes" already dumped this session (see
 // logMembershipStructureOnce) — one dump per distinct kind, not per message.
 let loggedMembershipSignatures = new Set();
@@ -310,6 +318,11 @@ function handleAddedNode(node) {
     if (seenIds.size > 5000) {
       seenIds = new Set(Array.from(seenIds).slice(-2000));
     }
+    nodeById.set(dedupeKey, node);
+    if (nodeById.size > 5000) {
+      const trimmed = Array.from(nodeById.entries()).slice(-2000);
+      nodeById = new Map(trimmed);
+    }
   }
 
   const extracted = extractMessage(node);
@@ -328,6 +341,87 @@ function handleAddedNode(node) {
   }
 }
 
+// True if `node` (a message-renderer element) currently shows YouTube's
+// moderated/deleted state — checked via the configured attribute first,
+// falling back to the placeholder selector, and finally to matching the
+// placeholder text itself in case a layout change moved it somewhere the
+// other two signals don't cover yet.
+// True only when `el` is actually rendered/visible — not merely present in
+// the DOM. Needed because YouTube's `#deleted-state` / deleted-state
+// renderer span sits in EVERY message's markup from the moment it's
+// created, just hidden (see selectors.config.json's `_deletedComment`) —
+// so a bare `querySelector` match on it is true for every message, deleted
+// or not. Only a *visible* deleted-state indicator actually means deleted.
+function isElementVisible(el) {
+  if (!el) return false;
+  if (el.hidden || el.hasAttribute('hidden')) return false;
+  // offsetParent is null for display:none (and detached) elements — cheap
+  // check that covers the common case without forcing a style recalc.
+  if (el.offsetParent === null) {
+    if (!window.getComputedStyle) return false;
+    const style = window.getComputedStyle(el);
+    if (style.display === 'none' || style.visibility === 'hidden') return false;
+  }
+  return true;
+}
+
+function isNodeDeleted(node) {
+  const attr = selectors.deletedMessageAttr || 'is-deleted';
+  if (node.hasAttribute(attr)) return true;
+
+  const indicatorSel = selectors.deletedMessageIndicator;
+  if (indicatorSel) {
+    const indicatorEl = node.querySelector(indicatorSel);
+    // Presence alone is not a signal — it's always in the DOM. Only a
+    // visible indicator means the message was actually deleted.
+    if (indicatorEl && isElementVisible(indicatorEl)) return true;
+  }
+
+  const text = (node.textContent || '').trim();
+  if (/^(message deleted|tin nhắn (đã )?bị xóa|đã bị xóa)/i.test(text)) return true;
+
+  return false;
+}
+
+function reportDeletedIfNeeded(node) {
+  const id = node.id || null;
+  if (!id || deletedReported.has(id)) return;
+  if (!isNodeDeleted(node)) return;
+
+  deletedReported.add(id);
+  if (deletedReported.size > 5000) {
+    deletedReported = new Set(Array.from(deletedReported).slice(-2000));
+  }
+  nodeById.delete(id);
+  ipcRenderer.send('capturer:deleted', { id });
+}
+
+// Walks up from a mutated node to the nearest tracked message-renderer
+// ancestor (mutations on a deleted-state swap land on a descendant of the
+// renderer, not the renderer itself) and checks it for the deleted state.
+function checkDeletionNear(target) {
+  if (!(target instanceof HTMLElement)) return;
+  const messageNode = target.matches(selectors.messageRenderer)
+    ? target
+    : (target.closest ? target.closest(selectors.messageRenderer) : null);
+  if (messageNode) reportDeletedIfNeeded(messageNode);
+}
+
+// A moderator "Remove user" ban wipes that user's prior messages straight
+// out of the DOM instead of flipping the deleted-state attribute on each
+// one — treat a tracked node disappearing from the container the same as
+// a single-message delete.
+function handleRemovedNode(node) {
+  if (!(node instanceof HTMLElement)) return;
+  if (!node.matches || !node.matches(selectors.messageRenderer)) return;
+  const id = node.id || null;
+  if (!id || deletedReported.has(id)) return;
+
+  deletedReported.add(id);
+  nodeById.delete(id);
+  ipcRenderer.send('capturer:deleted', { id });
+}
+
 function startObserving() {
   const container = document.querySelector(selectors.chatContainer);
   if (!container) {
@@ -337,11 +431,32 @@ function startObserving() {
 
   observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
+      if (mutation.type === 'attributes') {
+        checkDeletionNear(mutation.target);
+        continue;
+      }
       mutation.addedNodes.forEach(handleAddedNode);
+      mutation.removedNodes.forEach(handleRemovedNode);
+      // YouTube swaps a deleted message's content in place (same id, deep
+      // inside the renderer) rather than always touching the attribute we
+      // filter for below — catch that via the childList mutation itself.
+      checkDeletionNear(mutation.target);
     }
   });
 
-  observer.observe(container, { childList: true });
+  // subtree:true is required so attribute/childList changes on a message
+  // node's *descendants* (where YouTube's deleted-state swap actually
+  // happens) are observed at all — childList-only-on-container (the
+  // previous behavior) only ever saw top-level add/remove, never edits to
+  // an existing message. attributeFilter keeps the attribute-watching
+  // narrow so this doesn't fire on unrelated attribute churn elsewhere
+  // (avatar src updates, hover states, etc.).
+  observer.observe(container, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: [selectors.deletedMessageAttr || 'is-deleted'],
+  });
 
   // Pick up any messages already present before the observer attached.
   container.querySelectorAll(selectors.messageRenderer).forEach(handleAddedNode);
@@ -354,6 +469,8 @@ function stopObserving() {
   if (observer) observer.disconnect();
   observer = null;
   seenIds = new Set();
+  nodeById = new Map();
+  deletedReported = new Set();
   batch = [];
   clearTimeout(batchTimer);
   batchTimer = null;

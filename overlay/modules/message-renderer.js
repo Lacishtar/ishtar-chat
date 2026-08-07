@@ -11,11 +11,14 @@ import {
   appendDanmakuMessage,
   renderDanmakuHistory,
   resetDanmaku,
+  removeDanmakuMessage,
   appendTickerMessage,
   renderTickerHistory,
   resetTicker,
+  removeTickerMessage,
 } from './special-modes.js';
-import { enqueueStackMessage, clearStackList } from './render-queue.js';
+import { enqueueStackMessage, clearStackList, enqueueStackRemove } from './render-queue.js';
+import { removeQueuedMessage } from './message-queue.js';
 
 export function applySlotVisibility(el, slotKey) {
   if (!el) return;
@@ -120,6 +123,16 @@ function applySlotEnterAnimation(node, skip) {
 export function createMessageNode(msg, options = {}) {
   const node = options.node || state.messageTemplate.content.firstElementChild.cloneNode(true);
   const rowEl = node.querySelector('.ovs-message') || node;
+
+  // Stamped on every node regardless of display mode so a later
+  // chat:deleted event can find this exact node (see removeMessageById
+  // below) without each mode needing its own id-tagging logic. Pooled
+  // stack-mode nodes get this wiped along with the rest of their dataset
+  // on release (see pool/bubble-reset.js#resetRootDataset), so it's
+  // always fresh for whatever message currently occupies the node.
+  if (msg && msg.id !== undefined && msg.id !== null) {
+    node.dataset.ovsMessageId = String(msg.id);
+  }
 
   const avatarEl = node.querySelector('[data-slot="avatar"]');
   const authorEl = node.querySelector('[data-slot="author"]');
@@ -312,6 +325,30 @@ export function renderHistory(history) {
   }
   const chronological = state.currentConfig.position === 'top-down' ? [...history].reverse() : history;
   chronological.forEach((msg) => renderMessage(msg, { trackHistory: false }));
+}
+
+// Handles a chat:deleted event (moderator/streamer removed a message, or
+// banned its author) for whichever display mode is currently active.
+// Covers all three places a message can be at the moment it's deleted:
+// still queued (message-queue.js, not drained to a node yet), already a
+// live DOM node (stack/danmaku/ticker), or sitting in messageHistory for
+// future replay (theme switch, late-joining overlay).
+export function removeMessageById(id) {
+  if (id === undefined || id === null) return;
+  const key = String(id);
+
+  state.messageHistory = state.messageHistory.filter((m) => String(m.id) !== key);
+  removeQueuedMessage(key);
+
+  const mode = getDisplayMode();
+  if (mode === 'danmaku') {
+    removeDanmakuMessage(key);
+  } else if (mode === 'ticker') {
+    removeTickerMessage(key);
+  } else {
+    // stack + horizontal-bar both go through the same pooled render queue.
+    enqueueStackRemove(key);
+  }
 }
 
 export function clearAllMessages() {

@@ -39,6 +39,15 @@ export function pendingMessageCount() {
   return queue.length;
 }
 
+// Removes a not-yet-rendered message from the backlog (e.g. it was
+// deleted/moderated a moment after arriving, before its turn to drain).
+export function removeQueuedMessage(id) {
+  if (id === undefined || id === null) return;
+  const key = String(id);
+  const idx = queue.findIndex((m) => String(m.id) === key);
+  if (idx !== -1) queue.splice(idx, 1);
+}
+
 export function flushQueue() {
   queue.length = 0;
   if (timerId) {

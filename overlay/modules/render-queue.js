@@ -120,6 +120,21 @@ function flush() {
   // ===== CREATE DOM ===== build + insert every new node due this frame.
   const createdRows = [];
   for (const [id, { msg, options }] of toCreate) {
+    // Defensive dedupe: a 'create' patch for an id we already track means
+    // a message got (re-)created for the same id a second time — e.g. a
+    // WS reconnect replaying live traffic, or a history replay overlapping
+    // a still-in-flight live message. nodeMap can only hold ONE entry per
+    // id, so without this guard nodeMap.set() below would silently stop
+    // tracking the PREVIOUS node while leaving it fully attached in
+    // listEl — an orphaned duplicate that no later chat:deleted can ever
+    // find again (this was the root cause of deleted messages staying
+    // stuck in the overlay forever). Releasing it first keeps nodeMap and
+    // the DOM in sync no matter how many times create fires for one id.
+    const staleNode = nodeMap.get(id);
+    if (staleNode) {
+      bubblePoolManager.release(staleNode);
+      vbubbles.delete(id);
+    }
     const pooledNode = bubblePoolManager.acquire(id);
     const node = createMessageNode(msg, { skipEnterAnimation: options.skipEnterAnimation, node: pooledNode });
     nodeMap.set(id, node);

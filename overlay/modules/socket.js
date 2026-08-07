@@ -5,7 +5,7 @@ import { refreshAllSlotBunnyEars } from './bubble.js';
 import { refreshAllMemberTiers } from './bubble-updater.js';
 import { applyThemePayload } from './theme-loader.js';
 import { enqueueMessage, flushQueue } from './message-queue.js';
-import { renderHistory, clearAllMessages } from './message-renderer.js';
+import { renderHistory, clearAllMessages, removeMessageById } from './message-renderer.js';
 
 export function connectSocket() {
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -24,6 +24,8 @@ export function connectSocket() {
     } else if (payload.type === 'chat:cleared') {
       flushQueue();
       clearAllMessages();
+    } else if (payload.type === 'chat:deleted') {
+      removeMessageById(payload.data && payload.data.id);
     } else if (payload.type === 'theme:changed') {
       applyThemePayload(payload.data || {});
     } else if (payload.type === 'config:updated') {

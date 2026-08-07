@@ -216,6 +216,20 @@ export function appendDanmakuMessage(msg) {
   trimDanmakuOverflow();
 }
 
+// Removes a currently-flying bullet by message id (chat:deleted). Bullets
+// don't keep any separate bookkeeping array (see pickDanmakuLane's
+// DOM-is-the-source-of-truth comment above) so this just walks the same
+// live children countLaneOccupancy() already walks.
+export function removeDanmakuMessage(id) {
+  if (!id || !listEl) return;
+  for (const child of listEl.children) {
+    if (child.dataset && child.dataset.ovsMessageId === id) {
+      child.remove();
+      return;
+    }
+  }
+}
+
 const MAX_DANMAKU_REPLAY_HISTORY = 5;
 
 export function renderDanmakuHistory(history) {
@@ -304,7 +318,7 @@ function stepTicker(timestamp) {
     const rect = el.getBoundingClientRect();
     const width = Math.max(rect.width || 0, 100);
 
-    tickerActiveNodes.push({ el, width, positionX: spawnX });
+    tickerActiveNodes.push({ el, width, positionX: spawnX, id: msg.id ? String(msg.id) : null });
   }
 
   const latestFitsScreen = tickerActiveNodes.length > 0
@@ -382,6 +396,21 @@ export function appendTickerMessage(msg) {
     tickerQueue = tickerQueue.slice(-MAX_TICKER_QUEUE_SIZE);
   }
   ensureTickerLoopRunning();
+}
+
+// Removes a message from the ticker (chat:deleted) whether it's still
+// waiting in tickerQueue or already an active on-screen node. Active
+// nodes aren't repacked to close the gap this leaves — the ones behind it
+// just keep moving at their own pace — but the node itself is gone
+// immediately rather than lingering until it scrolls off naturally.
+export function removeTickerMessage(id) {
+  if (!id) return;
+  tickerQueue = tickerQueue.filter((m) => String(m.id) !== id);
+  const idx = tickerActiveNodes.findIndex((item) => item.id === id);
+  if (idx !== -1) {
+    const [removed] = tickerActiveNodes.splice(idx, 1);
+    if (removed.el.isConnected) removed.el.remove();
+  }
 }
 
 const MAX_TICKER_REPLAY_HISTORY = 3;

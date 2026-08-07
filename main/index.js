@@ -122,6 +122,16 @@ async function bootstrap() {
     portManager.broadcastAll('chat:new', message);
   });
 
+  captureManager.on('message-deleted', ({ id }) => {
+    // Drop it from history too, so a late-joining overlay (or one that
+    // re-renders history on a theme/config change) never resurrects a
+    // message that was moderated away.
+    messageHistory = messageHistory.filter((m) => m.id !== id);
+
+    safeSend(mainWindow, 'chat:deleted', { id });
+    portManager.broadcastAll('chat:deleted', { id });
+  });
+
   registerIpcHandlers();
 
   initializeAutoUpdater();

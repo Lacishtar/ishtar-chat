@@ -57,14 +57,54 @@ class CaptureManager extends EventEmitter {
     this.view = null;
     this.videoId = null;
     this.status = 'idle'; // idle | connecting | connected | stale | error
+
+    // --- Race-condition guard between 'capturer:deleted' and 'capturer:batch' ---
+    // capture-preload.js sends creates through a THROTTLED batch (up to
+    // scanThrottleMs, default 80ms — or up to 300ms+throttle while it's
+    // still waiting to resolve an avatar URL), but sends deletes IMMEDIATELY,
+    // with no batching at all. If a message gets moderated/deleted on
+    // YouTube's side fast enough, 'capturer:deleted' can arrive here before
+    // the 'capturer:batch' carrying that same message's create event even
+    // gets flushed. Without this guard, the overlay would process a
+    // chat:deleted for an id it doesn't know yet (harmless no-op), then
+    // later process chat:new for that same id and render it — with no way
+    // to ever delete it again, since capture-preload.js's own
+    // `deletedReported` set already marks that id as "reported" and will
+    // never re-send a delete for it.
+    //
+    // _knownIds: ids we've already emitted a 'message' event for and are
+    //   still considered "alive" (not yet deleted).
+    // _pendingDeletes: ids reported deleted before their create ever
+    //   arrived — checked by the batch handler so it can drop the create
+    //   entirely instead of ever letting it reach the overlay.
+    this._knownIds = new Set();
+    this._pendingDeletes = new Set();
+
     this._bindIpc();
+  }
+
+  _resetDeletionTracking() {
+    this._knownIds = new Set();
+    this._pendingDeletes = new Set();
   }
 
   _bindIpc() {
     ipcMain.on('capturer:batch', (event, rawBatch) => {
       if (!this.view || event.sender !== this.view.webContents) return;
       const messages = rawBatch.map(normalizeMessage);
-      messages.forEach((m) => this.emit('message', m));
+      messages.forEach((m) => {
+        if (this._pendingDeletes.has(m.id)) {
+          // Already reported deleted before this create arrived — drop it,
+          // it must never reach the overlay.
+          this._pendingDeletes.delete(m.id);
+          return;
+        }
+        this._knownIds.add(m.id);
+        if (this._knownIds.size > 5000) {
+          this._knownIds = new Set(Array.from(this._knownIds).slice(-2000));
+        }
+        this.emit('message', m);
+      });
     });
 
     ipcMain.on('capturer:started', (event) => {
@@ -105,6 +145,27 @@ class CaptureManager extends EventEmitter {
     ipcMain.on('capturer:leaderboard-response', (event, response) => {
       if (!this.view || event.sender !== this.view.webContents) return;
       this.emit('leaderboard-response', response);
+    });
+
+    ipcMain.on('capturer:deleted', (event, payload) => {
+      if (!this.view || event.sender !== this.view.webContents) return;
+      const id = payload && payload.id ? String(payload.id) : null;
+      if (!id) return;
+
+      if (!this._knownIds.has(id)) {
+        // The create for this id hasn't reached us yet (still sitting in
+        // capture-preload.js's throttled batch) — remember it so the batch
+        // handler above can drop the create the moment it does arrive,
+        // instead of ever showing a message that's already deleted.
+        this._pendingDeletes.add(id);
+        if (this._pendingDeletes.size > 5000) {
+          this._pendingDeletes = new Set(Array.from(this._pendingDeletes).slice(-2000));
+        }
+        return;
+      }
+
+      this._knownIds.delete(id);
+      this.emit('message-deleted', { id });
     });
   }
 
@@ -563,6 +624,7 @@ class CaptureManager extends EventEmitter {
     await this.disconnect();
 
     this.videoId = videoId;
+    this._resetDeletionTracking();
     this._setStatus('connecting');
 
     this.view = new BrowserView({
@@ -628,6 +690,7 @@ class CaptureManager extends EventEmitter {
     }
     this.view = null;
     this.videoId = null;
+    this._resetDeletionTracking();
     this._setStatus('idle');
   }
 }

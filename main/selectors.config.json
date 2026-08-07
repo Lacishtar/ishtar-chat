@@ -23,5 +23,8 @@
   "leaderboardXp": ".ytvlLiveLeaderboardItemViewModelPoints",
   "leaderboardBadge": ".ytvlLiveLeaderboardItemChannelContentViewModelBadge button, .ytvlLiveLeaderboardItemChannelContentViewModelBadge",
   "staleAfterMs": 45000,
-  "scanThrottleMs": 80
+  "scanThrottleMs": 80,
+  "_deletedComment": "Confirmed against real YouTube markup (Aug 2026): a moderated/deleted message keeps its renderer element and id — YouTube just sets the boolean 'is-deleted' attribute on it and reveals a sibling '#deleted-state' span ('Người xóa tin nhắn: @...') that was already in the DOM, hidden. The original '#message' content is left in place too (recoverable via the mod-only 'Xem tin nhắn bị xóa' link), which is why detection here doesn't try to read replacement text — it only needs the attribute flip. deletedMessageAttr is the primary signal; deletedMessageIndicator is a fallback selector in case the attribute name ever changes. A full 'remove user' ban is a different path — it removes the node(s) entirely — handled in code via MutationObserver removedNodes, no selector needed.",
+  "deletedMessageAttr": "is-deleted",
+  "deletedMessageIndicator": "yt-live-chat-text-message-deleted-state-renderer, #deleted-state"
 }
