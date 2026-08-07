@@ -133,9 +133,10 @@ export function applyCssVariables(config, layout, slotStyle, animationConfig, ro
   delete root.dataset.ovsBubbleScope;
 
   listEl.classList.toggle('ovs-position-top-down', config.position === 'top-down');
-  // Which screen edge the Horizontal Bar row docks to — read by
-  // overlay/horizontal-bar.css. Harmless to set even outside that mode.
+  // Which screen edge the Horizontal Bar / Ticker row docks to — read by
+  // overlay/horizontal-bar.css and overlay/ticker.css. Harmless to set even outside those modes.
   listEl.dataset.ovsHorizontalBarPosition = cfg.horizontalBarPosition === 'top' ? 'top' : 'bottom';
+  listEl.dataset.ovsTickerPosition = cfg.tickerPosition === 'top' ? 'top' : 'bottom';
 
   // Set idle animation type on list element — CSS selector gates on this attribute
   const idleAnim = cfg.idleAnimation || 'none';
