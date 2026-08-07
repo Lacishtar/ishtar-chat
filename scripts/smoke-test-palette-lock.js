@@ -64,10 +64,12 @@ console.log('[smoke:palette-lock] Running checks...');
   const cssSnapped = snapCssString(cssInput, paletteEntries);
 
   // rgba(10,10,10,0.6) is closest to #000000 (0,0,0) -> rgba(0, 0, 0, 0.6)
-  // #fa0000 is closest to #FF0000
+  // #fa0000 is closest to #FF0000 -> emitted as rgba(...,1), not a bare hex,
+  // so parsers that only recognize rgb()/rgba() (e.g. GlowSection's
+  // CUSTOM_GLOW_RE) can still round-trip an opaque snapped color.
   assert.strictEqual(
     cssSnapped,
-    'drop-shadow(0 0 8px rgba(0, 0, 0, 0.6)) 0 4px 12px #FF0000',
+    'drop-shadow(0 0 8px rgba(0, 0, 0, 0.6)) 0 4px 12px rgba(255, 0, 0, 1)',
     'Should snap nested colors inside CSS strings correctly',
   );
 

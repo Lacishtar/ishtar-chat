@@ -7,7 +7,7 @@ import LayoutPanel from './components/LayoutPanel.jsx';
 import DecorationsPanel from './components/DecorationsPanel.jsx';
 import RoleStylesPanel from './components/RoleStylesPanel.jsx';
 import FanServicePanel from './components/FanServicePanel.jsx';
-import CreditsPanel from './components/CreditsPanel.jsx';
+// [CREDITS - HIDDEN] import CreditsPanel from './components/CreditsPanel.jsx';
 import ThemeLibraryPanel from './components/ThemeLibraryPanel.jsx';
 import CustomPresetsPanel from './components/CustomPresetsPanel.jsx';
 import PaletteLockPanel from './components/PaletteLockPanel.jsx';
@@ -21,7 +21,7 @@ const TABS = [
   { id: 'decorations', label: 'Trang trí' },
   { id: 'roles', label: 'Vai trò' },
   { id: 'fanService', label: 'Fan Service' },
-  { id: 'credits', label: 'Credits' },
+  // [CREDITS - HIDDEN] { id: 'credits', label: 'Credits' },
 ];
 
 function TabBar({ active, onChange }) {
@@ -118,7 +118,7 @@ function AppShell() {
             {activeTab === 'decorations' && <DecorationsPanel />}
             {activeTab === 'roles' && <RoleStylesPanel />}
             {activeTab === 'fanService' && <FanServicePanel />}
-            {activeTab === 'credits' && <CreditsPanel />}
+            {/* [CREDITS - HIDDEN] {activeTab === 'credits' && <CreditsPanel />} */}
           </div>
         </div>
 

@@ -8,7 +8,6 @@ import BubbleShapeSection from '../Bubble/BubbleShapeSection.jsx';
 import BubbleSizeSection from '../Bubble/BubbleSizeSection.jsx';
 import BubbleTextureSection from '../Bubble/BubbleTextureSection.jsx';
 import BunnySection from '../Bubble/BunnySection.jsx';
-import AnimationSection from '../Animation/AnimationSection.jsx';
 import { Field, PresetButton, PresetBadge } from '../shared/fields.jsx';
 import ColorPicker from '../shared/ColorPicker.jsx';
 import { DEFAULT_BORDER_COLOR } from '../shared/constants.js';
@@ -166,15 +165,6 @@ export default function GlobalInspector({ local, pushUpdate, state }) {
               ...(patch.rotate !== undefined ? { bubbleBunnyEarsRotate: patch.rotate } : {}),
             })
           }
-        />
-      </AccordionSection>
-
-      <AccordionSection title="Nâng cao — Hành vi & Hoạt ảnh" {...sec('behavior')}>
-        <AnimationSection
-          local={local}
-          onChange={pushUpdate}
-          animLocal={state.animLocal}
-          onAnimationChange={state.pushAnimationUpdate}
         />
       </AccordionSection>
     </div>

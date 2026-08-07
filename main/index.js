@@ -69,14 +69,70 @@ function saveCreditsScrollSpeed(value) {
   }
 }
 
+// ── Stream Credits: theme-preset persistence ────────────────────────────────
+// Same rationale/shape as scroll-speed above: a viewing preference for the
+// Credits overlay specifically, not part of an OBS port's visual profile.
+function creditsThemePath() {
+  return path.join(app.getPath('userData'), 'credits-theme.json');
+}
+
+function loadCreditsThemeId() {
+  try {
+    const raw = fs.readFileSync(creditsThemePath(), 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.themeId === 'string') return parsed.themeId;
+  } catch { /* first run */ }
+  return undefined;
+}
+
+function saveCreditsThemeId(value) {
+  try {
+    fs.writeFileSync(creditsThemePath(), JSON.stringify({ themeId: value }, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[credits-theme] failed to save:', err);
+  }
+}
+
+// ── Stream Credits: custom section-title persistence ────────────────────────
+// Same rationale/shape as scroll-speed/theme above — lets a streamer rename
+// a section's on-screen title (e.g. "Top Chatters" -> anything they want)
+// and have it survive a restart. Stored as a plain { [sectionId]: label }
+// map so it stays generic if more sections are ever added to the registry.
+function creditsLabelsPath() {
+  return path.join(app.getPath('userData'), 'credits-labels.json');
+}
+
+function loadCreditsLabels() {
+  try {
+    const raw = fs.readFileSync(creditsLabelsPath(), 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+  } catch { /* first run */ }
+  return undefined;
+}
+
+function saveCreditsLabels(value) {
+  try {
+    fs.writeFileSync(creditsLabelsPath(), JSON.stringify(value, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[credits-labels] failed to save:', err);
+  }
+}
+
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 
 async function bootstrap() {
   portManager = new PortManager(
     () => messageHistory,
     () => (creditsManager
-      ? { sections: creditsManager.listSections(), snapshots: creditsManager.getAllSnapshots(), scrollSpeed: creditsManager.getScrollSpeed(), isPlaying: creditsManager.getIsPlaying() }
-      : { sections: [], snapshots: {}, scrollSpeed: 1, isPlaying: false }),
+      ? {
+          sections: creditsManager.listSections(),
+          snapshots: creditsManager.getAllSnapshots(),
+          scrollSpeed: creditsManager.getScrollSpeed(),
+          isPlaying: creditsManager.getIsPlaying(),
+          theme: creditsManager.getTheme(),
+        }
+      : { sections: [], snapshots: {}, scrollSpeed: 1, isPlaying: false, theme: null }),
   );
   customPresetsStore = new CustomPresetsStore();
 
@@ -100,14 +156,18 @@ async function bootstrap() {
   captureManager = new CaptureManager(mainWindow);
   // Reuses captureManager.fetchLeaderboard() under the hood, but purely as a
   // background data source — no UI is tied to it directly anymore.
-  creditsManager = new CreditsManager(captureManager, { scrollSpeed: loadCreditsScrollSpeed() });
+  creditsManager = new CreditsManager(captureManager, {
+    scrollSpeed: loadCreditsScrollSpeed(),
+    themeId: loadCreditsThemeId(),
+    labels: loadCreditsLabels(),
+  });
 
   captureManager.on('status', (payload) => {
     latestStatus = payload;
     safeSend(mainWindow, 'status:changed', payload);
-    // Credits data is never auto-refreshed here — it accumulates silently
-    // in the background (CreditsManager.recordMessage) and only becomes a
-    // visible snapshot when the streamer manually hits "Tải lại" in the
+    // Credits data is never auto-refreshed here — it's only fetched (via
+    // CreditsManager.refreshSection/refreshAll, scraping the YouTube Top
+    // Chatters popout) when the streamer manually hits "Tải lại" in the
     // dashboard's Credits tab.
   });
 
@@ -192,6 +252,7 @@ function registerIpcHandlers() {
     snapshots: creditsManager.getAllSnapshots(),
     scrollSpeed: creditsManager.getScrollSpeed(),
     isPlaying: creditsManager.getIsPlaying(),
+    themeId: creditsManager.getThemeId(),
   }));
 
   ipcMain.handle('credits:get-snapshot', (_event, sectionId) => creditsManager.getSnapshot(sectionId));
@@ -212,6 +273,28 @@ function registerIpcHandlers() {
   ipcMain.handle('credits:set-scroll-speed', (_event, value) => {
     const applied = creditsManager.setScrollSpeed(value);
     saveCreditsScrollSpeed(applied);
+    return applied;
+  });
+
+  // ── Stream Credits: theme presets (colors/fonts) ─────────────────────────
+
+  ipcMain.handle('credits:list-themes', () => creditsManager.listThemes());
+
+  ipcMain.handle('credits:get-theme', () => creditsManager.getThemeId());
+
+  ipcMain.handle('credits:set-theme', (_event, themeId) => {
+    const applied = creditsManager.setThemeId(themeId);
+    saveCreditsThemeId(applied);
+    return applied;
+  });
+
+  // ── Stream Credits: custom section titles ────────────────────────────────
+  // Lets the streamer rename a section's on-screen title (e.g. "Top
+  // Chatters" -> any text they want) — an empty/whitespace value resets it
+  // back to the built-in default (see setSectionLabel in credits-manager.js).
+  ipcMain.handle('credits:set-section-label', (_event, sectionId, label) => {
+    const applied = creditsManager.setSectionLabel(sectionId, label);
+    saveCreditsLabels(creditsManager.getLabelOverrides());
     return applied;
   });
 

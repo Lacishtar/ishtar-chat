@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useEditorState } from '../state/EditorStateContext.jsx';
 import ColorPicker from './Customize/shared/ColorPicker.jsx';
+import AnimationSection from './Customize/Animation/AnimationSection.jsx';
 
 const inputClass =
   'w-full rounded-lg bg-panelAlt border border-line px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-focusAccent';
@@ -237,7 +238,18 @@ function expandSimpleLayout(simple) {
 }
 
 export default function LayoutPanel() {
-  const { layoutLocal, pushLayoutUpdate, roleLocal, pushRoleUpdate, slotLocal, pushSlotUpdate } = useEditorState();
+  const {
+    layoutLocal,
+    pushLayoutUpdate,
+    roleLocal,
+    pushRoleUpdate,
+    slotLocal,
+    pushSlotUpdate,
+    local: customizeLocal,
+    animLocal,
+    pushConfigUpdate,
+    pushAnimationUpdate,
+  } = useEditorState();
   const local = useMemo(() => contractSimpleLayout(layoutLocal), [layoutLocal]);
 
   function pushUpdate(partial) {
@@ -477,6 +489,22 @@ export default function LayoutPanel() {
           Badge
         </label>
       </div>
+
+      {customizeLocal && (
+        <>
+          <h3 className="text-xs uppercase tracking-wide text-inkMuted pt-1">
+            Nâng cao — Hành vi & Hoạt ảnh
+          </h3>
+          <div className="grid grid-cols-2 gap-3 min-w-0">
+            <AnimationSection
+              local={customizeLocal}
+              onChange={pushConfigUpdate}
+              animLocal={animLocal}
+              onAnimationChange={pushAnimationUpdate}
+            />
+          </div>
+        </>
+      )}
     </section>
   );
 }

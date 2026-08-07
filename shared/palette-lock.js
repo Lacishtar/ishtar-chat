@@ -351,14 +351,23 @@ function findClosestPaletteColor(targetColor, paletteEntries) {
 
 /**
  * Reconstructs a snapped color string while preserving original alpha if present.
+ *
+ * IMPORTANT: always emits the `rgba(...)` functional form, even when alpha
+ * is 1 (fully opaque) — never collapses to a bare hex string. Several
+ * consumers round-trip these CSS strings through their own regex parsers
+ * that only recognize `rgb()/rgba()` syntax for the color token, not hex —
+ * e.g. GlowSection.jsx's `CUSTOM_GLOW_RE` (`drop-shadow(0 0 Npx rgba(...))`).
+ * Emitting a bare hex for alpha===1 used to make those parsers fail to
+ * match, silently falling back to their hardcoded defaults (e.g. glow
+ * resetting to 65% opacity) even though the color itself was still
+ * correct — see shared/palette-lock.js history / smoke tests for the
+ * concrete "glow 100% -> 65% after Palette Lock" bug this fixes.
  */
 function formatSnappedColor(originalColorStr, closestPaletteEntry) {
   const parsed = parseColor(originalColorStr);
-  if (parsed && typeof parsed.a === 'number' && parsed.a < 1) {
-    const alphaStr = Number.isInteger(parsed.a) ? parsed.a : parsed.a.toFixed(2).replace(/\.?0+$/, '');
-    return `rgba(${closestPaletteEntry.r}, ${closestPaletteEntry.g}, ${closestPaletteEntry.b}, ${alphaStr})`;
-  }
-  return closestPaletteEntry.hex;
+  const alpha = parsed && typeof parsed.a === 'number' ? parsed.a : 1;
+  const alphaStr = Number.isInteger(alpha) ? alpha : alpha.toFixed(2).replace(/\.?0+$/, '');
+  return `rgba(${closestPaletteEntry.r}, ${closestPaletteEntry.g}, ${closestPaletteEntry.b}, ${alphaStr})`;
 }
 
 /**
@@ -912,7 +921,14 @@ function applyPaletteLock(bundle, paletteHexList, options = {}) {
   ['superchat', 'membership'].forEach((groupKey) => {
     if (!newFanService[groupKey]) return;
     const group = newFanService[groupKey];
+    const rawGroup = rawFanService[groupKey] || {};
     FAN_SERVICE_TEXT_FIELDS.forEach(({ field, targetThreshold, getBg }) => {
+      // Only snap text colors that are already explicitly set — mirrors the
+      // ROLE_TEXT_FIELDS (`if (role[field] != null)`) and SLOT_TEXT_FIELDS
+      // (`if (slot[field] == null) return`) guards. Without this, the loop
+      // unconditionally overwrites authorColor/messageColor/monthsColor even
+      // when the group is disabled or the user never touched those fields.
+      if (group[field] == null && rawGroup[field] == null) return;
       const bgStr = getBg(group, groupKey, newCustomize.bubbleBg);
       group[field] = selectBestTextColor(bgStr, paletteEntries, targetThreshold);
     });
@@ -957,10 +973,13 @@ function applyPaletteLock(bundle, paletteHexList, options = {}) {
   //   idx 4 → membership.manualBorderColor (viền membership)
   const fallbackSlots = [
     () => { newCustomize.bubbleBorderColor = paletteEntries[0].hex; },
-    () => { if (newRoleStyle.roles?.member) newRoleStyle.roles.member.messageBorderColor = paletteEntries[1].hex; },
-    () => { if (newRoleStyle.roles?.moderator) newRoleStyle.roles.moderator.messageBorderColor = paletteEntries[2].hex; },
-    () => { if (newFanService.superchat) newFanService.superchat.manualBorderColor = paletteEntries[3].hex; },
-    () => { if (newFanService.membership) newFanService.membership.manualBorderColor = paletteEntries[4].hex; },
+    // Guards mirror the `!= null` pattern used by every surface-field snap loop above:
+    // only write when the field is already explicitly set so fallback coverage never
+    // creates a new visual element (border, outline) that wasn't there before.
+    () => { if (newRoleStyle.roles?.member?.messageBorderColor != null) newRoleStyle.roles.member.messageBorderColor = paletteEntries[1].hex; },
+    () => { if (newRoleStyle.roles?.moderator?.messageBorderColor != null) newRoleStyle.roles.moderator.messageBorderColor = paletteEntries[2].hex; },
+    () => { if (newFanService.superchat?.manualBorderColor != null) newFanService.superchat.manualBorderColor = paletteEntries[3].hex; },
+    () => { if (newFanService.membership?.manualBorderColor != null) newFanService.membership.manualBorderColor = paletteEntries[4].hex; },
   ];
 
   paletteEntries.forEach((entry, idx) => {

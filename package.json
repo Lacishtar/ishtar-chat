@@ -25,7 +25,8 @@
     "smoke:pool-warmup": "node scripts/smoke-test-pool-warmup.mjs",
     "smoke:pool-dynamic": "node scripts/smoke-test-pool-dynamic.mjs",
     "smoke:palette-lock": "node scripts/smoke-test-palette-lock.js",
-    "smoke:credits-live-sections": "node scripts/smoke-test-credits-live-sections.js",
+    "smoke:credits-sections": "node scripts/smoke-test-credits-sections.js",
+    "smoke:credits-theme": "node scripts/smoke-test-credits-theme.js",
     "verify:decoration-cascade": "node scripts/verify-decoration-cascade.js",
     "verify:layer-split": "node scripts/verify-layer-split.js"
   },

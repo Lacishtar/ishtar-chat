@@ -4,6 +4,7 @@ import { refreshAllDecorations } from './decoration.js';
 import { renderHistory } from './message-renderer.js';
 import { hardResetStackPool } from './render-queue.js';
 import { bubblePoolManager } from './pool/PoolManager.js';
+import { syncTickerPositionAttr } from './special-modes.js';
 
 export async function loadTheme(themeId) {
   const id = themeId || state.currentTheme || 'default';
@@ -131,6 +132,12 @@ export function applyThemePayload(data, options = {}) {
   const finish = () => {
     applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);
     applyFanServiceStyle(state.currentFanService);
+    // Same reasoning as socket.js's config:updated handler: ticker's
+    // top/bottom position is otherwise only synced lazily inside its own
+    // rAF loop, which doesn't run yet on first page load / theme switch
+    // (before any ticker message has arrived) — sync it explicitly here so
+    // the very first paint already respects the configured position.
+    syncTickerPositionAttr();
     const modeChanged = syncThemeModeClass();
     if (themeSwitch) {
       hardResetStackPool();

@@ -5,11 +5,39 @@
     <title>Stream Credits</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Default preset's font, loaded up front so first paint isn't unstyled.
+         credits-client.js swaps this link's href (and the CSS variables
+         below) when the selected preset uses different font(s). -->
     <link
+      id="ovs-credits-font-link"
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap"
     />
     <style>
+      /* Theme-preset CSS variables — these values are the "default" preset
+         and double as the fallback if a theme fails to load for any reason.
+         credits-client.js overwrites them on #ovs-credits-root per the
+         selected preset (see shared/credits-theme-presets.js). */
+      :root {
+        --ovs-credits-font: 'Space Grotesk', system-ui, sans-serif;
+        --ovs-credits-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+        --ovs-credits-row-bg: rgba(15, 17, 23, 0.55);
+        --ovs-credits-row-radius: 14px;
+        --ovs-credits-row-border: none;
+        --ovs-credits-row-blur: 4px;
+        --ovs-credits-title-color: #ffffff;
+        --ovs-credits-header-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+        --ovs-credits-accent-from: #9fd8ff;
+        --ovs-credits-accent-to: #6e56f0;
+        --ovs-credits-name-color: #ffffff;
+        --ovs-credits-name-shadow: 0 1px 5px rgba(0, 0, 0, 0.75);
+        --ovs-credits-badge-color: #d3d6de;
+        --ovs-credits-rank-color: #a7adba;
+        --ovs-credits-score-color: #9fd8ff;
+        --ovs-credits-avatar-border: rgba(255, 255, 255, 0.25);
+        --ovs-credits-avatar-fallback-bg: rgba(110, 86, 240, 0.4);
+      }
+
       html,
       body {
         margin: 0;
@@ -17,7 +45,7 @@
         height: 100%;
         background: transparent;
         overflow: hidden;
-        font-family: 'Space Grotesk', system-ui, sans-serif;
+        font-family: var(--ovs-credits-font);
       }
 
       /* Hidden entirely (not just empty) when there is no Credits data yet —
@@ -26,10 +54,10 @@
         display: none;
       }
 
-      /* The root itself is now the single scroll viewport — one track
-         carries every section (Top Chatters, Members, Super Chat, Gift
-         Members) back-to-back, so they roll up together as one continuous
-         crawl instead of four independent side-by-side marquees. */
+      /* The root itself is the single scroll viewport — one track carries
+         every configured section back-to-back, so they roll up together as
+         one continuous crawl instead of independent side-by-side
+         marquees. */
       #ovs-credits-root {
         position: relative;
         width: 100vw;
@@ -46,7 +74,7 @@
         align-items: center;
         gap: 10px;
         margin-bottom: 14px;
-        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+        text-shadow: var(--ovs-credits-header-shadow);
       }
 
       /* Every section after the first gets extra breathing room above its
@@ -55,15 +83,20 @@
         margin-top: 34px;
       }
 
-      .ovs-credits-icon {
-        font-size: 24px;
-        line-height: 1;
+      /* Small accent bar in place of an emoji icon — a plain, minimal
+         section marker that still separates section headers visually. */
+      .ovs-credits-accent {
+        width: 4px;
+        height: 20px;
+        border-radius: 2px;
+        background: linear-gradient(180deg, var(--ovs-credits-accent-from), var(--ovs-credits-accent-to));
+        flex-shrink: 0;
       }
 
       .ovs-credits-title {
         font-size: 20px;
         font-weight: 700;
-        color: #ffffff;
+        color: var(--ovs-credits-title-color);
         text-transform: uppercase;
         letter-spacing: 0.06em;
       }
@@ -112,19 +145,20 @@
         align-items: center;
         gap: 14px;
         padding: 8px 18px;
-        background: rgba(15, 17, 23, 0.55);
-        border-radius: 14px;
-        backdrop-filter: blur(4px);
+        background: var(--ovs-credits-row-bg);
+        border-radius: var(--ovs-credits-row-radius);
+        border: var(--ovs-credits-row-border);
+        backdrop-filter: blur(var(--ovs-credits-row-blur));
       }
 
       .ovs-credits-rank {
         width: 42px;
         flex-shrink: 0;
         text-align: right;
-        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-family: var(--ovs-credits-font-mono);
         font-weight: 700;
         font-size: 15px;
-        color: #a7adba;
+        color: var(--ovs-credits-rank-color);
       }
 
       .ovs-credits-avatar {
@@ -132,7 +166,7 @@
         height: 40px;
         border-radius: 999px;
         object-fit: cover;
-        border: 2px solid rgba(255, 255, 255, 0.25);
+        border: 2px solid var(--ovs-credits-avatar-border);
         flex-shrink: 0;
       }
 
@@ -140,8 +174,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(110, 86, 240, 0.4);
-        color: #ffffff;
+        background: var(--ovs-credits-avatar-fallback-bg);
+        color: var(--ovs-credits-name-color);
         font-weight: 700;
         font-size: 16px;
       }
@@ -154,16 +188,16 @@
       .ovs-credits-name {
         font-size: 18px;
         font-weight: 700;
-        color: #ffffff;
+        color: var(--ovs-credits-name-color);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        text-shadow: 0 1px 5px rgba(0, 0, 0, 0.75);
+        text-shadow: var(--ovs-credits-name-shadow);
       }
 
       .ovs-credits-badge {
         font-size: 12px;
-        color: #d3d6de;
+        color: var(--ovs-credits-badge-color);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -171,22 +205,111 @@
 
       .ovs-credits-score {
         flex-shrink: 0;
-        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-family: var(--ovs-credits-font-mono);
         font-size: 15px;
         font-weight: 700;
-        color: #9fd8ff;
+        color: var(--ovs-credits-score-color);
       }
 
       /* Top Chatters used to pack 5 people per grid row to save vertical
-         space. Per request, every person now gets their own row — same
-         .ovs-credits-row markup as every other section (Members, Super
-         Chat, Gift Members) — so the whole crawl reads consistently as one
-         person per line. XP/score is still intentionally left off this
+         space. Every person now gets their own row via the shared
+         .ovs-credits-row markup, so the whole crawl reads consistently as
+         one person per line. XP/score is still intentionally left off this
          section (see buildRow's `showScore` option in credits-client.js). */
+
+      /* ── Layout variants ──────────────────────────────────────────────
+         A theme preset's `layout` (see shared/credits-theme-presets.js)
+         picks one of these. They reuse the exact same DOM the 'classic'
+         layout renders (buildRow()/appendSectionBlock() in
+         credits-client.js never branch on layout) — everything below is
+         pure CSS rearrangement + flex `order`, keyed off a
+         `ovs-credits-layout--*` class credits-client.js's applyLayout()
+         puts on #ovs-credits-root. That keeps every layout free (no extra
+         JS per-row work) and means a new layout can be added later by
+         adding CSS here, without touching the render logic at all. */
+
+      /* 'grid' — two-column card grid instead of one continuous column.
+         Each .ovs-credits-pass becomes the grid; the header (a sibling
+         row within that same pass) spans both columns so it still reads
+         as a section title above its cards. */
+      #ovs-credits-root.ovs-credits-layout--grid .ovs-credits-pass {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      #ovs-credits-root.ovs-credits-layout--grid .ovs-credits-header {
+        grid-column: 1 / -1;
+      }
+      #ovs-credits-root.ovs-credits-layout--grid .ovs-credits-row {
+        min-width: 0;
+      }
+      #ovs-credits-root.ovs-credits-layout--grid .ovs-credits-name,
+      #ovs-credits-root.ovs-credits-layout--grid .ovs-credits-badge {
+        max-width: 100%;
+      }
+
+      /* 'stacked' — one vertical "profile card" per person: avatar
+         centered on top, name/badge/score centered underneath, and rank
+         turned into a small circular badge pinned over the avatar's
+         corner instead of its own left-hand column. */
+      #ovs-credits-root.ovs-credits-layout--stacked .ovs-credits-row {
+        position: relative;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 6px;
+        padding: 16px 12px 12px;
+      }
+      #ovs-credits-root.ovs-credits-layout--stacked .ovs-credits-avatar {
+        order: 1;
+        width: 52px;
+        height: 52px;
+      }
+      #ovs-credits-root.ovs-credits-layout--stacked .ovs-credits-info {
+        order: 2;
+        width: 100%;
+      }
+      #ovs-credits-root.ovs-credits-layout--stacked .ovs-credits-name,
+      #ovs-credits-root.ovs-credits-layout--stacked .ovs-credits-badge {
+        white-space: normal;
+        text-overflow: clip;
+        overflow: visible;
+      }
+      #ovs-credits-root.ovs-credits-layout--stacked .ovs-credits-score {
+        order: 3;
+        font-size: 13px;
+      }
+      /* Rank leaves the normal flow entirely and pins to the top-right of
+         the card, overlapping the avatar corner like a numbered badge. */
+      #ovs-credits-root.ovs-credits-layout--stacked .ovs-credits-rank {
+        order: 0;
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        width: 24px;
+        height: 24px;
+        text-align: center;
+        line-height: 24px;
+        border-radius: 999px;
+        font-size: 11px;
+        color: #fff;
+        background: linear-gradient(135deg, var(--ovs-credits-accent-from), var(--ovs-credits-accent-to));
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      }
+      /* Same 2-up grid as 'grid' so stacked cards don't run one-per-line
+         (which would waste a lot of vertical space at this height). */
+      #ovs-credits-root.ovs-credits-layout--stacked .ovs-credits-pass {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      #ovs-credits-root.ovs-credits-layout--stacked .ovs-credits-header {
+        grid-column: 1 / -1;
+      }
     </style>
   </head>
   <body>
     <div id="ovs-credits-root" class="is-empty"></div>
-    <script type="module" src="/overlay/credits-client.js?v=4"></script>
+    <script type="module" src="/overlay/credits-client.js?v=5"></script>
   </body>
 </html>

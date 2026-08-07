@@ -1,4 +1,5 @@
 const { EventEmitter } = require('events');
+const { DEFAULT_CREDITS_THEME_ID, getCreditsThemeById, listCreditsThemes } = require('../shared/credits-theme-presets');
 
 // Scroll speed is literally "names (rows) per second" — 1 (slow, easier to
 // read) to 5 (fast, for long credit rolls near the end of stream). Kept
@@ -7,6 +8,13 @@ const { EventEmitter } = require('events');
 const MIN_SCROLL_SPEED = 1;
 const MAX_SCROLL_SPEED = 5;
 const DEFAULT_SCROLL_SPEED = 2;
+
+// Custom section-title length cap — this text renders as the big uppercase
+// header inside the Credits crawl (see .ovs-credits-title in
+// overlay/credits.html), so an unbounded string could wrap/overflow the
+// overlay. 40 chars is generous for something like "TOP CHATTERS" or
+// "NGƯỜI HÂM MỘ SỐ 1" while still fitting comfortably on one line.
+const MAX_SECTION_LABEL_LENGTH = 40;
 
 function clampScrollSpeed(value) {
   const n = Number(value);
@@ -31,88 +39,20 @@ function normalizeViewerItem(raw) {
   };
 }
 
-// members/superChats/giftMembers items are already built in the target
-// { rank, name, avatarUrl, scoreLabel, badge } shape by the time they leave
-// the live-tracking maps below, so normalizing them is a no-op passthrough.
-function identityItem(raw) {
-  return raw;
-}
-
-/**
- * Best-effort "how many" extractor for gift-membership announcements, e.g.
- * "đã tặng 5 lượt Hội viên" / "gifted 5 Memberships" -> 5. Falls back to 1
- * (a single gift) when no count can be found in the announcement text —
- * YouTube doesn't always expose the count in a place we can read.
- */
-function extractGiftCount(text) {
-  if (!text) return 1;
-  const match = String(text).match(/\d+/);
-  if (!match) return 1;
-  const n = parseInt(match[0], 10);
-  return Number.isFinite(n) && n > 0 ? n : 1;
-}
-
-/**
- * Best-effort numeric magnitude for ranking Super Chats regardless of
- * currency (₫, $, £, ...) — NOT a currency-accurate conversion, just enough
- * to sort "biggest support first". The original text is still shown as-is
- * in scoreLabel, so display is always accurate even when ranking isn't.
- */
-function extractMagnitude(rawText) {
-  if (!rawText) return 0;
-  const match = String(rawText).match(/[\d.,]+/);
-  if (!match) return 0;
-  const numeric = match[0];
-  const decimalIndex = Math.max(numeric.lastIndexOf(','), numeric.lastIndexOf('.'));
-  let normalized = numeric;
-  if (decimalIndex !== -1) {
-    const intPart = numeric.slice(0, decimalIndex).replace(/[.,]/g, '');
-    const fracPart = numeric.slice(decimalIndex + 1).replace(/[.,]/g, '');
-    // "50.000" style thousand-separator (3-digit group) vs an actual decimal
-    // amount like "12.50" — heuristic, but good enough for sort order.
-    normalized = fracPart.length === 3 ? `${intPart}${fracPart}` : `${intPart}.${fracPart}`;
-  }
-  const value = parseFloat(normalized);
-  return Number.isFinite(value) ? value : 0;
-}
-
 /**
  * Section registry — this is the single place to plug in a new Stream
- * Credits section (Members, Super Chats, Gift Members, ...) later.
+ * Credits section later.
  *
  * `viewers` scrapes a YouTube popout on demand (see CaptureManager.
- * fetchLeaderboard). `members` / `superChats` / `giftMembers` instead
- * accumulate live from the classified chat message stream (see
- * CreditsManager#recordMessage below) — YouTube has no equivalent popout
- * for those, but every chat message already arrives pre-classified with
- * eventType/superchatAmountUsd/etc. (shared/chat-message.js), so tracking
- * them as they happen is both simpler and more accurate than scraping.
+ * fetchLeaderboard).
  */
-function buildSectionRegistry(captureManager, creditsManager) {
+function buildSectionRegistry(captureManager) {
   return {
     viewers: {
       label: 'Top Chatters',
       order: 10,
       fetch: () => captureManager.fetchLeaderboard(),
       normalize: normalizeViewerItem,
-    },
-    members: {
-      label: 'Thành viên mới',
-      order: 20,
-      fetch: () => Promise.resolve({ ok: true, items: creditsManager.getLiveMembers() }),
-      normalize: identityItem,
-    },
-    superChats: {
-      label: 'Super Chat',
-      order: 30,
-      fetch: () => Promise.resolve({ ok: true, items: creditsManager.getLiveSuperChats() }),
-      normalize: identityItem,
-    },
-    giftMembers: {
-      label: 'Tặng hội viên',
-      order: 40,
-      fetch: () => Promise.resolve({ ok: true, items: creditsManager.getLiveGiftMembers() }),
-      normalize: identityItem,
     },
   };
 }
@@ -121,8 +61,17 @@ class CreditsManager extends EventEmitter {
   constructor(captureManager, options = {}) {
     super();
     this.captureManager = captureManager;
-    this.registry = buildSectionRegistry(captureManager, this);
+    this.registry = buildSectionRegistry(captureManager);
     this.snapshots = {}; // sectionId -> { ok, items, error, updatedAt }
+
+    // Per-section custom titles (e.g. renaming "Top Chatters" to something
+    // else) — keyed by section id, only holding entries that actually
+    // override the registry's built-in `label`. Empty/whitespace-only
+    // values are never stored (see setSectionLabel): absence of a key here
+    // just means "use the registry default", so a bad/old persisted file
+    // degrades gracefully instead of showing a blank title.
+    this.labelOverrides =
+      options.labels && typeof options.labels === 'object' ? { ...options.labels } : {};
 
     // Playback speed for the credits roll, in names (rows) per second —
     // read by both the dashboard preview (CreditsPanel.jsx) and the OBS
@@ -132,20 +81,6 @@ class CreditsManager extends EventEmitter {
     // unusable/instant scroll or a near-frozen one.
     this.scrollSpeed = clampScrollSpeed(options.scrollSpeed ?? DEFAULT_SCROLL_SPEED);
 
-    // Live-accumulated sections — keyed by author so repeat events (e.g. a
-    // gifter who buys gift memberships twice in one stream) merge into one
-    // row instead of duplicating. Cleared on reset() (new stream connect).
-    // NOTE: these Maps/array keep filling in the background for as long as
-    // we're connected (see recordMessage below), but that data does NOT
-    // automatically flow into `snapshots` / the overlay — no auto-update of
-    // any kind (no polling, no per-message refresh, no refresh on
-    // disconnect). It only becomes visible when the streamer manually hits
-    // "Tải lại" (refreshSection/refreshAll) in the dashboard's Credits tab.
-    this._liveMembers = new Map(); // author -> item
-    this._liveGiftMembers = new Map(); // author -> item (+ _giftCount)
-    this._liveSuperChats = []; // item[] (+ _magnitude, _at), capped
-    this._maxSuperChats = 100;
-
     // Whether the credit roll should be actively scrolling right now.
     // Loading/refreshing data never turns this on by itself — the data
     // shows up and sits still until the streamer explicitly hits "Bắt đầu
@@ -154,8 +89,29 @@ class CreditsManager extends EventEmitter {
     // and the real OBS Browser Source obey the same flag.
     this.isPlaying = false;
 
-    this._onMessage = (message) => this.recordMessage(message);
-    this.captureManager.on('message', this._onMessage);
+    // Which built-in preset (colors/fonts) the Credits overlay renders with.
+    // Purely presentational — never affects data fetching/normalization
+    // above. Falls back to the default preset if a persisted id no longer
+    // matches anything in the library (e.g. after a preset was renamed).
+    this.themeId = getCreditsThemeById(options.themeId) ? options.themeId : DEFAULT_CREDITS_THEME_ID;
+  }
+
+  listThemes() {
+    return listCreditsThemes();
+  }
+
+  getThemeId() {
+    return this.themeId;
+  }
+
+  getTheme() {
+    return getCreditsThemeById(this.themeId) || getCreditsThemeById(DEFAULT_CREDITS_THEME_ID);
+  }
+
+  setThemeId(value) {
+    this.themeId = getCreditsThemeById(value) ? value : this.themeId;
+    this.emit('theme-updated', this.themeId);
+    return this.themeId;
   }
 
   getIsPlaying() {
@@ -178,98 +134,43 @@ class CreditsManager extends EventEmitter {
     return this.scrollSpeed;
   }
 
-  // ── Live chat-message tracking (members / superChats / giftMembers) ─────
-
-  /**
-   * Called for every classified chat message as it arrives while connected.
-   * Purely bookkeeping — accumulates into the in-memory Maps/array below so
-   * the data is ready whenever a snapshot is next taken. Does NOT touch
-   * `snapshots` itself (no more per-message auto-refresh/broadcast).
-   */
-  recordMessage(message) {
-    if (!message) return;
-    if (message.eventType === 'membership_new') {
-      this._recordMember(message);
-    } else if (message.eventType === 'membership_gift_sent') {
-      this._recordGiftMember(message);
-    } else if (message.isSuperchat) {
-      // Covers both 'superchat' and 'sticker' (Super Stickers are paid too).
-      this._recordSuperChat(message);
-    }
-  }
-
-  _recordMember(message) {
-    const author = message.author || 'Ẩn danh';
-    if (this._liveMembers.has(author)) return; // one shout-out per member per stream
-    this._liveMembers.set(author, {
-      rank: null,
-      name: author,
-      avatarUrl: message.avatarUrl || '',
-      scoreLabel: message.membershipTierName || '',
-      badge: 'Thành viên mới',
-    });
-  }
-
-  _recordGiftMember(message) {
-    const author = message.author || 'Ẩn danh';
-    const giftCount = extractGiftCount(message.messageText);
-    const prev = this._liveGiftMembers.get(author);
-    if (prev) {
-      prev._giftCount += giftCount;
-      prev.scoreLabel = `${prev._giftCount} lượt`;
-    } else {
-      this._liveGiftMembers.set(author, {
-        rank: null,
-        name: author,
-        avatarUrl: message.avatarUrl || '',
-        scoreLabel: `${giftCount} lượt`,
-        badge: 'Tặng hội viên',
-        _giftCount: giftCount,
-      });
-    }
-  }
-
-  _recordSuperChat(message) {
-    const amountRaw = message.superchatCurrencyRaw || (message.superchatAmountUsd ? `$${message.superchatAmountUsd}` : '');
-    this._liveSuperChats.push({
-      rank: null,
-      name: message.author || 'Ẩn danh',
-      avatarUrl: message.avatarUrl || '',
-      scoreLabel: amountRaw,
-      badge: message.eventType === 'sticker' ? 'Super Sticker' : '',
-      _magnitude: extractMagnitude(amountRaw) || message.superchatAmountUsd || 0,
-      _at: message.timestamp || Date.now(),
-    });
-    // Biggest support first; keep the list bounded so a long stream doesn't
-    // grow this unboundedly in memory.
-    this._liveSuperChats.sort((a, b) => b._magnitude - a._magnitude || b._at - a._at);
-    if (this._liveSuperChats.length > this._maxSuperChats) {
-      this._liveSuperChats.length = this._maxSuperChats;
-    }
-  }
-
-  getLiveMembers() {
-    // Newest joins first.
-    return Array.from(this._liveMembers.values())
-      .reverse()
-      .map((item, idx) => ({ ...item, rank: idx + 1 }));
-  }
-
-  getLiveGiftMembers() {
-    return Array.from(this._liveGiftMembers.values())
-      .sort((a, b) => b._giftCount - a._giftCount)
-      .map((item, idx) => ({ ...item, rank: idx + 1 }));
-  }
-
-  getLiveSuperChats() {
-    return this._liveSuperChats.map((item, idx) => ({ ...item, rank: idx + 1 }));
-  }
-
-  /** Section metadata only (id + label), ordered — for building generic UI. */
+  /** Section metadata only (id + label), ordered — for building generic UI. `label` already reflects any custom override (see setSectionLabel). */
   listSections() {
     return Object.entries(this.registry)
       .sort((a, b) => (a[1].order || 0) - (b[1].order || 0))
-      .map(([id, def]) => ({ id, label: def.label }));
+      .map(([id, def]) => ({ id, label: this.getSectionLabel(id) }));
+  }
+
+  /** The label a section should render with right now: the streamer's custom title if one is set, otherwise the registry's built-in default. Returns null for an unknown section id. */
+  getSectionLabel(sectionId) {
+    const def = this.registry[sectionId];
+    if (!def) return null;
+    const override = this.labelOverrides[sectionId];
+    return typeof override === 'string' && override.trim() ? override : def.label;
+  }
+
+  /**
+   * Sets (or clears, with an empty/whitespace string) a section's custom
+   * title — this is what lets e.g. "Top Chatters" become anything the
+   * streamer wants. Returns the resulting label so callers can apply it
+   * optimistically without a round-trip.
+   */
+  setSectionLabel(sectionId, value) {
+    if (!this.registry[sectionId]) return this.getSectionLabel(sectionId);
+    const trimmed = typeof value === 'string' ? value.trim().slice(0, MAX_SECTION_LABEL_LENGTH) : '';
+    if (trimmed) {
+      this.labelOverrides[sectionId] = trimmed;
+    } else {
+      delete this.labelOverrides[sectionId];
+    }
+    const resolved = this.getSectionLabel(sectionId);
+    this.emit('label-updated', { sectionId, label: resolved });
+    return resolved;
+  }
+
+  /** All current custom-title overrides, for persistence — see main/index.js's credits-labels.json. */
+  getLabelOverrides() {
+    return { ...this.labelOverrides };
   }
 
   getSnapshot(sectionId) {
@@ -352,17 +253,14 @@ class CreditsManager extends EventEmitter {
   }
 
   // ── Manual-only lifecycle ────────────────────────────────────────────────
-  // No background polling, no per-message auto-refresh, no auto-refresh on
-  // disconnect — Credits data is only ever computed when something
-  // explicitly calls refreshSection()/refreshAll(), i.e. the streamer
-  // hitting "Tải lại" in the dashboard's Credits tab.
+  // No background polling, no auto-refresh on disconnect — Credits data is
+  // only ever computed when something explicitly calls
+  // refreshSection()/refreshAll(), i.e. the streamer hitting "Tải lại" in
+  // the dashboard's Credits tab.
 
   /** Clear cached data, e.g. when connecting to a fresh stream. */
   reset() {
     this.snapshots = {};
-    this._liveMembers.clear();
-    this._liveGiftMembers.clear();
-    this._liveSuperChats = [];
     this.isPlaying = false;
   }
 }

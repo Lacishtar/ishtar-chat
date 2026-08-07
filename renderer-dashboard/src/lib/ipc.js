@@ -33,27 +33,41 @@ function mockPresetId() {
   return `mock-cp-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 }
 
+// [CREDITS - HIDDEN] Mock state for Stream Credits feature (hidden from UI)
 // Shared by the mock's getAllCredits/refreshCreditsSection/refreshAllCredits
 // so they all stay in sync without the object literal below needing to
 // reference itself.
-let mockCreditsScrollSpeed = 2;
-let mockCreditsIsPlaying = false;
-function mockCreditsSnapshots() {
-  return {
-    viewers: {
-      ok: true,
-      updatedAt: new Date().toISOString(),
-      error: null,
-      items: [
-        { rank: '1', avatarUrl: 'https://picsum.photos/id/64/80/80', name: 'Nguyễn Văn A', scoreLabel: '12,450 XP', badge: 'Top Fan' },
-        { rank: '2', avatarUrl: 'https://picsum.photos/id/65/80/80', name: 'Trần Thị B', scoreLabel: '9,820 XP', badge: 'Hội viên 6 tháng' },
-        { rank: '3', avatarUrl: 'https://picsum.photos/id/1062/80/80', name: 'Lê Văn C', scoreLabel: '8,150 XP', badge: 'Hội viên 1 năm' },
-        { rank: '4', avatarUrl: '', name: 'Phạm Quốc D', scoreLabel: '6,300 XP', badge: 'Moderator' },
-        { rank: '5', avatarUrl: '', name: 'Hoàng Anh E', scoreLabel: '4,900 XP', badge: '' },
-      ],
-    },
-  };
-}
+// let mockCreditsScrollSpeed = 2;
+// let mockCreditsIsPlaying = false;
+// let mockCreditsThemeId = 'default';
+// // sectionId -> custom title override, mirrors CreditsManager.labelOverrides
+// // in the real main process (main/credits-manager.js).
+// let mockCreditsLabels = {};
+// const MOCK_CREDITS_DEFAULT_LABELS = { viewers: 'Top Chatters' };
+// const MOCK_CREDITS_THEMES = [
+//   { id: 'default', name: 'Mặc định', description: 'Bảng tối trong suốt, chữ Space Grotesk — phong cách gốc của Credits.', swatch: ['#12141A', '#9fd8ff', '#6e56f0'], layout: 'classic' },
+//   { id: 'minimal-light', name: 'Tối giản sáng', description: 'Nền trắng sạch sẽ, chữ Inter — hợp overlay theme sáng màu. Bố cục lưới 2 cột.', swatch: ['#FFFFFF', '#38BDF8', '#6366F1'], layout: 'grid' },
+//   { id: 'neon-night', name: 'Neon đêm', description: 'Nền đen, chữ mono phát sáng hồng/xanh cyan — kiểu cyberpunk. Thẻ dọc, rank là huy hiệu tròn.', swatch: ['#06060F', '#FF2ED1', '#00F5FF'], layout: 'stacked' },
+//   { id: 'pastel-cute', name: 'Pastel dễ thương', description: 'Hồng pastel bo tròn, chữ Quicksand — hợp kênh vtuber/cute. Thẻ dọc, rank là huy hiệu tròn.', swatch: ['#FFF1F7', '#FFB6D5', '#C58BF2'], layout: 'stacked' },
+//   { id: 'gold-cinematic', name: 'Điện ảnh vàng', description: 'Đen + chữ vàng kiểu credit cuối phim, font Playfair Display.', swatch: ['#0B0B0B', '#F3D98B', '#B8860B'], layout: 'classic' },
+//   { id: 'ocean-breeze', name: 'Biển xanh', description: 'Xanh biển – ngọc lam dịu mắt, chữ Nunito bo tròn thân thiện. Bố cục lưới 2 cột.', swatch: ['#082F49', '#5EEAD4', '#0EA5E9'], layout: 'grid' },
+// ];
+// function mockCreditsSnapshots() {
+//   return {
+//     viewers: {
+//       ok: true,
+//       updatedAt: new Date().toISOString(),
+//       error: null,
+//       items: [
+//         { rank: '1', avatarUrl: 'https://picsum.photos/id/64/80/80', name: 'Nguyễn Văn A', scoreLabel: '12,450 XP', badge: 'Top Fan' },
+//         { rank: '2', avatarUrl: 'https://picsum.photos/id/65/80/80', name: 'Trần Thị B', scoreLabel: '9,820 XP', badge: 'Hội viên 6 tháng' },
+//         { rank: '3', avatarUrl: 'https://picsum.photos/id/1062/80/80', name: 'Lê Văn C', scoreLabel: '8,150 XP', badge: 'Hội viên 1 năm' },
+//         { rank: '4', avatarUrl: '', name: 'Phạm Quốc D', scoreLabel: '6,300 XP', badge: 'Moderator' },
+//         { rank: '5', avatarUrl: '', name: 'Hoàng Anh E', scoreLabel: '4,900 XP', badge: '' },
+//       ],
+//     },
+//   };
+// }
 
 function createMock() {
   console.warn('[ipc] window.api not found — using mock data (running outside Electron).');
@@ -177,38 +191,58 @@ function createMock() {
       statusListeners.forEach((cb) => cb(status));
       return { ok: true };
     },
-    // Stream Credits mocks — shape mirrors what CreditsManager (main process)
-    // produces: items already normalized to { rank, name, avatarUrl,
-    // scoreLabel, badge }.
-    getAllCredits: async () => {
-      await new Promise((res) => setTimeout(res, 300));
-      return {
-        sections: [{ id: 'viewers', label: 'Top Chatters' }],
-        snapshots: mockCreditsSnapshots(),
-        scrollSpeed: mockCreditsScrollSpeed,
-        isPlaying: mockCreditsIsPlaying,
-      };
-    },
-    refreshCreditsSection: async (sectionId) => {
-      await new Promise((res) => setTimeout(res, 300));
-      const snapshots = mockCreditsSnapshots();
-      return snapshots[sectionId] || { ok: false, error: 'Section không tồn tại (mock).', items: [] };
-    },
-    refreshAllCredits: async () => {
-      await new Promise((res) => setTimeout(res, 300));
-      return mockCreditsSnapshots();
-    },
-    getCreditsPlaying: async () => mockCreditsIsPlaying,
-    setCreditsPlaying: async (value) => {
-      mockCreditsIsPlaying = !!value;
-      return mockCreditsIsPlaying;
-    },
-    getCreditsScrollSpeed: async () => mockCreditsScrollSpeed,
-    setCreditsScrollSpeed: async (value) => {
-      const n = Number(value);
-      mockCreditsScrollSpeed = Number.isFinite(n) ? Math.min(5, Math.max(1, n)) : mockCreditsScrollSpeed;
-      return mockCreditsScrollSpeed;
-    },
+    // [CREDITS - HIDDEN] Stream Credits mocks — shape mirrors what CreditsManager (main process)
+    // produces: items already normalized to { rank, name, avatarUrl, scoreLabel, badge }.
+    // getAllCredits: async () => {
+    //   await new Promise((res) => setTimeout(res, 300));
+    //   return {
+    //     sections: [{ id: 'viewers', label: mockCreditsLabels.viewers || MOCK_CREDITS_DEFAULT_LABELS.viewers }],
+    //     snapshots: mockCreditsSnapshots(),
+    //     scrollSpeed: mockCreditsScrollSpeed,
+    //     isPlaying: mockCreditsIsPlaying,
+    //     themeId: mockCreditsThemeId,
+    //   };
+    // },
+    // setCreditsSectionLabel: async (sectionId, label) => {
+    //   if (!(sectionId in MOCK_CREDITS_DEFAULT_LABELS)) {
+    //     return mockCreditsLabels[sectionId] || null;
+    //   }
+    //   const trimmed = typeof label === 'string' ? label.trim().slice(0, 40) : '';
+    //   if (trimmed) {
+    //     mockCreditsLabels = { ...mockCreditsLabels, [sectionId]: trimmed };
+    //   } else {
+    //     const next = { ...mockCreditsLabels };
+    //     delete next[sectionId];
+    //     mockCreditsLabels = next;
+    //   }
+    //   return mockCreditsLabels[sectionId] || MOCK_CREDITS_DEFAULT_LABELS[sectionId];
+    // },
+    // refreshCreditsSection: async (sectionId) => {
+    //   await new Promise((res) => setTimeout(res, 300));
+    //   const snapshots = mockCreditsSnapshots();
+    //   return snapshots[sectionId] || { ok: false, error: 'Section không tồn tại (mock).', items: [] };
+    // },
+    // refreshAllCredits: async () => {
+    //   await new Promise((res) => setTimeout(res, 300));
+    //   return mockCreditsSnapshots();
+    // },
+    // getCreditsPlaying: async () => mockCreditsIsPlaying,
+    // setCreditsPlaying: async (value) => {
+    //   mockCreditsIsPlaying = !!value;
+    //   return mockCreditsIsPlaying;
+    // },
+    // getCreditsScrollSpeed: async () => mockCreditsScrollSpeed,
+    // setCreditsScrollSpeed: async (value) => {
+    //   const n = Number(value);
+    //   mockCreditsScrollSpeed = Number.isFinite(n) ? Math.min(5, Math.max(1, n)) : mockCreditsScrollSpeed;
+    //   return mockCreditsScrollSpeed;
+    // },
+    // listCreditsThemes: async () => MOCK_CREDITS_THEMES,
+    // getCreditsTheme: async () => mockCreditsThemeId,
+    // setCreditsTheme: async (themeId) => {
+    //   if (MOCK_CREDITS_THEMES.some((t) => t.id === themeId)) mockCreditsThemeId = themeId;
+    //   return mockCreditsThemeId;
+    // },
     isThemeDirty: async () => ({ dirty: false, dirtyFields: [] }),
     resetPreset: async () => ({
       ok: true,

@@ -38,3 +38,30 @@
   align-items: center;
   will-change: transform;
 }
+
+/* .ovs-slot above being shrink-wrapped (width: max-content) only fixes
+   *its own* sizing — .ovs-message's own `max-width: 92%` (base-layout.css,
+   meant for the normal stack layout, where 92% keeps a bubble from
+   touching the viewport edges) is a completely separate property on a
+   separate element and is NOT overridden by that. Left in place, it
+   creates a self-referential shrink: .ovs-slot measures its shrink-to-fit
+   width from .ovs-message's full natural content size (percentages don't
+   constrain that intrinsic-size pass), but .ovs-message is then actually
+   laid out at only 92% of the box that was just sized to fit it — a few
+   percent too narrow for its own text/badges, so content spills past the
+   bubble's border instead of the bubble growing to contain it (exactly
+   the "tràn bubble" overflow seen with the mock messages). Horizontal Bar
+   mode never hits this because it reuses the plain in-flow stack layout,
+   where .ovs-message's containing block is the actual viewport-derived
+   row, not a box sized off .ovs-message itself.
+
+   `!important` is required: Fan Service rows (Super Chat / Hội viên —
+   shared/fan-service-config.js's "Chia đôi bubble" reset block) inject
+   their OWN `max-width: 92% !important` straight onto `.ovs-message`,
+   unconditionally, in every display mode — a plain declaration here would
+   lose to that regardless of selector specificity, so the same
+   self-referential shrink bug survived for Fan Service messages even
+   after this rule was first added. */
+#ovs-chat-list[data-ovs-theme-mode='ticker'] .ovs-message {
+  max-width: none !important;
+}

@@ -85,6 +85,10 @@ body {
   gap: var(--ovs-layout-meta-gap, 6px);
   padding: var(--ovs-layout-meta-padding, 0);
   margin: var(--ovs-layout-meta-margin, 0 0 2px 0);
+  /* Let this row shrink below its content's natural width instead of
+     forcing .ovs-body wider — required for .ovs-author's ellipsis truncation
+     below to actually kick in instead of overflowing the bubble. */
+  min-width: 0;
 }
 
 .ovs-author {
@@ -96,14 +100,16 @@ body {
   font-size: var(--ovs-slot-author-font-size, calc(var(--ovs-font-size, 16px) * 0.9));
   color: var(--ovs-slot-author-color, var(--ovs-author-color, #6e56f0));
   opacity: var(--ovs-slot-author-opacity, 1);
-  /* Long display names wrap onto a new line instead of forcing the row to
-     grow past .ovs-message's max-width (92%) — same "break-word" treatment
-     .ovs-text already gets below. Previously this was `nowrap`, which let
-     a long single-line name push the whole bubble wider than the chat
-     area since nowrap text can't shrink to fit its flex container. */
-  white-space: normal;
-  overflow-wrap: break-word;
-  word-break: break-word;
+  /* Keep the display name on a single line and truncate with an ellipsis
+     instead of wrapping. `min-width: 0` lets this flex item shrink below
+     its own content width so the ellipsis can actually take effect rather
+     than pushing .ovs-message past its max-width (92%) — plain `nowrap`
+     without this would do exactly that. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  max-width: 100%;
   text-align: var(--ovs-slot-author-text-align, var(--ovs-text-align, left));
   text-shadow: var(--ovs-slot-author-text-shadow, var(--ovs-text-shadow, none));
 }

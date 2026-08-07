@@ -12,15 +12,7 @@ const DATA_URL = '/overlay/credits/data';
 // an instant postMessage override (see the 'message' listener below).
 const POLL_INTERVAL_MS = 3000;
 
-// Optional per-section icon; unknown section ids just fall back to 🎬.
-const SECTION_ICONS = {
-  viewers: '💬',
-  members: '⭐',
-  superChats: '💎',
-  giftMembers: '🎁',
-};
-
-let lastPayloadJson = null;
+let lastPayloadJson = null; // last dataSignature (sections+snapshots+scrollSpeed only — see poll()), not the whole payload
 let currentTrack = null; // the currently-rendered track element, so play/pause can be applied without a full re-render
 let isPlaying = false; // authoritative source: the polled payload's isPlaying, with an instant local override via postMessage
 let localOverrideUntilNextData = false; // true once a postMessage override has fired, so we don't fight the next poll if it hasn't caught up yet
@@ -61,6 +53,52 @@ let trackIsRunning = false; // whether the rAF loop is actually driving currentT
 // moment it's removed — never an assumed/cached one — so the DOM and the
 // numbers both stay bounded over a multi-hour stream without ever
 // drifting out of sync with what's actually on screen.
+let currentThemeId = null; // last-applied theme id, so a poll with unchanged theme never re-touches the DOM/font link
+
+const LAYOUT_CLASS_PREFIX = 'ovs-credits-layout--';
+const DEFAULT_LAYOUT = 'classic'; // 'classic' has no CSS rules of its own (see credits.html) — it's just "no layout class applied"
+
+// Swaps the `ovs-credits-layout--*` class on #ovs-credits-root so the
+// `.ovs-credits-layout--grid` / `.ovs-credits-layout--stacked` rules in
+// credits.html take over. Pure class bookkeeping — never touches the row
+// markup itself, so it's safe to call on every theme change regardless of
+// whether the layout id actually changed.
+function applyLayout(layoutId) {
+  const root = document.getElementById('ovs-credits-root');
+  if (!root) return;
+  Array.from(root.classList)
+    .filter((cls) => cls.startsWith(LAYOUT_CLASS_PREFIX))
+    .forEach((cls) => root.classList.remove(cls));
+  const resolved = layoutId || DEFAULT_LAYOUT;
+  if (resolved !== DEFAULT_LAYOUT) {
+    root.classList.add(LAYOUT_CLASS_PREFIX + resolved);
+  }
+}
+
+// Applies a Credits theme preset (see shared/credits-theme-presets.js) to the
+// page: every `vars` entry becomes a CSS custom property on :root (picked up
+// immediately by the existing var()-based rules in credits.html), the
+// Google Fonts <link> is swapped only when the preset's font href actually
+// changed (avoids refetching/reflashing fonts on every 3s poll when nothing
+// changed), and the preset's `layout` swaps which row structure renders —
+// see applyLayout() above.
+function applyTheme(theme) {
+  if (!theme || theme.id === currentThemeId) return;
+  currentThemeId = theme.id;
+
+  const root = document.documentElement;
+  Object.entries(theme.vars || {}).forEach(([name, value]) => {
+    root.style.setProperty(name, value);
+  });
+
+  const fontLink = document.getElementById('ovs-credits-font-link');
+  if (fontLink && theme.googleFontHref && fontLink.href !== theme.googleFontHref) {
+    fontLink.href = theme.googleFontHref;
+  }
+
+  applyLayout(theme.layout);
+}
+
 let activeBlocks = []; // the section/items pairs for the current data, reused to build each new pass
 let passEls = []; // pass wrapper elements currently in the track, oldest (topmost) first
 let trackGapPx = 10; // px gap between passes, read from the track's own CSS so JS never hardcodes a value that could drift from the stylesheet
@@ -218,7 +256,7 @@ function el(tag, className, children) {
 
 // `showScore` is false for Top Chatters ("viewers"): XP/score is
 // intentionally left off that section, same as before it had its own grid
-// cells — everyone else (Members, Super Chat, Gift Members) still shows it.
+// cells.
 function buildRow(item, { showScore = true } = {}) {
   const row = el('div', 'ovs-credits-row');
   row.appendChild(el('span', 'ovs-credits-rank', item.rank ? `#${item.rank}` : ''));
@@ -247,17 +285,15 @@ function buildRow(item, { showScore = true } = {}) {
 }
 
 // Every section that has data becomes: [header row] + [item rows] inside
-// ONE shared track, in section.order (viewers -> members -> superChats ->
-// giftMembers). That single track is what scrolls — so Top Chatters,
-// Members, Super Chat and Gift Members roll up together as one continuous
-// crawl, StreamLabs "Stream Credits" style, instead of four independent
-// side-by-side marquees. Every section — including Top Chatters — renders
-// one person per row now; Top Chatters just hides the score column.
+// ONE shared track, in section.order. That single track is what scrolls,
+// StreamLabs "Stream Credits" style. Every section — including Top
+// Chatters — renders one person per row; Top Chatters just hides the score
+// column.
 function appendSectionBlock(container, section, items, isFirst) {
   const headerCls = isFirst ? 'ovs-credits-header' : 'ovs-credits-header ovs-credits-header--spaced';
   container.appendChild(
     el('div', headerCls, [
-      el('span', 'ovs-credits-icon', SECTION_ICONS[section.id] || '🎬'),
+      el('span', 'ovs-credits-accent'),
       el('span', 'ovs-credits-title', section.label),
     ])
   );
@@ -339,9 +375,32 @@ async function poll() {
     if (!res.ok) return;
     const payload = await res.json();
 
-    const json = JSON.stringify(payload);
-    const dataChanged = json !== lastPayloadJson;
-    lastPayloadJson = json;
+    // Applied on every poll (not gated by dataChanged below) so a theme
+    // switch takes effect immediately even while the roll is sitting empty
+    // (no sections with data yet) — applyTheme() itself no-ops once the
+    // same theme id is already active, so this stays cheap.
+    applyTheme(payload.theme);
+
+    // Change detection is deliberately scoped to ONLY the fields that
+    // actually require rebuilding the row DOM: sections/snapshots (who's
+    // shown) and scrollSpeed (pacing math). `theme` and `isPlaying` are
+    // handled separately above/below and must never be part of this
+    // signature — they used to be (this was `JSON.stringify(payload)`,
+    // the whole response), which meant switching a Credits preset, or even
+    // just toggling play/pause, changed the signature and forced a full
+    // render(): every pass/row/avatar element torn down and recreated,
+    // avatars re-fetched, and the crawl reset back to the very top. That's
+    // what made picking a new preset feel like a slow reload even though
+    // the underlying leaderboard data never changed. Theme swaps now only
+    // touch CSS variables + a layout class (see applyTheme/applyLayout) —
+    // instant, and the crawl keeps scrolling exactly where it was.
+    const dataSignature = JSON.stringify({
+      sections: payload.sections,
+      snapshots: payload.snapshots,
+      scrollSpeed: payload.scrollSpeed,
+    });
+    const dataChanged = dataSignature !== lastPayloadJson;
+    lastPayloadJson = dataSignature;
 
     const previousIsPlaying = isPlaying;
 

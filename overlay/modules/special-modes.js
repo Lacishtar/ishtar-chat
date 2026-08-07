@@ -260,7 +260,9 @@ function tickerGapPx() {
   return Number.isFinite(n) && n >= 0 ? n : 32;
 }
 
-function syncTickerPositionAttr() {
+// Exported so socket.js can sync this immediately on `config:updated`
+// (see below for why) — not just lazily inside stepTicker's own rAF loop.
+export function syncTickerPositionAttr() {
   if (!listEl) return;
   const pos = state.currentConfig?.tickerPosition === 'top' ? 'top' : 'bottom';
   listEl.dataset.ovsTickerPosition = pos;
@@ -413,14 +415,21 @@ export function removeTickerMessage(id) {
   }
 }
 
-const MAX_TICKER_REPLAY_HISTORY = 3;
-
+// Unlike danmaku (which caps replay to keep a bounded number of bullets
+// flying at once — they're all visible on screen simultaneously) or the
+// live tickerQueue cap above (MAX_TICKER_QUEUE_SIZE, which protects
+// against unbounded backlog during a live chat burst), ticker's queue
+// already staggers messages onto screen one at a time as space frees up
+// (see stepTicker's spawn loop) — so there's no rendering reason to
+// truncate the initial replay. Previously this capped to only the last 3
+// history entries, silently dropping the rest of e.g. the theme preview's
+// 8-message mockup (horizontal-bar/stack replay the full history with no
+// such cap) instead of just queueing all of them to trickle in over time.
 export function renderTickerHistory(history) {
   resetTicker();
   if (!Array.isArray(history) || history.length === 0) return;
   const ordered = state.currentConfig.position === 'top-down' ? [...history].reverse() : history;
-  const recent = ordered.slice(-MAX_TICKER_REPLAY_HISTORY);
-  recent.forEach((msg) => tickerQueue.push(msg));
+  ordered.forEach((msg) => tickerQueue.push(msg));
   ensureTickerLoopRunning();
 }
 

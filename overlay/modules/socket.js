@@ -6,6 +6,7 @@ import { refreshAllMemberTiers } from './bubble-updater.js';
 import { applyThemePayload } from './theme-loader.js';
 import { enqueueMessage, flushQueue } from './message-queue.js';
 import { renderHistory, clearAllMessages, removeMessageById } from './message-renderer.js';
+import { syncTickerPositionAttr } from './special-modes.js';
 
 export function connectSocket() {
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -32,6 +33,13 @@ export function connectSocket() {
       state.currentConfig = payload.data;
       const modeChanged = syncThemeModeClass();
       applyCssVariables(state.currentConfig, state.currentLayout, state.currentSlotStyle, state.currentAnimation, state.currentRoleStyle);
+      // Ticker's top/bottom position is otherwise only synced lazily inside
+      // its own rAF loop (stepTicker), which only runs while a message is
+      // actively scrolling/queued. If the ticker is idle (no active message)
+      // when "Vị trí thanh Ticker" changes, that loop isn't running, so the
+      // bar silently stayed at the old edge until the next chat message
+      // happened to arrive. Sync it here too so the change is instant.
+      syncTickerPositionAttr();
       refreshAllDecorations();
       refreshAllSlotBunnyEars();
       if (modeChanged) renderHistory(state.messageHistory);
