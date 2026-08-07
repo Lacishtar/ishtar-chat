@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>Stream Credits</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+      }
+
+      /* Hidden entirely (not just empty) when there is no Credits data yet —
+         an OBS source with nothing to show should not paint any box/shadow. */
+      #ovs-credits-root.is-empty {
+        display: none;
+      }
+
+      /* The root itself is now the single scroll viewport — one track
+         carries every section (Top Chatters, Members, Super Chat, Gift
+         Members) back-to-back, so they roll up together as one continuous
+         crawl instead of four independent side-by-side marquees. */
+      #ovs-credits-root {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        box-sizing: border-box;
+        padding: 24px;
+        overflow: hidden;
+        -webkit-mask-image: linear-gradient(to bottom, transparent, black 8%, black 92%, transparent);
+        mask-image: linear-gradient(to bottom, transparent, black 8%, black 92%, transparent);
+      }
+
+      .ovs-credits-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+      }
+
+      /* Every section after the first gets extra breathing room above its
+         header, so the combined crawl still reads as distinct categories. */
+      .ovs-credits-header--spaced {
+        margin-top: 34px;
+      }
+
+      .ovs-credits-icon {
+        font-size: 24px;
+        line-height: 1;
+      }
+
+      .ovs-credits-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #ffffff;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      /* The track no longer runs a CSS @keyframes loop. A fixed keyframe
+         (translateY(0) -> translateY(-X%)) needs the FULL scroll distance
+         known upfront, which is exactly what produced the old "gap" bug for
+         short lists. Instead, credits-client.js drives `transform` directly
+         via requestAnimationFrame and grows the track's content on demand
+         (see the pass-generation comment block there), so gap-free looping
+         no longer depends on measuring/predicting a total height at all. */
+      .ovs-credits-track {
+        position: absolute;
+        top: 0;
+        left: 24px;
+        right: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        will-change: transform;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
+
+      /* One "pass" = one full read-through of every section. Nested flex +
+         gap here (instead of every row being a direct child of the track)
+         is what lets JS append/remove whole passes as cheap, self-contained
+         units while keeping the same 10px rhythm between every row,
+         whether it's within a pass or between two passes. */
+      .ovs-credits-pass {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      /* Note: the old CSS-keyframe version was intentionally NOT gated by
+         `prefers-reduced-motion`, because OBS's Browser Source (CEF)
+         frequently reports `reduce` regardless of the actual OS setting,
+         which silently killed the credits roll-up loop. The JS-driven
+         transform below has the same property for free — it never reads
+         that media feature. Same fix already applied in
+         slot-animations.css / danmaku.css. */
+
+      .ovs-credits-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 8px 18px;
+        background: rgba(15, 17, 23, 0.55);
+        border-radius: 14px;
+        backdrop-filter: blur(4px);
+      }
+
+      .ovs-credits-rank {
+        width: 42px;
+        flex-shrink: 0;
+        text-align: right;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-weight: 700;
+        font-size: 15px;
+        color: #a7adba;
+      }
+
+      .ovs-credits-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        object-fit: cover;
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        flex-shrink: 0;
+      }
+
+      .ovs-credits-avatar--fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(110, 86, 240, 0.4);
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 16px;
+      }
+
+      .ovs-credits-info {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      .ovs-credits-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: #ffffff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-shadow: 0 1px 5px rgba(0, 0, 0, 0.75);
+      }
+
+      .ovs-credits-badge {
+        font-size: 12px;
+        color: #d3d6de;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .ovs-credits-score {
+        flex-shrink: 0;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 15px;
+        font-weight: 700;
+        color: #9fd8ff;
+      }
+
+      /* Top Chatters used to pack 5 people per grid row to save vertical
+         space. Per request, every person now gets their own row — same
+         .ovs-credits-row markup as every other section (Members, Super
+         Chat, Gift Members) — so the whole crawl reads consistently as one
+         person per line. XP/score is still intentionally left off this
+         section (see buildRow's `showScore` option in credits-client.js). */
+    </style>
+  </head>
+  <body>
+    <div id="ovs-credits-root" class="is-empty"></div>
+    <script type="module" src="/overlay/credits-client.js?v=4"></script>
+  </body>
+</html>

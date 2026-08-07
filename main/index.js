@@ -4,6 +4,7 @@ const { app, ipcMain, dialog } = require('electron');
 
 const { createMainWindow } = require('./window-manager');
 const { CaptureManager } = require('./capture-manager');
+const { CreditsManager } = require('./credits-manager');
 const { CustomPresetsStore, validateImportedPresets } = require('./store/custom-presets-store');
 const { PortManager } = require('./port-manager');
 const { mergeLayoutConfig } = require('../shared/layout-config');
@@ -21,6 +22,7 @@ const MAX_HISTORY = 200;
 
 let mainWindow;
 let captureManager;
+let creditsManager;
 let customPresetsStore;
 let portManager;
 let latestStatus = { status: 'idle', error: null, videoId: null };
@@ -39,10 +41,43 @@ function cs() {
   return portManager.getSelected().configStore;
 }
 
+// ── Stream Credits: scroll-speed persistence ────────────────────────────────
+// Global (not per-port) — the credits roll-up speed is a viewing preference,
+// not part of an overlay's visual profile, so one file next to
+// palette-colors.json is enough; no need to fold it into ConfigStore.
+const { MIN_SCROLL_SPEED, MAX_SCROLL_SPEED, DEFAULT_SCROLL_SPEED } = require('./credits-manager');
+
+function creditsScrollSpeedPath() {
+  return path.join(app.getPath('userData'), 'credits-scroll-speed.json');
+}
+
+function loadCreditsScrollSpeed() {
+  try {
+    const raw = fs.readFileSync(creditsScrollSpeedPath(), 'utf-8');
+    const parsed = JSON.parse(raw);
+    const n = Number(parsed?.scrollSpeed);
+    if (Number.isFinite(n)) return Math.min(MAX_SCROLL_SPEED, Math.max(MIN_SCROLL_SPEED, n));
+  } catch { /* first run */ }
+  return DEFAULT_SCROLL_SPEED;
+}
+
+function saveCreditsScrollSpeed(value) {
+  try {
+    fs.writeFileSync(creditsScrollSpeedPath(), JSON.stringify({ scrollSpeed: value }, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[credits-scroll-speed] failed to save:', err);
+  }
+}
+
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 
 async function bootstrap() {
-  portManager = new PortManager(() => messageHistory);
+  portManager = new PortManager(
+    () => messageHistory,
+    () => (creditsManager
+      ? { sections: creditsManager.listSections(), snapshots: creditsManager.getAllSnapshots(), scrollSpeed: creditsManager.getScrollSpeed(), isPlaying: creditsManager.getIsPlaying() }
+      : { sections: [], snapshots: {}, scrollSpeed: 1, isPlaying: false }),
+  );
   customPresetsStore = new CustomPresetsStore();
 
   await portManager.initialize();
@@ -63,10 +98,17 @@ async function bootstrap() {
   });
 
   captureManager = new CaptureManager(mainWindow);
+  // Reuses captureManager.fetchLeaderboard() under the hood, but purely as a
+  // background data source — no UI is tied to it directly anymore.
+  creditsManager = new CreditsManager(captureManager, { scrollSpeed: loadCreditsScrollSpeed() });
 
   captureManager.on('status', (payload) => {
     latestStatus = payload;
     safeSend(mainWindow, 'status:changed', payload);
+    // Credits data is never auto-refreshed here — it accumulates silently
+    // in the background (CreditsManager.recordMessage) and only becomes a
+    // visible snapshot when the streamer manually hits "Tải lại" in the
+    // dashboard's Credits tab.
   });
 
   captureManager.on('message', (message) => {
@@ -106,6 +148,7 @@ function registerIpcHandlers() {
       fanServiceConfig: state.fanServiceConfig,
       lastSessionUrl: state.lastSessionUrl,
       overlayUrl: `http://localhost:${sel.httpPort}/overlay`,
+      creditsOverlayUrl: `http://localhost:${sel.httpPort}/overlay/credits`,
       port: sel.httpPort,
       // Multi-port additions
       ports: portManager.list(),
@@ -118,14 +161,48 @@ function registerIpcHandlers() {
     portManager.ports.forEach(({ configStore }) => configStore.set({ lastSessionUrl: url }));
     messageHistory = [];
     portManager.broadcastAll('chat:cleared', {});
+    // Fresh stream — don't carry over the previous session's Credits data.
+    creditsManager.reset();
     const result = await captureManager.connect(url);
     return result;
   });
 
   ipcMain.handle('app:disconnect', async () => {
+    // No automatic Credits capture here anymore — data only ever updates via
+    // a manual "Tải lại" from the dashboard's Credits tab.
     await captureManager.disconnect();
     messageHistory = [];
     return { ok: true };
+  });
+
+  // ── Stream Credits (background-scraped, section-based) ──────────────────
+
+  ipcMain.handle('credits:get-all', () => ({
+    sections: creditsManager.listSections(),
+    snapshots: creditsManager.getAllSnapshots(),
+    scrollSpeed: creditsManager.getScrollSpeed(),
+    isPlaying: creditsManager.getIsPlaying(),
+  }));
+
+  ipcMain.handle('credits:get-snapshot', (_event, sectionId) => creditsManager.getSnapshot(sectionId));
+
+  ipcMain.handle('credits:refresh-section', async (_event, sectionId) => creditsManager.refreshSection(sectionId));
+
+  ipcMain.handle('credits:refresh-all', async () => creditsManager.refreshAll());
+
+  ipcMain.handle('credits:get-playing', () => creditsManager.getIsPlaying());
+
+  // Turning play ON is the one moment the roll needs to feel instant rather
+  // than waiting for the overlay's next ~poll cycle — see POLL_INTERVAL_MS
+  // in overlay/credits-client.js for the tradeoff.
+  ipcMain.handle('credits:set-playing', (_event, value) => creditsManager.setIsPlaying(value));
+
+  ipcMain.handle('credits:get-scroll-speed', () => creditsManager.getScrollSpeed());
+
+  ipcMain.handle('credits:set-scroll-speed', (_event, value) => {
+    const applied = creditsManager.setScrollSpeed(value);
+    saveCreditsScrollSpeed(applied);
+    return applied;
   });
 
   // ── Palette Lock Colors (global, persisted across restarts) ─────────────────
@@ -204,6 +281,7 @@ function registerIpcHandlers() {
       roleStyleConfig: state.roleStyleConfig,
       fanServiceConfig: state.fanServiceConfig,
       overlayUrl: `http://localhost:${sel.httpPort}/overlay`,
+      creditsOverlayUrl: `http://localhost:${sel.httpPort}/overlay/credits`,
       port: sel.httpPort,
       ports: portManager.list(),
       selectedPortId: id,

@@ -28,6 +28,7 @@ export function getDisplayMode() {
   const mode = state.currentConfig?.displayMode;
   if (mode === 'danmaku') return 'danmaku';
   if (mode === 'ticker') return 'ticker';
+  if (mode === 'horizontal-bar') return 'horizontal-bar';
   return 'stack';
 }
 

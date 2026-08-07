@@ -33,6 +33,28 @@ function mockPresetId() {
   return `mock-cp-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 }
 
+// Shared by the mock's getAllCredits/refreshCreditsSection/refreshAllCredits
+// so they all stay in sync without the object literal below needing to
+// reference itself.
+let mockCreditsScrollSpeed = 2;
+let mockCreditsIsPlaying = false;
+function mockCreditsSnapshots() {
+  return {
+    viewers: {
+      ok: true,
+      updatedAt: new Date().toISOString(),
+      error: null,
+      items: [
+        { rank: '1', avatarUrl: 'https://picsum.photos/id/64/80/80', name: 'Nguyễn Văn A', scoreLabel: '12,450 XP', badge: 'Top Fan' },
+        { rank: '2', avatarUrl: 'https://picsum.photos/id/65/80/80', name: 'Trần Thị B', scoreLabel: '9,820 XP', badge: 'Hội viên 6 tháng' },
+        { rank: '3', avatarUrl: 'https://picsum.photos/id/1062/80/80', name: 'Lê Văn C', scoreLabel: '8,150 XP', badge: 'Hội viên 1 năm' },
+        { rank: '4', avatarUrl: '', name: 'Phạm Quốc D', scoreLabel: '6,300 XP', badge: 'Moderator' },
+        { rank: '5', avatarUrl: '', name: 'Hoàng Anh E', scoreLabel: '4,900 XP', badge: '' },
+      ],
+    },
+  };
+}
+
 function createMock() {
   console.warn('[ipc] window.api not found — using mock data (running outside Electron).');
 
@@ -154,6 +176,38 @@ function createMock() {
       status = { status: 'idle', error: null, videoId: null };
       statusListeners.forEach((cb) => cb(status));
       return { ok: true };
+    },
+    // Stream Credits mocks — shape mirrors what CreditsManager (main process)
+    // produces: items already normalized to { rank, name, avatarUrl,
+    // scoreLabel, badge }.
+    getAllCredits: async () => {
+      await new Promise((res) => setTimeout(res, 300));
+      return {
+        sections: [{ id: 'viewers', label: 'Top Chatters' }],
+        snapshots: mockCreditsSnapshots(),
+        scrollSpeed: mockCreditsScrollSpeed,
+        isPlaying: mockCreditsIsPlaying,
+      };
+    },
+    refreshCreditsSection: async (sectionId) => {
+      await new Promise((res) => setTimeout(res, 300));
+      const snapshots = mockCreditsSnapshots();
+      return snapshots[sectionId] || { ok: false, error: 'Section không tồn tại (mock).', items: [] };
+    },
+    refreshAllCredits: async () => {
+      await new Promise((res) => setTimeout(res, 300));
+      return mockCreditsSnapshots();
+    },
+    getCreditsPlaying: async () => mockCreditsIsPlaying,
+    setCreditsPlaying: async (value) => {
+      mockCreditsIsPlaying = !!value;
+      return mockCreditsIsPlaying;
+    },
+    getCreditsScrollSpeed: async () => mockCreditsScrollSpeed,
+    setCreditsScrollSpeed: async (value) => {
+      const n = Number(value);
+      mockCreditsScrollSpeed = Number.isFinite(n) ? Math.min(5, Math.max(1, n)) : mockCreditsScrollSpeed;
+      return mockCreditsScrollSpeed;
     },
     isThemeDirty: async () => ({ dirty: false, dirtyFields: [] }),
     resetPreset: async () => ({

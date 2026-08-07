@@ -20,10 +20,12 @@
     "smoke:fan-service-cascade": "node scripts/smoke-test-fan-service-cascade.js",
     "smoke:theme-fan-service": "node scripts/smoke-test-theme-fan-service.js",
     "smoke:danmaku": "node scripts/smoke-test-danmaku-config.js",
+    "smoke:horizontal-bar": "node scripts/smoke-test-horizontal-bar-config.js",
     "smoke:chat-message": "node scripts/smoke-test-chat-message.js",
     "smoke:pool-warmup": "node scripts/smoke-test-pool-warmup.mjs",
     "smoke:pool-dynamic": "node scripts/smoke-test-pool-dynamic.mjs",
     "smoke:palette-lock": "node scripts/smoke-test-palette-lock.js",
+    "smoke:credits-live-sections": "node scripts/smoke-test-credits-live-sections.js",
     "verify:decoration-cascade": "node scripts/verify-decoration-cascade.js",
     "verify:layer-split": "node scripts/verify-layer-split.js"
   },

@@ -376,6 +376,145 @@ ipcRenderer.on('capturer:init', (_event, incomingSelectors) => {
   }
 });
 
+function triggerElementClick(el) {
+  if (!el) return;
+  const opts = { bubbles: true, cancelable: true, view: window };
+  try { el.focus?.(); } catch (_e) {}
+  try {
+    el.dispatchEvent(new PointerEvent('pointerdown', opts));
+    el.dispatchEvent(new MouseEvent('mousedown', opts));
+    el.dispatchEvent(new PointerEvent('pointerup', opts));
+    el.dispatchEvent(new MouseEvent('mouseup', opts));
+    el.dispatchEvent(new MouseEvent('click', opts));
+  } catch (_e) {}
+  try {
+    if (typeof el.click === 'function') el.click();
+  } catch (_e) {}
+}
+
+async function fetchViewerLeaderboardSnapshot(requestId) {
+  try {
+    const btn = document.querySelector("#viewer-leaderboard-entry-point button") ||
+                document.querySelector("#viewer-leaderboard-entry-point yt-button-shape button") ||
+                document.querySelector("#viewer-leaderboard-entry-point");
+
+    const initialCount = document.querySelectorAll("ytvl-live-leaderboard-item-view-model").length;
+
+    const panelSel = 'ytvl-live-leaderboard-renderer, #viewer-leaderboard-renderer, ytd-live-chat-leaderboard-renderer';
+    const itemSel = selectors?.leaderboardItem || 'ytvl-live-leaderboard-item-view-model';
+
+    const existingPanel = document.querySelector(panelSel);
+    const originallyOpen = !!(existingPanel || initialCount > 0);
+
+    if (!originallyOpen && btn) {
+      btn.click();
+      triggerElementClick(btn);
+
+      // Theo dõi xem DOM có thay đổi không sau click
+      const _mutationObserver = new MutationObserver((mutations) => {
+        const added = mutations.reduce((sum, m) => sum + m.addedNodes.length, 0);
+        const removed = mutations.reduce((sum, m) => sum + m.removedNodes.length, 0);
+        const countNow = document.querySelectorAll('ytvl-live-leaderboard-item-view-model').length;
+        if (countNow > 0) {
+          _mutationObserver.disconnect();
+        }
+      });
+      _mutationObserver.observe(document.body, { childList: true, subtree: true });
+      // Tự dừng sau 7s phòng leak
+      setTimeout(() => _mutationObserver.disconnect(), 7000);
+
+    }
+
+    const maxWait = 6000;
+    const interval = 150;
+    let elapsed = 0;
+    let itemsFound = document.querySelectorAll(itemSel);
+
+    while (itemsFound.length === 0 && elapsed < maxWait) {
+      if (elapsed === 1500 && !originallyOpen && btn) {
+        btn.click();
+        triggerElementClick(btn);
+      }
+      await new Promise((res) => setTimeout(res, interval));
+      elapsed += interval;
+      itemsFound = document.querySelectorAll(itemSel);
+    }
+
+
+    const items = [];
+    const rankSel = selectors?.leaderboardRank || '.ytvlLiveLeaderboardItemViewModelRankNumber';
+    const avatarSel = selectors?.leaderboardAvatar || 'img';
+    const nameSel = selectors?.leaderboardChannelName || '.ytvlLiveLeaderboardItemChannelContentViewModelChannelName';
+    const xpSel = selectors?.leaderboardXp || '.ytvlLiveLeaderboardItemViewModelPoints';
+    const badgeSel = selectors?.leaderboardBadge || '.ytvlLiveLeaderboardItemChannelContentViewModelBadge button, .ytvlLiveLeaderboardItemChannelContentViewModelBadge';
+
+    itemsFound.forEach((node, index) => {
+      const rankEl = node.querySelector(rankSel);
+      const rank = rankEl ? rankEl.textContent.trim() : `${index + 1}`;
+
+      const avatarUrl = resolveAvatarUrl(node, { avatar: avatarSel });
+
+      const nameEl = node.querySelector(nameSel);
+      const channelName = nameEl ? nameEl.textContent.trim() : '';
+
+      const xpEl = node.querySelector(xpSel);
+      const xp = xpEl ? xpEl.textContent.trim() : '';
+
+      const badgeEl = node.querySelector(badgeSel);
+      let badge = '';
+      if (badgeEl) {
+        badge =
+          badgeEl.getAttribute('aria-label') ||
+          badgeEl.getAttribute('title') ||
+          badgeEl.textContent.trim() ||
+          '';
+      }
+
+      items.push({
+        rank,
+        avatarUrl,
+        channelName,
+        xp,
+        badge,
+      });
+    });
+
+    if (!originallyOpen && btn) {
+      try {
+        const closeBtn = document.querySelector(
+          '#viewer-leaderboard-close-button, ytvl-live-leaderboard-renderer #close-button, #close-button button'
+        );
+        if (closeBtn) {
+          triggerElementClick(closeBtn);
+        } else {
+          btn.click();
+          triggerElementClick(btn);
+        }
+      } catch (closeErr) {
+        console.warn('[leaderboard-debug] Lỗi khi đóng lại panel:', closeErr && closeErr.message);
+      }
+    }
+
+    ipcRenderer.send('capturer:leaderboard-response', {
+      requestId,
+      ok: true,
+      items,
+    });
+  } catch (err) {
+    console.error(`[leaderboard-debug] Exception while parsing leaderboard:`, err);
+    ipcRenderer.send('capturer:leaderboard-response', {
+      requestId,
+      ok: false,
+      error: err && err.message ? err.message : 'Lỗi khi parse bảng xếp hạng',
+      items: [],
+    });
+  }
+}
+
+ipcRenderer.on('capturer:fetch-leaderboard', (_event, requestId) => {
+  fetchViewerLeaderboardSnapshot(requestId);
+});
+
 ipcRenderer.on('capturer:stop', () => {
   stopObserving();
 });

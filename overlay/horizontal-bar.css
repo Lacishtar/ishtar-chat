@@ -1,0 +1,49 @@
+/* Horizontal Bar display mode — messages line up in a single horizontal row
+ * (instead of the vertical column "Xếp chồng"/stack mode uses), and new
+ * messages push older ones off the edge of the screen. Toggled via
+ * customize-config's displayMode === 'horizontal-bar' and reflected here
+ * through the [data-ovs-theme-mode='horizontal-bar'] attribute on
+ * #ovs-chat-list (see overlay/modules/state.js#syncThemeModeClass).
+ *
+ * Unlike ticker/danmaku, this mode reuses the exact same stack render
+ * pipeline (render-queue.js / message-renderer.js) — bubbles are ordinary
+ * flow children of #ovs-chat-list, not absolutely-positioned .ovs-slot
+ * rows animated on their own clock. That means decorations, entrance
+ * animations, idle float/shimmer, Pool warm-up, etc. all keep working
+ * exactly like stack mode; only the container's flex direction and
+ * screen-docking change here.
+ *
+ * Selectors are ID + attribute qualified so they win over the base
+ * #ovs-chat-list rule (base-layout.css) regardless of stylesheet order.
+ */
+
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: auto;
+  height: auto;
+  max-height: 100vh;
+  width: 100vw;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Docks the bar to the top edge instead of the bottom — set via
+   horizontalBarPosition in the dashboard (see css-variables.js). */
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'][data-ovs-horizontal-bar-position='top'] {
+  top: 0;
+  bottom: auto;
+}
+
+/* Bubbles keep their natural width instead of shrinking to fit — this is
+   what makes older bubbles overflow the (overflow: hidden) row and get
+   pushed off-screen as new ones arrive, rather than everything squeezing
+   down to stay visible. */
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] .ovs-message {
+  flex-shrink: 0;
+}

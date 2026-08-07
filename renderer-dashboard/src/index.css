@@ -85,3 +85,27 @@ input[type='range'] {
   }
 }
 
+/* Stream Credits — rolling list, movie-credits style. The list is rendered
+   duplicated (see CreditsOverlayModal.jsx) so translateY(-50%) loops
+   seamlessly back to the start. */
+@keyframes ovsCreditsScroll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+.ovs-credits-scroll {
+  animation-name: ovsCreditsScroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ovs-credits-scroll {
+    animation: none;
+  }
+}
+

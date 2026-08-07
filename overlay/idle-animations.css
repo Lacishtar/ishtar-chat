@@ -14,9 +14,9 @@
    branching is needed here anymore.
 
    Two independent controls on #ovs-chat-list:
-     - data-ovs-idle-animation: 'none' | 'float' | 'slidex' — mutually
-       exclusive with each other (both animate `transform`, so only one
-       of the two can own .ovs-idle's transform at a time).
+     - data-ovs-idle-animation: 'none' | 'float' | 'slidex' | 'scale' — mutually
+       exclusive with each other (all three animate `transform`, so only one
+       of them can own .ovs-idle's transform at a time).
      - data-ovs-idle-shimmer: 'true' | 'false' — fully independent, can be
        on at the same time as float or slidex. It targets .ovs-message's
        own ::after and only ever animates background-position, never
@@ -101,4 +101,22 @@
 #ovs-chat-list[data-ovs-idle-animation='slidex'] .ovs-idle {
   animation: ovs-idle-slidex var(--ovs-idle-animation-duration, 4s) ease-in-out infinite;
   animation-delay: calc(var(--ovs-idle-index, 0) * -0.35s);
+}
+
+/* -- Scale (phóng to / thu nhỏ) -------------------------------
+   Pulses the whole bubble's size up then back down, in place — center
+   origin so it grows/shrinks symmetrically instead of drifting. Reuses
+   the same amplitude/speed sliders as float/slidex (--ovs-idle-scale-
+   amplitude is derived from idleAnimationIntensity as a 1.0-plus-percent
+   multiplier, e.g. intensity 5 -> 1.05 -> a ±5% pulse). */
+@keyframes ovs-idle-scale {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(var(--ovs-idle-scale-amplitude, 1.05)); }
+  100% { transform: scale(1); }
+}
+
+#ovs-chat-list[data-ovs-idle-animation='scale'] .ovs-idle {
+  transform-origin: center center;
+  animation: ovs-idle-scale var(--ovs-idle-animation-duration, 3s) ease-in-out infinite;
+  animation-delay: calc(var(--ovs-idle-index, 0) * -0.4s);
 }

@@ -21,12 +21,14 @@ const { attachWebSocketServer } = require('./server/ws-server');
 class PortManager {
   /**
    * @param {() => object[]} getMessageHistory - returns the shared message history array
+   * @param {() => object} [getCreditsState] - returns { sections, snapshots } for the Stream Credits OBS overlay
    */
-  constructor(getMessageHistory) {
+  constructor(getMessageHistory, getCreditsState) {
     /** @type {Map<string, PortEntry>} */
     this.ports = new Map();
     this.selectedPortId = null;
     this.getMessageHistory = getMessageHistory;
+    this.getCreditsState = getCreditsState || (() => ({ sections: [], snapshots: {} }));
     this.registryPath = path.join(app.getPath('userData'), 'ports-registry.json');
   }
 
@@ -86,13 +88,14 @@ class PortManager {
     const getState = this._makeGetState(id);
 
     // startServer auto-increments port on EADDRINUSE — maxAttempts=20
-    const { server, port: httpPort } = await startServer(getState, preferredPort, 20);
+    const { server, port: httpPort } = await startServer(getState, preferredPort, 20, {
+      getCreditsState: this.getCreditsState,
+    });
     const { broadcast } = attachWebSocketServer(server, getState);
 
     /** @type {PortEntry} */
     const entry = { id, name, httpPort, server, broadcast, configStore };
     this.ports.set(id, entry);
-    console.log(`[port-manager] port "${name}" (${id}) listening on :${httpPort}`);
     return entry;
   }
 
@@ -119,7 +122,6 @@ class PortManager {
     }
 
     this._saveRegistry();
-    console.log(`[port-manager] initialized ${this.ports.size} port(s), selected: ${this.selectedPortId}`);
     return this.selectedPortId;
   }
 
@@ -130,6 +132,7 @@ class PortManager {
       name,
       httpPort,
       overlayUrl: `http://localhost:${httpPort}/overlay`,
+      creditsOverlayUrl: `http://localhost:${httpPort}/overlay/credits`,
       isSelected: id === this.selectedPortId,
     }));
   }

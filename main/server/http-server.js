@@ -8,6 +8,7 @@ const { createSharedEsmRouter } = require('./shared-esm-bridge');
 
 const OVERLAY_DIR = path.join(__dirname, '..', '..', 'overlay');
 const OVERLAY_TEMPLATE = fs.readFileSync(path.join(OVERLAY_DIR, 'index.html'), 'utf-8');
+const CREDITS_TEMPLATE = fs.readFileSync(path.join(OVERLAY_DIR, 'credits.html'), 'utf-8');
 
 const NO_CACHE_STATIC = {
   setHeaders(res) {
@@ -49,6 +50,23 @@ function createApp(getState, options = {}) {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     res.send(html);
+  });
+
+  // Stream Credits — a second, independent OBS Browser Source. Static HTML
+  // shell (no server-side templating needed) + a same-origin JSON endpoint
+  // it polls itself; keeps this fully decoupled from the chat overlay above.
+  app.get('/overlay/credits', (req, res) => {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(CREDITS_TEMPLATE);
+  });
+
+  app.get('/overlay/credits/data', (req, res) => {
+    const creditsState = options.getCreditsState
+      ? options.getCreditsState()
+      : { sections: [], snapshots: {} };
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(creditsState);
   });
 
   // Serves overlay-client.js (and anything else dropped in /overlay) as

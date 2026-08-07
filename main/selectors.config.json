@@ -15,6 +15,13 @@
   "badgeIconImg": "#img img, img",
   "superchatAmount": "#purchase-amount-chip #purchase-amount, #purchase-amount-chip, #purchase-amount",
   "stickerImage": "#sticker img, yt-img-shadow#sticker img, #sticker-container img, #sticker img.yt-img-shadow",
+  "leaderboardEntryPoint": "#viewer-leaderboard-entry-point button, #viewer-leaderboard-entry-point yt-button-shape button, #viewer-leaderboard-entry-point",
+  "leaderboardItem": "ytvl-live-leaderboard-item-view-model",
+  "leaderboardRank": ".ytvlLiveLeaderboardItemViewModelRankNumber",
+  "leaderboardAvatar": "img",
+  "leaderboardChannelName": ".ytvlLiveLeaderboardItemChannelContentViewModelChannelName",
+  "leaderboardXp": ".ytvlLiveLeaderboardItemViewModelPoints",
+  "leaderboardBadge": ".ytvlLiveLeaderboardItemChannelContentViewModelBadge button, .ytvlLiveLeaderboardItemChannelContentViewModelBadge",
   "staleAfterMs": 45000,
   "scanThrottleMs": 80
 }

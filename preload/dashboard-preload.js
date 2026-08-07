@@ -10,6 +10,17 @@ contextBridge.exposeInMainWorld('api', {
   getInitialState: () => ipcRenderer.invoke('app:get-initial-state'),
   connect: (url) => ipcRenderer.invoke('app:connect', url),
   disconnect: () => ipcRenderer.invoke('app:disconnect'),
+
+  // Stream Credits — reuses the Leaderboard scraper in the background; there
+  // is no direct "fetch leaderboard" call from the renderer anymore.
+  getAllCredits: () => ipcRenderer.invoke('credits:get-all'),
+  getCreditsSnapshot: (sectionId) => ipcRenderer.invoke('credits:get-snapshot', sectionId),
+  refreshCreditsSection: (sectionId) => ipcRenderer.invoke('credits:refresh-section', sectionId),
+  refreshAllCredits: () => ipcRenderer.invoke('credits:refresh-all'),
+  getCreditsPlaying: () => ipcRenderer.invoke('credits:get-playing'),
+  setCreditsPlaying: (value) => ipcRenderer.invoke('credits:set-playing', value),
+  getCreditsScrollSpeed: () => ipcRenderer.invoke('credits:get-scroll-speed'),
+  setCreditsScrollSpeed: (value) => ipcRenderer.invoke('credits:set-scroll-speed', value),
   isThemeDirty: () => ipcRenderer.invoke('theme:is-dirty'),
   resetPreset: () => ipcRenderer.invoke('theme:reset-preset'),
   getThemeList: () => ipcRenderer.invoke('theme:list'),

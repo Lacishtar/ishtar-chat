@@ -1,6 +1,9 @@
-/* Decoration layers — stack themes only. */
+/* Decoration layers — stack + horizontal-bar modes only (both render normal
+   bubbles via the shared stack pipeline; danmaku/ticker use their own
+   absolutely-positioned .ovs-slot rows and never apply decorations). */
 
-#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-message {
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-message,
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] .ovs-message {
   position: relative !important;
   isolation: isolate;
   overflow: visible;
@@ -11,7 +14,13 @@
 #ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-meta,
 #ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-decoration-anchor,
 #ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-author,
-#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-text {
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-text,
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] .ovs-message,
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] .ovs-body,
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] .ovs-meta,
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] .ovs-decoration-anchor,
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] .ovs-author,
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] .ovs-text {
   overflow: visible;
 }
 
@@ -19,7 +28,12 @@
 #ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-meta,
 #ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-decoration-anchor,
 #ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-author,
-#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-text {
+#ovs-chat-list[data-ovs-theme-mode='stack'] .ovs-text,
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] .ovs-body,
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] .ovs-meta,
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] .ovs-decoration-anchor,
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] .ovs-author,
+#ovs-chat-list[data-ovs-theme-mode='horizontal-bar'] .ovs-text {
   position: relative;
 }
 

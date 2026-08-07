@@ -99,6 +99,7 @@ export function applyCssVariables(config, layout, slotStyle, animationConfig, ro
     '--ovs-idle-animation-duration': cfg.idleAnimationSpeed != null ? `${cfg.idleAnimationSpeed}s` : '3s',
     '--ovs-idle-float-amplitude': cfg.idleAnimationIntensity != null ? `-${Math.abs(cfg.idleAnimationIntensity)}px` : '-5px',
     '--ovs-idle-slidex-amplitude': cfg.idleAnimationIntensity != null ? `${Math.abs(cfg.idleAnimationIntensity)}px` : '5px',
+    '--ovs-idle-scale-amplitude': cfg.idleAnimationIntensity != null ? String(1 + Math.abs(cfg.idleAnimationIntensity) / 100) : '1.05',
     '--ovs-idle-shimmer-duration': cfg.idleShimmerSpeed != null ? `${cfg.idleShimmerSpeed}s` : '3s',
     '--ovs-idle-shimmer-opacity': cfg.idleShimmerIntensity != null
       ? String(Math.round(Math.min(Math.max(cfg.idleShimmerIntensity, 0), 20) * 10) / 1000)
@@ -132,6 +133,9 @@ export function applyCssVariables(config, layout, slotStyle, animationConfig, ro
   delete root.dataset.ovsBubbleScope;
 
   listEl.classList.toggle('ovs-position-top-down', config.position === 'top-down');
+  // Which screen edge the Horizontal Bar row docks to — read by
+  // overlay/horizontal-bar.css. Harmless to set even outside that mode.
+  listEl.dataset.ovsHorizontalBarPosition = cfg.horizontalBarPosition === 'top' ? 'top' : 'bottom';
 
   // Set idle animation type on list element — CSS selector gates on this attribute
   const idleAnim = cfg.idleAnimation || 'none';

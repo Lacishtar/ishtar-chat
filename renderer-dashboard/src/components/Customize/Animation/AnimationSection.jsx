@@ -7,9 +7,10 @@ const ANIMATION_STYLE_OPTIONS = Object.entries(ANIMATION_STYLE_PRESETS).map(([va
 }));
 
 export default function AnimationSection({ local, onChange, animLocal, onAnimationChange }) {
-  const displayMode = ['danmaku', 'ticker'].includes(local.displayMode) ? local.displayMode : 'stack';
+  const displayMode = ['danmaku', 'ticker', 'horizontal-bar'].includes(local.displayMode) ? local.displayMode : 'stack';
   const isDanmaku = displayMode === 'danmaku';
   const isTicker = displayMode === 'ticker';
+  const isHorizontalBar = displayMode === 'horizontal-bar';
 
   return (
     <>
@@ -19,6 +20,7 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
             <option value="stack">Xếp chồng (mặc định)</option>
             <option value="danmaku">Đạn bay (Danmaku) — bay tự do trên màn hình</option>
             <option value="ticker">Chat Ticker — cuộn ngang nối đuôi có hàng đợi (Queue)</option>
+            <option value="horizontal-bar">Horizontal Bar — xếp chồng theo hàng ngang, tin mới đẩy tin cũ ra khỏi màn hình</option>
           </select>
         </Field>
       </div>
@@ -97,6 +99,29 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
             </Field>
           </div>
         </>
+      ) : isHorizontalBar ? (
+        <>
+          <div className="col-span-2">
+            <Field label="Vị trí thanh Horizontal Bar">
+              <select
+                className={inputClass}
+                value={local.horizontalBarPosition ?? 'bottom'}
+                onChange={(e) => onChange({ horizontalBarPosition: e.target.value })}
+              >
+                <option value="bottom">Cạnh dưới màn hình (Bottom)</option>
+                <option value="top">Cạnh trên màn hình (Top)</option>
+              </select>
+            </Field>
+          </div>
+          <div className="col-span-2">
+            <Field label="Vị trí tin mới">
+              <select className={inputClass} value={local.position} onChange={(e) => onChange({ position: e.target.value })}>
+                <option value="bottom-up">Tin mới bên phải</option>
+                <option value="top-down">Tin mới bên trái</option>
+              </select>
+            </Field>
+          </div>
+        </>
       ) : (
         <div className="col-span-2">
           <Field label="Vị trí tin mới">
@@ -165,6 +190,7 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
             <option value="none">Không có</option>
             <option value="float">Float / Bob — lên xuống nhẹ nhàng</option>
             <option value="slidex">Slide X — lắc trái phải</option>
+            <option value="scale">Scale — phóng to/thu nhỏ nhịp nhàng</option>
           </select>
         </Field>
       </div>
@@ -180,7 +206,7 @@ export default function AnimationSection({ local, onChange, animLocal, onAnimati
             onChange={(e) => onChange({ idleAnimationSpeed: Number(e.target.value) })}
           />
         </Field>
-        <Field label={`Biên độ — ${local.idleAnimationIntensity ?? 5}px`}>
+        <Field label={`Biên độ — ${local.idleAnimationIntensity ?? 5}${local.idleAnimation === 'scale' ? '%' : 'px'}`}>
           <input
             type="range"
             min={1}

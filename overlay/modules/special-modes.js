@@ -10,7 +10,43 @@ const BASE_LANE_DURATION_SEC = [9, 11, 8, 10, 12, 9, 11, 8, 10, 12, 9, 11];
 const DEFAULT_LANE_EDGE_MARGIN_PCT = 4;
 const MIN_FLYABLE_BAND_PCT = 10;
 
-let danmakuLaneCursor = 0;
+// How many bullets are allowed to fly in the SAME lane at the same time.
+// >1 is what makes a lane feel "busy" during chat bursts instead of every
+// message queueing up one lane apart; 3 keeps a lane readable (bullets in
+// the same lane still start at staggered times/x-positions, they just no
+// longer have to wait for the lane to be completely empty first).
+const LANE_MAX_CONCURRENT = 3;
+
+// Minimum horizontal gap (px) enforced between the trailing edge of a
+// just-spawned bullet and the next bullet allowed to spawn in the same
+// lane. Bullets always start at the same x (left:100%), so without this,
+// two messages assigned to the same lane in quick succession (a chat
+// burst) would spawn almost on top of each other and stay visually
+// overlapped for their entire flight, since same-lane bullets move at
+// identical speed and never close the gap they spawned with.
+const DANMAKU_LANE_SPAWN_GAP_PX = 24;
+
+// Per-lane bookkeeping (indexed by lane number) of when that lane will
+// next have enough clearance for another bullet, derived from the width
+// of the most recently spawned bullet in that lane and the lane's speed.
+// This is separate from countLaneOccupancy() (which only limits *how
+// many* bullets share a lane) — this prevents them from overlapping
+// regardless of the count cap.
+const laneClearAt = new Array(MAX_LANE_COUNT).fill(0);
+
+// Total on-screen bullets across ALL lanes — a flat perf/readability cap
+// regardless of the lane-count setting. Scaled off laneCount() (with a
+// floor) so raising "Số làn" also raises how many bullets can be in
+// flight at once; otherwise a high lane count would rarely let any lane
+// reach LANE_MAX_CONCURRENT and the multi-bullet-per-lane behavior above
+// would almost never actually show up.
+const MIN_DANMAKU_CONCURRENT_NODES = 8;
+const DANMAKU_CONCURRENT_NODES_PER_LANE = 1.5;
+
+function maxConcurrentNodes() {
+  const total = laneCount();
+  return Math.max(MIN_DANMAKU_CONCURRENT_NODES, Math.round(total * DANMAKU_CONCURRENT_NODES_PER_LANE));
+}
 
 function laneCount() {
   const n = Number(state.currentConfig?.danmakuLanes);
@@ -54,15 +90,93 @@ function laneDurationSec(lane) {
   return base / speedMultiplier();
 }
 
-export function resetDanmaku() {
-  danmakuLaneCursor = 0;
+// Bullets travel 200vw over laneDurationSec(lane) seconds (see
+// danmaku.css), so this converts that into a px/sec rate for the given
+// lane, used to translate a pixel gap into a "wait this long" duration.
+function laneSpeedPxPerSec(lane) {
+  const viewportWidth = (listEl && listEl.clientWidth) || window.innerWidth || 1;
+  const distancePx = viewportWidth * 2; // matches translateX(-200vw)
+  return distancePx / laneDurationSec(lane);
 }
 
+export function resetDanmaku() {
+  // Lane occupancy is derived live from the DOM (see countLaneOccupancy())
+  // rather than kept in a running counter, so there is nothing to reset
+  // here beyond the DOM itself — callers (clearAllMessages/
+  // renderDanmakuHistory) already clear listEl separately. Kept as a
+  // no-op export so those call sites don't need to change.
+  //
+  // laneClearAt IS reset here though: it holds absolute performance.now()
+  // timestamps, and stale future timestamps from before a clear (e.g. a
+  // theme/config change) must not block lanes once the DOM is empty.
+  laneClearAt.fill(0);
+}
+
+// Counts how many bullets currently in the DOM are in each lane.
+function countLaneOccupancy(total) {
+  const counts = new Array(total).fill(0);
+  if (!listEl) return counts;
+  for (const child of listEl.children) {
+    const laneAttr = child.dataset ? child.dataset.danmakuLane : undefined;
+    if (laneAttr === undefined) continue;
+    const lane = Number(laneAttr);
+    if (Number.isInteger(lane) && lane >= 0 && lane < total) counts[lane] += 1;
+  }
+  return counts;
+}
+
+// Randomly picks a lane that still has room (< LANE_MAX_CONCURRENT active
+// bullets) instead of always advancing to "the next lane" — every new
+// message gets an unpredictable lane, and lanes are freely reused while
+// they still have a free slot, letting 2-3 bullets share a lane at once.
+// Falls back to the least-occupied lane on the rare chance every lane is
+// already full (appendDanmakuMessage's maxConcurrentNodes() cap makes
+// this essentially unreachable in practice).
 function pickDanmakuLane() {
   const total = laneCount();
-  const lane = danmakuLaneCursor % total;
-  danmakuLaneCursor += 1;
+  const counts = countLaneOccupancy(total);
+  const now = performance.now();
+
+  // Lanes with room (< LANE_MAX_CONCURRENT) AND enough spawn clearance
+  // (see laneClearAt) — i.e. actually safe to reuse without overlapping
+  // the last bullet spawned there.
+  const clearCandidates = [];
+  // Lanes with room but not yet clear — used as a fallback so a lane
+  // isn't rejected outright just for being momentarily too close; better
+  // than colliding, but still preferred over reusing a full lane.
+  const roomyCandidates = [];
+  let leastLane = 0;
+  let leastCount = Infinity;
+  for (let i = 0; i < total; i += 1) {
+    const count = counts[i];
+    if (count < leastCount) {
+      leastCount = count;
+      leastLane = i;
+    }
+    if (count < LANE_MAX_CONCURRENT) {
+      roomyCandidates.push(i);
+      if (now >= laneClearAt[i]) clearCandidates.push(i);
+    }
+  }
+
+  const pool = clearCandidates.length > 0
+    ? clearCandidates
+    : (roomyCandidates.length > 0 ? roomyCandidates : null);
+
+  const lane = pool
+    ? pool[Math.floor(Math.random() * pool.length)]
+    : leastLane;
   return { lane, total };
+}
+
+// Records when `lane` will next have enough clearance for another
+// bullet, based on the just-spawned node's actual rendered width (must
+// be called after the node is in the DOM) and the lane's speed.
+function markLaneSpawn(lane, node) {
+  const width = node.offsetWidth || 0;
+  const speed = laneSpeedPxPerSec(lane);
+  const gapMs = ((width + DANMAKU_LANE_SPAWN_GAP_PX) / speed) * 1000;
+  laneClearAt[lane] = performance.now() + gapMs;
 }
 
 function bindDanmakuRemoval(node) {
@@ -84,10 +198,8 @@ function trimDanmakuOverflow() {
   }
 }
 
-const MAX_DANMAKU_CONCURRENT_NODES = 8;
-
 export function appendDanmakuMessage(msg) {
-  if (listEl && listEl.children.length >= MAX_DANMAKU_CONCURRENT_NODES) {
+  if (listEl && listEl.children.length >= maxConcurrentNodes()) {
     return;
   }
   const node = createMessageNode(msg, { skipEnterAnimation: true });
@@ -100,6 +212,7 @@ export function appendDanmakuMessage(msg) {
   bindDanmakuRemoval(node);
 
   listEl.appendChild(node);
+  markLaneSpawn(lane, node);
   trimDanmakuOverflow();
 }
 
